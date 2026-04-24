@@ -26,6 +26,8 @@ services:
     environment:
       DATABASE_URL: postgresql://buena:buena@postgres:5432/buena
       ENVIRONMENT: development
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
     ports:
       - "8000:8000"
     depends_on:
@@ -42,6 +44,7 @@ services:
     container_name: buena_frontend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      BACKEND_URL: http://backend:8000
     ports:
       - "3000:3000"
     depends_on:
