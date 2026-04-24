@@ -18,7 +18,7 @@ interface ProposalReviewProps {
 }
 
 type ActionMode = "idle" | "editing" | "rejecting";
-type MemoryMode = "idle" | "editing";
+type MemoryMode = "idle" | "editing" | "rejecting";
 
 function statusLabel(status: string): string {
   const map: Record<string, string> = {
@@ -349,6 +349,7 @@ function MemoryDecisionPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editedMemoryMd, setEditedMemoryMd] = useState(suggestedUpdate ?? "");
+  const [rejectionReason, setRejectionReason] = useState("");
   const [currentStatus, setCurrentStatus] = useState(memoryStatus);
   const [newVersionNumber, setNewVersionNumber] = useState<number | null>(null);
   const isDone = isDecisionFinal(currentStatus);
@@ -369,6 +370,19 @@ function MemoryDecisionPanel({
     return res.json();
   }
 
+  /** Fetch the latest context version number for a property after an approval. */
+  async function fetchLatestContextVersion(pid: string): Promise<number | null> {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/properties/${pid}/context/versions`);
+      if (!res.ok) return null;
+      const versions: Array<{ version: number }> = await res.json();
+      if (!versions || versions.length === 0) return null;
+      return versions[0].version; // versions are sorted desc
+    } catch {
+      return null;
+    }
+  }
+
   async function handleApprove() {
     setIsLoading(true);
     setError(null);
@@ -376,10 +390,13 @@ function MemoryDecisionPanel({
       await post(`/api/v1/proposals/${proposalId}/memory/approve`, {
         reviewed_by: "operator",
       });
-      const nextVersion = currentContextVersion ? currentContextVersion + 1 : null;
-      setNewVersionNumber(nextVersion);
+      // Fetch actual new version rather than guessing
+      const actualVersion = propertyId
+        ? await fetchLatestContextVersion(propertyId)
+        : (currentContextVersion ? currentContextVersion + 1 : null);
+      setNewVersionNumber(actualVersion);
       setCurrentStatus("approved");
-      onDone("approved", nextVersion ?? undefined);
+      onDone("approved", actualVersion ?? undefined);
     } catch (e: unknown) {
       setError((e as Error).message ?? "Unknown error");
     } finally {
@@ -399,10 +416,13 @@ function MemoryDecisionPanel({
         reviewed_by: "operator",
         edited_context_md: editedMemoryMd,
       });
-      const nextVersion = currentContextVersion ? currentContextVersion + 1 : null;
-      setNewVersionNumber(nextVersion);
+      // Fetch actual new version rather than guessing
+      const actualVersion = propertyId
+        ? await fetchLatestContextVersion(propertyId)
+        : (currentContextVersion ? currentContextVersion + 1 : null);
+      setNewVersionNumber(actualVersion);
       setCurrentStatus("edited");
-      onDone("edited", nextVersion ?? undefined);
+      onDone("edited", actualVersion ?? undefined);
     } catch (e: unknown) {
       setError((e as Error).message ?? "Unknown error");
     } finally {
@@ -416,6 +436,7 @@ function MemoryDecisionPanel({
     try {
       await post(`/api/v1/proposals/${proposalId}/memory/reject`, {
         reviewed_by: "operator",
+        rejection_reason: rejectionReason || undefined,
       });
       setCurrentStatus("rejected");
       onDone("rejected");
@@ -566,6 +587,33 @@ function MemoryDecisionPanel({
                   </button>
                 </div>
               </div>
+            ) : mode === "rejecting" ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500 font-medium">Reason for skipping (optional):</p>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-3 h-20 resize-none focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  placeholder="Explain why the context update is being skipped…"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleReject}
+                    disabled={isLoading}
+                    className="flex-1 py-2.5 px-4 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? <LoadingSpinner small /> : "✗ Confirm Skip"}
+                  </button>
+                  <button
+                    onClick={() => setMode("idle")}
+                    disabled={isLoading}
+                    className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="flex gap-2">
                 <button
@@ -590,7 +638,7 @@ function MemoryDecisionPanel({
                   ✎ Edit First
                 </button>
                 <button
-                  onClick={handleReject}
+                  onClick={() => setMode("rejecting")}
                   disabled={isLoading}
                   className="flex-1 py-2.5 px-4 bg-slate-50 hover:bg-slate-100 text-slate-600 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 border border-slate-200"
                 >
