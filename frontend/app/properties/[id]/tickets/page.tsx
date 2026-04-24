@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { SimulatePanel } from "../../../tickets/SimulatePanel";
+import { TicketFilterTabs } from "../../../components/TicketFilterTabs";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.BACKEND_URL || "http://localhost:8000";
 
 interface Property {
   id: string;
@@ -22,6 +24,7 @@ interface Ticket {
     id: string;
     risk_level: string;
     action_status: string;
+    memory_status: string;
   } | null;
 }
 
@@ -55,12 +58,12 @@ function StatusBadge({ status }: { status: string }) {
     open: "bg-amber-100 text-amber-700",
     proposed: "bg-blue-100 text-blue-700",
     approved: "bg-green-100 text-green-700",
-    resolved: "bg-slate-100 text-slate-600",
+    resolved: "bg-emerald-100 text-emerald-700",
     rejected: "bg-red-100 text-red-700",
   };
   return (
     <span
-      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
         styles[status] ?? "bg-slate-100 text-slate-600"
       }`}
     >
@@ -76,129 +79,189 @@ function RiskBadge({ risk }: { risk: string }) {
     high: "bg-red-100 text-red-700",
     critical: "bg-red-200 text-red-900",
   };
+  const icons: Record<string, string> = {
+    low: "✓",
+    medium: "⚡",
+    high: "⚠",
+    critical: "🚨",
+  };
   return (
     <span
-      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+      className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium ${
         styles[risk] ?? "bg-slate-100 text-slate-600"
       }`}
     >
-      ⚠ {risk}
+      {icons[risk] ?? "⚠"} {risk}
     </span>
+  );
+}
+
+function TicketRow({ ticket }: { ticket: Ticket }) {
+  const date = new Date(ticket.created_at).toLocaleDateString("en-DE", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <Link
+      href={`/tickets/${ticket.id}`}
+      className="flex items-start justify-between gap-3 card p-4 hover:shadow-md transition-shadow group"
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+          <StatusBadge status={ticket.status} />
+          {ticket.proposal && (
+            <RiskBadge risk={ticket.proposal.risk_level} />
+          )}
+          <span className="text-xs text-slate-400">{ticket.source}</span>
+        </div>
+        <h3 className="font-semibold text-slate-900 group-hover:text-brand-700 transition-colors truncate">
+          {ticket.subject}
+        </h3>
+        <p className="text-sm text-slate-500 mt-0.5">{ticket.raised_by}</p>
+        <p className="text-sm text-slate-400 mt-1 line-clamp-2">{ticket.body}</p>
+      </div>
+      <div className="text-right flex-shrink-0 mt-0.5">
+        <p className="text-xs text-slate-400">{date}</p>
+        {ticket.proposal?.action_status === "pending" && (
+          <p className="text-xs text-brand-600 mt-1 font-medium">Review →</p>
+        )}
+        {ticket.status === "resolved" && (
+          <p className="text-xs text-green-600 mt-1 font-medium">✓ Done</p>
+        )}
+      </div>
+    </Link>
   );
 }
 
 export default async function PropertyTicketsPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams: { status?: string };
 }) {
+  const { id } = params;
+  const activeStatus = searchParams.status ?? "all";
+
   const [property, tickets] = await Promise.all([
-    getProperty(params.id),
-    getTickets(params.id),
+    getProperty(id),
+    getTickets(id),
   ]);
 
   if (!property) notFound();
 
+  // Sort by most recent first
   const sortedTickets = [...tickets].sort(
     (a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-        <a href="/" className="hover:text-slate-900 transition-colors">
-          Properties
-        </a>
-        <span>/</span>
-        <span className="text-slate-900 font-medium">{property.name}</span>
-        <span>/</span>
-        <span className="text-slate-600">Tickets</span>
-      </nav>
+  // Filter by status
+  const filteredTickets =
+    activeStatus === "all"
+      ? sortedTickets
+      : sortedTickets.filter((t) => t.status === activeStatus);
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{property.name}</h1>
-          {property.slack_channel && (
-            <p className="text-sm text-slate-500 mt-0.5">{property.slack_channel}</p>
-          )}
-        </div>
-        <div className="flex gap-3">
-          <a
-            href={`/api/v1/properties/${property.id}/context`}
-            target="_blank"
-            className="text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors"
+  // Counts for filter tabs
+  const counts = {
+    all: tickets.length,
+    open: tickets.filter((t) => t.status === "open").length,
+    proposed: tickets.filter((t) => t.status === "proposed").length,
+    resolved: tickets.filter((t) => t.status === "resolved").length,
+    rejected: tickets.filter((t) => t.status === "rejected").length,
+  };
+
+  return (
+    <div className="min-h-full">
+      {/* Page header */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
+        <nav className="flex items-center gap-2 text-sm text-slate-500 mb-3">
+          <a href="/" className="hover:text-slate-900 transition-colors">
+            Properties
+          </a>
+          <span>/</span>
+          <span className="text-slate-900 font-medium">{property.name}</span>
+          <span>/</span>
+          <span className="text-slate-600">Tickets</span>
+        </nav>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Ticket Inbox</h1>
+            <p className="text-sm text-slate-500 mt-0.5">{property.name}</p>
+          </div>
+          <Link
+            href={`/properties/${id}/context`}
+            className="text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors flex-shrink-0"
           >
             View Context →
-          </a>
+          </Link>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        {[
-          { label: "Total", count: tickets.length, color: "text-slate-900" },
-          { label: "Open", count: tickets.filter((t) => t.status === "open").length, color: "text-amber-600" },
-          { label: "Proposed", count: tickets.filter((t) => t.status === "proposed").length, color: "text-blue-600" },
-          { label: "Resolved", count: tickets.filter((t) => t.status === "resolved").length, color: "text-green-600" },
-        ].map((s) => (
-          <div key={s.label} className="card p-3 text-center">
-            <p className={`text-xl font-bold ${s.color}`}>{s.count}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Simulate panel */}
-      <SimulatePanel />
-
-      {/* Tickets */}
-      {sortedTickets.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-slate-500">No tickets for this property yet.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {sortedTickets.map((ticket) => (
-            <a
-              key={ticket.id}
-              href={`/tickets/${ticket.id}`}
-              className="block card p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <StatusBadge status={ticket.status} />
-                    {ticket.proposal && (
-                      <RiskBadge risk={ticket.proposal.risk_level} />
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-slate-900 truncate">
-                    {ticket.subject}
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-0.5">{ticket.raised_by}</p>
-                  <p className="text-sm text-slate-400 mt-1 line-clamp-2">
-                    {ticket.body}
-                  </p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-xs text-slate-400">
-                    {new Date(ticket.created_at).toLocaleDateString("en-DE", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </p>
-                  {ticket.proposal &&
-                    ticket.proposal.action_status === "pending" && (
-                      <p className="text-xs text-brand-600 mt-1">Review →</p>
-                    )}
-                </div>
-              </div>
-            </a>
+      <div className="px-6 py-6 max-w-4xl">
+        {/* Stats row */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {[
+            { label: "Total", count: counts.all, color: "text-slate-900" },
+            { label: "Open", count: counts.open, color: "text-amber-600" },
+            { label: "Proposed", count: counts.proposed, color: "text-blue-600" },
+            { label: "Resolved", count: counts.resolved, color: "text-green-600" },
+          ].map((s) => (
+            <div key={s.label} className="card p-3 text-center">
+              <p className={`text-xl font-bold ${s.color}`}>{s.count}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+            </div>
           ))}
         </div>
-      )}
+
+        {/* Simulate panel */}
+        <SimulatePanel />
+
+        {/* Filter tabs */}
+        <div className="mb-5">
+          <TicketFilterTabs counts={counts} activeStatus={activeStatus} />
+        </div>
+
+        {/* Ticket list */}
+        {filteredTickets.length === 0 ? (
+          <div className="card p-12 text-center">
+            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg
+                className="w-6 h-6 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+            </div>
+            <p className="text-slate-600 font-medium">
+              {activeStatus === "all"
+                ? "No tickets yet"
+                : `No ${activeStatus} tickets`}
+            </p>
+            {activeStatus === "all" && (
+              <p className="text-sm text-slate-400 mt-1">
+                Use the panel above to simulate a ticket.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredTickets.map((ticket) => (
+              <TicketRow key={ticket.id} ticket={ticket} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

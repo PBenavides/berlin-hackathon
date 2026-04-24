@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { SimulatePanel } from "./SimulatePanel";
+import { TicketFilterTabs } from "../components/TicketFilterTabs";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.BACKEND_URL || "http://localhost:8000";
 
 interface Property {
   id: string;
@@ -57,7 +59,7 @@ function StatusBadge({ status }: { status: string }) {
     proposed: "bg-blue-100 text-blue-700",
     approved: "bg-green-100 text-green-700",
     edited: "bg-purple-100 text-purple-700",
-    resolved: "bg-slate-100 text-slate-600",
+    resolved: "bg-emerald-100 text-emerald-600",
     rejected: "bg-red-100 text-red-700",
   };
   return (
@@ -104,46 +106,48 @@ function TicketRow({
   });
 
   return (
-    <a
+    <Link
       href={`/tickets/${ticket.id}`}
-      className="block card p-4 hover:shadow-md transition-shadow"
+      className="flex items-start justify-between gap-3 card p-4 hover:shadow-md transition-shadow group"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <StatusBadge status={ticket.status} />
-            {ticket.proposal && (
-              <RiskBadge risk={ticket.proposal.risk_level} />
-            )}
-          </div>
-          <h3 className="font-semibold text-slate-900 truncate">
-            {ticket.subject}
-          </h3>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {ticket.raised_by}
-            <span className="mx-1.5 text-slate-300">·</span>
-            {propertyName}
-          </p>
-          <p className="text-sm text-slate-400 mt-1 line-clamp-2">
-            {ticket.body}
-          </p>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+          <StatusBadge status={ticket.status} />
+          {ticket.proposal && <RiskBadge risk={ticket.proposal.risk_level} />}
+          <span className="text-xs text-slate-400">{ticket.source}</span>
         </div>
-        <div className="text-right flex-shrink-0">
-          <p className="text-xs text-slate-400">{date}</p>
-          {ticket.proposal && (
-            <p className="text-xs text-brand-600 mt-1 font-medium">
-              {ticket.proposal.action_status === "pending"
-                ? "Awaiting review →"
-                : ticket.proposal.action_status}
-            </p>
-          )}
-        </div>
+        <h3 className="font-semibold text-slate-900 group-hover:text-brand-700 transition-colors truncate">
+          {ticket.subject}
+        </h3>
+        <p className="text-sm text-slate-500 mt-0.5">
+          {ticket.raised_by}
+          <span className="mx-1.5 text-slate-300">·</span>
+          {propertyName}
+        </p>
+        <p className="text-sm text-slate-400 mt-1 line-clamp-2">
+          {ticket.body}
+        </p>
       </div>
-    </a>
+      <div className="text-right flex-shrink-0">
+        <p className="text-xs text-slate-400">{date}</p>
+        {ticket.proposal && (
+          <p className="text-xs text-brand-600 mt-1 font-medium">
+            {ticket.proposal.action_status === "pending"
+              ? "Awaiting review →"
+              : ticket.proposal.action_status}
+          </p>
+        )}
+      </div>
+    </Link>
   );
 }
 
-export default async function TicketsPage() {
+export default async function TicketsPage({
+  searchParams,
+}: {
+  searchParams: { status?: string };
+}) {
+  const activeStatus = searchParams.status ?? "all";
   const properties = await getProperties();
 
   const ticketsByProperty = await Promise.all(
@@ -163,83 +167,95 @@ export default async function TicketsPage() {
         new Date(a.ticket.created_at).getTime()
     );
 
-  const openCount = allTickets.filter((t) => t.ticket.status === "open").length;
-  const proposedCount = allTickets.filter(
-    (t) => t.ticket.status === "proposed"
-  ).length;
-  const resolvedCount = allTickets.filter(
-    (t) => t.ticket.status === "resolved"
-  ).length;
+  const counts = {
+    all: allTickets.length,
+    open: allTickets.filter((t) => t.ticket.status === "open").length,
+    proposed: allTickets.filter((t) => t.ticket.status === "proposed").length,
+    resolved: allTickets.filter((t) => t.ticket.status === "resolved").length,
+    rejected: allTickets.filter((t) => t.ticket.status === "rejected").length,
+  };
+
+  const filteredTickets =
+    activeStatus === "all"
+      ? allTickets
+      : allTickets.filter((t) => t.ticket.status === activeStatus);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="min-h-full">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">
-          Ticket Inbox
-        </h1>
-        <p className="text-slate-500">
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
+        <h1 className="text-xl font-bold text-slate-900">All Tickets</h1>
+        <p className="text-sm text-slate-500 mt-0.5">
           Support tickets across all properties — each triggers an AI proposal
           for human review.
         </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8 max-w-sm">
-        <div className="card p-4 text-center">
-          <p className="text-2xl font-bold text-amber-600">{openCount}</p>
-          <p className="text-xs text-slate-500 mt-1">Open</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-2xl font-bold text-blue-600">{proposedCount}</p>
-          <p className="text-xs text-slate-500 mt-1">Proposed</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{resolvedCount}</p>
-          <p className="text-xs text-slate-500 mt-1">Resolved</p>
-        </div>
-      </div>
-
-      {/* Simulate panel */}
-      <SimulatePanel />
-
-      {/* Ticket list */}
-      {allTickets.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-slate-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
+      <div className="px-6 py-6 max-w-4xl">
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-6 max-w-sm">
+          <div className="card p-4 text-center">
+            <p className="text-2xl font-bold text-amber-600">{counts.open}</p>
+            <p className="text-xs text-slate-500 mt-1">Open</p>
           </div>
-          <h3 className="text-lg font-semibold text-slate-700 mb-2">
-            No tickets yet
-          </h3>
-          <p className="text-slate-500 text-sm max-w-sm mx-auto">
-            Use the panel above to simulate a ticket and watch the AI generate a
-            proposal instantly.
-          </p>
+          <div className="card p-4 text-center">
+            <p className="text-2xl font-bold text-blue-600">{counts.proposed}</p>
+            <p className="text-xs text-slate-500 mt-1">Proposed</p>
+          </div>
+          <div className="card p-4 text-center">
+            <p className="text-2xl font-bold text-green-600">{counts.resolved}</p>
+            <p className="text-xs text-slate-500 mt-1">Resolved</p>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {allTickets.map(({ ticket, propertyName }) => (
-            <TicketRow
-              key={ticket.id}
-              ticket={ticket}
-              propertyName={propertyName}
-            />
-          ))}
+
+        {/* Simulate panel */}
+        <SimulatePanel />
+
+        {/* Filter tabs */}
+        <div className="mb-5">
+          <TicketFilterTabs counts={counts} activeStatus={activeStatus} />
         </div>
-      )}
+
+        {/* Ticket list */}
+        {filteredTickets.length === 0 ? (
+          <div className="card p-12 text-center">
+            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg
+                className="w-6 h-6 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+            </div>
+            <h3 className="text-slate-600 font-medium">
+              {activeStatus === "all" ? "No tickets yet" : `No ${activeStatus} tickets`}
+            </h3>
+            {activeStatus === "all" && (
+              <p className="text-sm text-slate-400 mt-1">
+                Use the panel above to simulate a ticket and watch the AI
+                generate a proposal instantly.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredTickets.map(({ ticket, propertyName }) => (
+              <TicketRow
+                key={ticket.id}
+                ticket={ticket}
+                propertyName={propertyName}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
