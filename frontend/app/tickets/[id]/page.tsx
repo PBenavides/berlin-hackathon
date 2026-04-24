@@ -379,15 +379,20 @@ export default async function TicketDetailPage({
                 </h3>
 
                 {/* Action type + title */}
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-start gap-2 mb-3">
                   {proposal.proposed_external_action.type && (
-                    <span className="text-xs font-semibold bg-slate-900 text-slate-200 px-2.5 py-1 rounded-lg uppercase tracking-wide">
+                    <span className="flex-shrink-0 text-xs font-semibold bg-slate-900 text-slate-200 px-2.5 py-1 rounded-lg uppercase tracking-wide">
                       {proposal.proposed_external_action.type}
+                    </span>
+                  )}
+                  {(proposal.proposed_external_action as Record<string, unknown>).title && (
+                    <span className="text-sm font-semibold text-slate-900 leading-tight">
+                      {String((proposal.proposed_external_action as Record<string, unknown>).title)}
                     </span>
                   )}
                 </div>
 
-                <p className="text-sm text-slate-800 leading-relaxed mb-4">
+                <p className="text-sm text-slate-700 leading-relaxed mb-4 bg-slate-50 rounded-lg px-3 py-2">
                   {proposal.proposed_external_action.summary}
                 </p>
 
@@ -558,20 +563,42 @@ export default async function TicketDetailPage({
                 )}
 
                 <div className="space-y-3">
-                  {(proposal.citations ?? []).map((c, i) => (
-                    <div
-                      key={i}
-                      className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50 transition-colors"
-                    >
-                      <p className="text-xs font-semibold text-brand-700 mb-1">
-                        § {c.heading}
-                      </p>
-                      <p className="text-sm text-slate-600 italic mb-2">
-                        &ldquo;{c.excerpt}&rdquo;
-                      </p>
-                      <p className="text-xs text-slate-400">{c.relevance}</p>
-                    </div>
-                  ))}
+                  {(proposal.citations ?? []).map((c, i) => {
+                    // Build section anchor from heading text (matches MarkdownRenderer anchor logic)
+                    const anchor = c.heading
+                      .toLowerCase()
+                      .replace(/\s+/g, "-")
+                      .replace(/[^a-z0-9-]/g, "");
+                    const contextHref = ticket.property_id && usedContextVersion
+                      ? `/properties/${ticket.property_id}/context?version=${usedContextVersion.version}#${anchor}`
+                      : null;
+
+                    return (
+                      <div
+                        key={i}
+                        className="border border-slate-200 rounded-lg p-3 hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs font-semibold text-brand-700">
+                            § {c.heading}
+                          </p>
+                          {contextHref && (
+                            <Link
+                              href={contextHref}
+                              className="text-xs text-slate-400 hover:text-brand-600 transition-colors font-medium flex-shrink-0 ml-2"
+                              title="View this section in context"
+                            >
+                              View ↗
+                            </Link>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-600 italic mb-2">
+                          &ldquo;{c.excerpt}&rdquo;
+                        </p>
+                        <p className="text-xs text-slate-400">{c.relevance}</p>
+                      </div>
+                    );
+                  })}
                   {(!proposal.citations || proposal.citations.length === 0) && (
                     <p className="text-sm text-slate-400 text-center py-3">
                       No citations available.
