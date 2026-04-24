@@ -199,8 +199,25 @@ export default async function ContextPage({
         <div className="flex-1 px-6 py-6 max-w-3xl">
           {activeContext && (
             <>
+              {/* Frontmatter header bar — parsed from version metadata */}
+              {activeContext.frontmatter && Object.keys(activeContext.frontmatter).length > 0 && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-5">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                    Document Metadata
+                  </p>
+                  <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+                    {Object.entries(activeContext.frontmatter).map(([k, v]) => (
+                      <div key={k} className="flex items-center gap-1.5 text-xs">
+                        <span className="font-medium text-slate-500 capitalize">{k.replace(/_/g, " ")}:</span>
+                        <span className="text-slate-700 font-mono">{String(v)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Version indicator */}
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span className="bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold px-2.5 py-1 rounded-full">
                     v{activeContext.version}
@@ -228,16 +245,22 @@ export default async function ContextPage({
               </div>
 
               {activeContext.created_reason && (
-                <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 mb-5 text-xs text-slate-600">
-                  <span className="font-medium text-slate-500">Reason:</span>{" "}
-                  {activeContext.created_reason}
+                <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 mb-4 text-xs text-slate-600 flex items-start gap-2">
+                  <span className="text-slate-400 flex-shrink-0">✎</span>
+                  <span>
+                    <span className="font-medium text-slate-500">Change reason:</span>{" "}
+                    {activeContext.created_reason}
+                  </span>
                 </div>
               )}
 
               {activeContext.source_proposal_id && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 mb-5 text-xs text-blue-700">
-                  Context updated from proposal{" "}
-                  <span className="font-mono">{activeContext.source_proposal_id.slice(0, 8)}…</span>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 mb-4 text-xs text-blue-700 flex items-center gap-2">
+                  <span>🔗</span>
+                  <span>
+                    Context updated from proposal{" "}
+                    <span className="font-mono font-semibold">{activeContext.source_proposal_id.slice(0, 8)}…</span>
+                  </span>
                 </div>
               )}
 
@@ -276,9 +299,14 @@ export default async function ContextPage({
 
         {/* Right panel: version history */}
         <div className="w-64 flex-shrink-0 border-l border-slate-200 bg-white px-4 py-6">
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-            Version History
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Version History
+            </h3>
+            <span className="text-xs text-slate-400 bg-slate-100 rounded-full px-1.5 py-0.5 font-semibold">
+              {versions.length}
+            </span>
+          </div>
           {versions.length === 0 ? (
             <p className="text-xs text-slate-400">No versions yet.</p>
           ) : (
@@ -286,44 +314,59 @@ export default async function ContextPage({
               {versions.map((v) => {
                 const isActive = activeContext?.version === v.version;
                 return (
-                  <Link
+                  <div
                     key={v.id}
-                    href={`/properties/${id}/context?version=${v.version}${showDiff ? "&showDiff=1" : ""}`}
-                    className={`block rounded-lg p-3 border transition-colors ${
+                    className={`rounded-lg border transition-colors ${
                       isActive
                         ? "bg-brand-50 border-brand-200"
-                        : "border-slate-100 hover:bg-slate-50 hover:border-slate-200"
+                        : "border-slate-100 hover:border-slate-200"
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span
-                        className={`text-xs font-bold ${
-                          isActive ? "text-brand-700" : "text-slate-700"
-                        }`}
-                      >
-                        v{v.version}
-                      </span>
-                      {v.version === latestVersion && (
-                        <span className="text-xs text-green-600 font-medium">Latest</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-500 truncate">
-                      {v.created_by}
-                    </p>
-                    {v.created_reason && (
-                      <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {v.created_reason}
+                    <Link
+                      href={`/properties/${id}/context?version=${v.version}${showDiff ? "&showDiff=1" : ""}`}
+                      className="block p-3"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span
+                          className={`text-xs font-bold ${
+                            isActive ? "text-brand-700" : "text-slate-700"
+                          }`}
+                        >
+                          v{v.version}
+                        </span>
+                        {v.version === latestVersion && (
+                          <span className="text-xs text-green-600 font-medium">Latest</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 truncate">
+                        {v.created_by}
                       </p>
+                      {v.created_reason && (
+                        <p className="text-xs text-slate-400 truncate mt-0.5 italic">
+                          &ldquo;{v.created_reason}&rdquo;
+                        </p>
+                      )}
+                      <p className="text-xs text-slate-400 mt-1">
+                        {new Date(v.created_at).toLocaleDateString("en-DE", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </Link>
+                    {/* Quick diff link for non-first versions */}
+                    {v.parent_version !== null && (
+                      <div className="border-t border-slate-100 px-3 py-1.5">
+                        <Link
+                          href={`/properties/${id}/context?version=${v.version}&showDiff=1`}
+                          className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center gap-1"
+                        >
+                          ↕ Diff vs v{v.parent_version}
+                        </Link>
+                      </div>
                     )}
-                    <p className="text-xs text-slate-400 mt-1">
-                      {new Date(v.created_at).toLocaleDateString("en-DE", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
