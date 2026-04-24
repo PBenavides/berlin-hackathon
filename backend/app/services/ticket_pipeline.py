@@ -180,18 +180,48 @@ def _send_slack_notification(*, db, ticket, proposal, property_id: str, settings
     """
     Attempt to send a Slack outbound notification.
     Looks up the property's slack_channel; if blank or webhook not configured, skips.
-    Logs the outcome to the audit log regardless of success/failure.
+    Logs the outcome to the audit log — including skips when channel is configured
+    but webhook URL is missing (useful for demo visibility).
     """
+    import logging as _logging
+    _logger = _logging.getLogger(__name__)
+
     try:
         # Determine webhook URL — property-level or global fallback
         prop = db.query(Property).filter(Property.id == property_id).first()
         webhook_url = settings.slack_webhook_url or ""
 
-        # If property has no slack_channel configured, skip
+        # If property has no slack_channel configured, skip silently
         if prop and not prop.slack_channel:
+            _logger.debug(
+                "[pipeline] Property %s has no slack_channel — skipping notification",
+                property_id,
+            )
             return
 
+        # If webhook URL is not configured, log the skip to the audit trail
+        # so operators can see the notification was attempted but misconfigured
         if not webhook_url:
+            _logger.info(
+                "[pipeline] SLACK_WEBHOOK_URL not configured — skipping notification for ticket %s",
+                ticket.id,
+            )
+            create_audit_entry(
+                db,
+                actor="pipeline",
+                action="slack.notification.failed",
+                entity_type="ticket",
+                property_id=property_id,
+                entity_id=ticket.id,
+                metadata={
+                    "ticket_id": ticket.id,
+                    "proposal_id": proposal.id,
+                    "risk_level": proposal.risk_level,
+                    "channel": prop.slack_channel if prop else None,
+                    "reason": "SLACK_WEBHOOK_URL not configured",
+                },
+            )
+            db.commit()
             return
 
         sent = send_proposal_notification(
