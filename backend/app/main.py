@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import properties, context, policies, audit, dev
+from app.api.routes import properties, context, policies, audit, dev, tickets, proposals
 
 app = FastAPI(
     title="Buena ContextOps API",
@@ -27,6 +27,8 @@ app.include_router(context.router, prefix="/api/v1", tags=["context"])
 app.include_router(policies.router, prefix="/api/v1", tags=["policies"])
 app.include_router(audit.router, prefix="/api/v1", tags=["audit"])
 app.include_router(dev.router, prefix="/api/v1", tags=["dev"])
+app.include_router(tickets.router, prefix="/api/v1", tags=["tickets"])
+app.include_router(proposals.router, prefix="/api/v1", tags=["proposals"])
 
 
 @app.get("/api/v1/health", tags=["health"])

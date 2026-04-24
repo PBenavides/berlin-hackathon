@@ -87,6 +87,15 @@ def simulate_ticket(
     )
     db.commit()
     db.refresh(ticket)
+
+    # Trigger the proposal pipeline
+    try:
+        from app.services.ticket_pipeline import run_pipeline
+        run_pipeline(ticket.id, db)
+        db.refresh(ticket)
+    except Exception as e:
+        print(f"[pipeline] Warning: pipeline failed for ticket {ticket.id}: {e}")
+
     return ticket
 
 

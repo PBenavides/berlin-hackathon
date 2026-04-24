@@ -13,7 +13,7 @@ class TicketBase(BaseModel):
 
 
 class TicketCreate(TicketBase):
-    pass
+    property_id: str
 
 
 class TicketOut(TicketBase):
