@@ -218,7 +218,7 @@ export default async function PropertyTicketsPage({
         </div>
 
         {/* Simulate panel */}
-        <SimulatePanel />
+        <SimulatePanel propertyName={property.name} />
 
         {/* Filter tabs */}
         <div className="mb-5">
