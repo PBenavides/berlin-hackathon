@@ -20,9 +20,12 @@ from app.models.agent_proposals import AgentProposal
 from app.models.context_versions import ContextVersion
 from app.models.context_chunks import ContextChunk
 from app.models.property_policies import PropertyPolicy
+from app.models.properties import Property
 from app.services.audit_service import create_audit_entry
 from app.services.proposal_engine import get_proposal_engine
 from app.services.policy_evaluator import PolicyEvaluator
+from app.services.slack_service import send_proposal_notification
+from app.config import get_settings
 
 
 def run_pipeline(ticket_id: str, db: Session) -> AgentProposal:
@@ -160,4 +163,65 @@ def run_pipeline(ticket_id: str, db: Session) -> AgentProposal:
     db.refresh(proposal)
     db.refresh(ticket)
 
+    # --- Step 8: Send Slack notification (non-blocking) ---
+    settings = get_settings()
+    _send_slack_notification(
+        db=db,
+        ticket=ticket,
+        proposal=proposal,
+        property_id=property_id,
+        settings=settings,
+    )
+
     return proposal
+
+
+def _send_slack_notification(*, db, ticket, proposal, property_id: str, settings) -> None:
+    """
+    Attempt to send a Slack outbound notification.
+    Looks up the property's slack_channel; if blank or webhook not configured, skips.
+    Logs the outcome to the audit log regardless of success/failure.
+    """
+    try:
+        # Determine webhook URL — property-level or global fallback
+        prop = db.query(Property).filter(Property.id == property_id).first()
+        webhook_url = settings.slack_webhook_url or ""
+
+        # If property has no slack_channel configured, skip
+        if prop and not prop.slack_channel:
+            return
+
+        if not webhook_url:
+            return
+
+        sent = send_proposal_notification(
+            webhook_url=webhook_url,
+            property_name=prop.name if prop else property_id,
+            ticket_subject=ticket.subject,
+            raised_by=ticket.raised_by,
+            risk_level=proposal.risk_level,
+            ticket_id=ticket.id,
+            app_base_url=settings.app_base_url,
+        )
+
+        audit_action = "slack.notification.sent" if sent else "slack.notification.failed"
+        create_audit_entry(
+            db,
+            actor="pipeline",
+            action=audit_action,
+            entity_type="ticket",
+            property_id=property_id,
+            entity_id=ticket.id,
+            metadata={
+                "ticket_id": ticket.id,
+                "proposal_id": proposal.id,
+                "risk_level": proposal.risk_level,
+                "channel": prop.slack_channel if prop else None,
+            },
+        )
+        db.commit()
+    except Exception as e:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).warning(
+            "[pipeline] Slack notification error for ticket %s: %s", ticket.id, e
+        )
