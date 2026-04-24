@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { DemoFlowHint } from "./DemoFlowHint";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -649,6 +650,14 @@ export function ProposalReview({
   }
 
   return (
+    <div className="space-y-4">
+      {/* Demo Flow Progress Indicator */}
+      <DemoFlowHint
+        actionStatus={currentActionStatus}
+        memoryStatus={currentMemoryStatus}
+        propertyId={propertyId ?? null}
+      />
+
     <div className="card p-5">
       {/* Header */}
       <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
@@ -747,6 +756,7 @@ export function ProposalReview({
           </Link>
         </div>
       )}
+    </div>
     </div>
   );
 }
