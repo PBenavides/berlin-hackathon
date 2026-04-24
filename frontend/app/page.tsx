@@ -5,9 +5,11 @@ interface Property {
   created_at: string;
 }
 
+const API_BASE = process.env.BACKEND_URL || "http://localhost:8000";
+
 async function getProperties(): Promise<Property[]> {
   try {
-    const res = await fetch("http://localhost:8000/api/v1/properties", {
+    const res = await fetch(`${API_BASE}/api/v1/properties`, {
       cache: "no-store",
     });
     if (!res.ok) return [];
@@ -64,9 +66,7 @@ function PropertyCard({ property }: { property: Property }) {
           </a>
           <span className="text-slate-300">·</span>
           <a
-            href={`/api/v1/properties/${property.id}/context`}
-            target="_blank"
-            rel="noreferrer"
+            href={`/properties/${property.id}/context`}
             className="text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
           >
             Context
@@ -181,26 +181,37 @@ export default async function HomePage() {
 
       {/* Quick actions */}
       <div className="mt-12 p-6 bg-slate-900 rounded-2xl">
-        <h3 className="text-white font-semibold mb-4">Quick Actions</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-semibold">Quick Start</h3>
+          <a
+            href="/tickets"
+            className="text-xs font-medium text-brand-400 hover:text-brand-300 transition-colors flex items-center gap-1"
+          >
+            Open Ticket Inbox →
+          </a>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="bg-slate-800 rounded-lg p-4">
-            <p className="text-xs text-slate-400 font-mono mb-2">Seed / Reset DB</p>
+            <p className="text-xs text-slate-400 font-mono mb-2">1. Seed / Reset DB</p>
             <p className="text-sm text-green-400 font-mono break-all">
               POST /api/v1/dev/reset
             </p>
           </div>
           <div className="bg-slate-800 rounded-lg p-4">
-            <p className="text-xs text-slate-400 font-mono mb-2">Simulate ticket</p>
+            <p className="text-xs text-slate-400 font-mono mb-2">2. Simulate ticket</p>
             <p className="text-sm text-green-400 font-mono break-all">
               POST /api/v1/dev/simulate-ticket
             </p>
           </div>
-          <div className="bg-slate-800 rounded-lg p-4">
-            <p className="text-xs text-slate-400 font-mono mb-2">Health check</p>
-            <p className="text-sm text-green-400 font-mono break-all">
-              GET /api/v1/health
+          <a
+            href="/audit"
+            className="bg-slate-800 hover:bg-slate-700 rounded-lg p-4 transition-colors block group"
+          >
+            <p className="text-xs text-slate-400 font-mono mb-2">3. View audit trail</p>
+            <p className="text-sm text-brand-400 font-mono group-hover:text-brand-300 break-all transition-colors">
+              /audit →
             </p>
-          </div>
+          </a>
         </div>
       </div>
     </div>

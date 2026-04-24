@@ -229,10 +229,29 @@ export default async function TicketDetailPage({
           )}
           <span className="text-slate-900 font-medium truncate">{ticket.subject}</span>
         </nav>
-        <div className="flex items-center gap-3 flex-wrap">
-          <StatusBadge status={ticket.status} />
-          {proposal && <RiskBadge risk={proposal.risk_level} />}
-          <span className="text-xs text-slate-400">{createdAt}</span>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            <StatusBadge status={ticket.status} />
+            {proposal && <RiskBadge risk={proposal.risk_level} />}
+            <span className="text-xs text-slate-400">{createdAt}</span>
+          </div>
+          {/* Quick links for resolved tickets */}
+          {ticket.status === "resolved" && ticket.property_id && (
+            <div className="flex items-center gap-3 flex-wrap">
+              <Link
+                href={`/properties/${ticket.property_id}/context?showDiff=1`}
+                className="text-xs font-medium text-amber-600 hover:text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1"
+              >
+                ↕ View context diff
+              </Link>
+              <Link
+                href={`/audit?property_id=${ticket.property_id}`}
+                className="text-xs font-medium text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1"
+              >
+                📋 Audit trail
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

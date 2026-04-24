@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SimulatePanel } from "./SimulatePanel";
 import { TicketFilterTabs } from "../components/TicketFilterTabs";
+import { DemoGuide } from "./DemoGuide";
 
 const API_BASE = process.env.BACKEND_URL || "http://localhost:8000";
 
@@ -210,6 +211,9 @@ export default async function TicketsPage({
 
         {/* Simulate panel */}
         <SimulatePanel />
+
+        {/* Demo guide */}
+        <DemoGuide />
 
         {/* Filter tabs */}
         <div className="mb-5">
