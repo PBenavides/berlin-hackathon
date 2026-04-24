@@ -672,6 +672,8 @@ export default async function TicketDetailPage({
                 proposedAction={
                   proposal.proposed_external_action as Record<string, unknown>
                 }
+                propertyId={ticket.property_id}
+                currentContextVersion={usedContextVersion?.version ?? null}
               />
             </>
           )}
