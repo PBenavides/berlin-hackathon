@@ -455,6 +455,7 @@ export default async function TicketDetailPage({
                 actionStatus={proposal.action_status}
                 memoryStatus={proposal.memory_status}
                 suggestedUpdate={proposal.context_delta.suggested_context_update}
+                proposedAction={proposal.proposed_external_action as Record<string, unknown>}
               />
             </>
           )}

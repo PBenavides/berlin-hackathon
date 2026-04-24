@@ -56,6 +56,7 @@ function StatusBadge({ status }: { status: string }) {
     open: "bg-amber-100 text-amber-700",
     proposed: "bg-blue-100 text-blue-700",
     approved: "bg-green-100 text-green-700",
+    edited: "bg-purple-100 text-purple-700",
     resolved: "bg-slate-100 text-slate-600",
     rejected: "bg-red-100 text-red-700",
   };

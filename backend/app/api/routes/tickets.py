@@ -13,8 +13,19 @@ from app.services.audit_service import create_audit_entry
 router = APIRouter()
 
 
+# ---------------------------------------------------------------------------
+# Response schemas
+# ---------------------------------------------------------------------------
+
+
 class TicketWithProposal(TicketOut):
+    """Ticket enriched with its latest proposal and both decision statuses."""
     proposal: Optional[AgentProposalOut] = None
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
 
 
 @router.post("/tickets", response_model=TicketOut, status_code=201)
@@ -54,12 +65,11 @@ def create_ticket(
     db.commit()
     db.refresh(ticket)
 
-    # Trigger proposal pipeline asynchronously (synchronous in MVP)
+    # Trigger proposal pipeline synchronously in MVP
     try:
         from app.services.ticket_pipeline import run_pipeline
         run_pipeline(ticket.id, db)
     except Exception as e:
-        # Pipeline failure should not fail ticket creation
         print(f"[pipeline] Warning: pipeline failed for ticket {ticket.id}: {e}")
 
     return ticket
@@ -71,13 +81,46 @@ def list_property_tickets(
     status: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    """List all tickets for a property, optionally filtered by status."""
+    """
+    List all tickets for a property, optionally filtered by status.
+
+    status can be one of: open | proposed | approved | resolved | rejected
+    """
     prop = db.query(Property).filter(Property.id == property_id).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
 
     query = db.query(Ticket).filter(Ticket.property_id == property_id)
     if status:
+        valid_statuses = {"open", "proposed", "approved", "resolved", "rejected"}
+        if status not in valid_statuses:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status filter '{status}'. Must be one of: {', '.join(sorted(valid_statuses))}",
+            )
+        query = query.filter(Ticket.status == status)
+
+    return query.order_by(Ticket.created_at.desc()).all()
+
+
+@router.get("/tickets", response_model=List[TicketOut])
+def list_all_tickets(
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """
+    List tickets across all properties, optionally filtered by status.
+
+    status can be one of: open | proposed | approved | resolved | rejected
+    """
+    query = db.query(Ticket)
+    if status:
+        valid_statuses = {"open", "proposed", "approved", "resolved", "rejected"}
+        if status not in valid_statuses:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status filter '{status}'. Must be one of: {', '.join(sorted(valid_statuses))}",
+            )
         query = query.filter(Ticket.status == status)
 
     return query.order_by(Ticket.created_at.desc()).all()
@@ -85,7 +128,13 @@ def list_property_tickets(
 
 @router.get("/tickets/{ticket_id}", response_model=TicketWithProposal)
 def get_ticket(ticket_id: str, db: Session = Depends(get_db)):
-    """Get a single ticket with its latest proposal."""
+    """
+    Get a single ticket with its latest proposal and both decision statuses.
+
+    The response includes:
+    - Full ticket fields (id, status, subject, body, raised_by, …)
+    - proposal: latest AgentProposal with action_status and memory_status
+    """
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
