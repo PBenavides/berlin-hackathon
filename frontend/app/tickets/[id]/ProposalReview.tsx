@@ -500,7 +500,7 @@ function MemoryDecisionPanel({
                 </span>
                 {propertyId && (
                   <Link
-                    href={`/properties/${propertyId}/context?version=${newVersionNumber}`}
+                    href={`/properties/${propertyId}/context?version=${newVersionNumber}&showDiff=1`}
                     className="text-xs text-green-700 underline hover:text-green-900 font-medium"
                   >
                     View diff →
@@ -689,10 +689,10 @@ export function ProposalReview({
                 <>
                   {" "}·{" "}
                   <Link
-                    href={`/properties/${propertyId}/context?version=${newContextVersion}`}
+                    href={`/properties/${propertyId}/context?version=${newContextVersion}&showDiff=1`}
                     className="underline hover:no-underline font-medium"
                   >
-                    View context v{newContextVersion}
+                    View context v{newContextVersion} diff
                   </Link>
                 </>
               )}
