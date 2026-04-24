@@ -15,7 +15,7 @@ class AuditLog(Base):
     property_id = sa.Column(sa.String, nullable=True)
     entity_type = sa.Column(sa.Text, nullable=False)
     entity_id = sa.Column(sa.String, nullable=True)
-    metadata = sa.Column(sa.JSON, nullable=True)
+    event_metadata = sa.Column("metadata", sa.JSON, nullable=True)
     created_at = sa.Column(
         sa.DateTime(timezone=True),
         nullable=False,

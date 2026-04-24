@@ -18,7 +18,7 @@ def create_audit_entry(
         property_id=property_id,
         entity_type=entity_type,
         entity_id=entity_id,
-        metadata=metadata or {},
+        event_metadata=metadata or {},
     )
     db.add(entry)
     db.flush()

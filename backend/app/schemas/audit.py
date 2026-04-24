@@ -10,7 +10,7 @@ class AuditLogOut(BaseModel):
     property_id: Optional[str] = None
     entity_type: str
     entity_id: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    event_metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
