@@ -57,21 +57,19 @@ function PropertyCard({ property }: { property: Property }) {
         <span className="text-xs text-slate-400">Added {createdDate}</span>
         <div className="flex gap-2">
           <a
-            href={`/api/v1/properties/${property.id}/context`}
-            target="_blank"
-            rel="noreferrer"
+            href={`/properties/${property.id}/tickets`}
             className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors"
           >
-            View Context
+            Tickets
           </a>
           <span className="text-slate-300">·</span>
           <a
-            href={`/api/v1/properties/${property.id}/policies`}
+            href={`/api/v1/properties/${property.id}/context`}
             target="_blank"
             rel="noreferrer"
             className="text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
           >
-            Policies
+            Context
           </a>
         </div>
       </div>

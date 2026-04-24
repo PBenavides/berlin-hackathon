@@ -35,6 +35,12 @@ export default function RootLayout({
                     Properties
                   </a>
                   <a
+                    href="/tickets"
+                    className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  >
+                    Tickets
+                  </a>
+                  <a
                     href="/api/docs"
                     target="_blank"
                     rel="noreferrer"
