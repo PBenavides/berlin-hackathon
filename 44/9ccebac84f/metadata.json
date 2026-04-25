@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "449ccebac84f",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-1-smoke-test-execution",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/TEST.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/44/9ccebac84f/0/metadata.json",
+      "transcript": "/44/9ccebac84f/0/full.jsonl",
+      "content_hash": "/44/9ccebac84f/0/content_hash.txt",
+      "prompt": "/44/9ccebac84f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 55,
+    "cache_creation_tokens": 18755,
+    "cache_read_tokens": 112729,
+    "output_tokens": 2638,
+    "api_call_count": 8
+  }
+}

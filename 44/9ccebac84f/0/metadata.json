@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "449ccebac84f",
+  "session_id": "a7780b9f-7400-45a7-9b0e-2d4f111de0c7",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T18:07:11.696905Z",
+  "branch": "ai/sprint-1-smoke-test-execution",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/TEST.md"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "3af329671030",
+  "token_usage": {
+    "input_tokens": 55,
+    "cache_creation_tokens": 18755,
+    "cache_read_tokens": 112729,
+    "output_tokens": 2638,
+    "api_call_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T18:07:11.691787Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 2,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 2,
+    "total_lines_changed": 3,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 290,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".ai_builder/artifacts/events.jsonl": 7,
+        ".codex/agents/entire-search.toml": 23,
+        ".codex/config.toml": 3,
+        ".codex/hooks.json": 40,
+        ".opencode/plugins/entire.ts": 216,
+        "docs/TEST.md": 1
+      }
+    }
+  ]
+}

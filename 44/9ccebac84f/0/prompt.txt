@@ -1,0 +1,93 @@
+## Task
+Implement Sprint 1: Smoke Test Execution
+
+## Branch
+Create and switch to branch: `ai/sprint-1-smoke-test-execution`
+Run: `git checkout -b ai/sprint-1-smoke-test-execution` (or `git checkout ai/sprint-1-smoke-test-execution` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 1,
+  "name": "Smoke Test Execution",
+  "goal": "Fulfill the instructions in docs/TEST.md, make a minor edit to the test doc, and publish the result to the remote.",
+  "features": [
+    {
+      "id": "s1-f1",
+      "name": "Create HELLO.md Placeholder",
+      "description": "Per the instruction in docs/TEST.md ('please create a file saying hello HELLO.md'), add a new HELLO.md file at the repository root containing a simple hello greeting so the test request is satisfied.",
+      "acceptance_criteria": [
+        "A file named HELLO.md exists at the repository root",
+        "The file contains a clear hello greeting (e.g., 'hello' or 'Hello')",
+        "The file is tracked by git and ready to be committed"
+      ],
+      "touches": [
+        "repository root",
+        "markdown docs"
+      ],
+      "risk_notes": "Low risk \u2014 purely additive file. Confirm no existing HELLO.md is overwritten unexpectedly."
+    },
+    {
+      "id": "s1-f2",
+      "name": "Minor Edit to docs/TEST.md",
+      "description": "Make a small, non-destructive edit to docs/TEST.md (such as fixing the typo 'wanto' \u2192 'want to', or appending a brief note that the test was executed) to satisfy the user's request for a small edit to the markdown file.",
+      "acceptance_criteria": [
+        "docs/TEST.md is modified with a small, readable change",
+        "The original intent of the test instruction remains preserved or clearly annotated",
+        "Diff is minimal (a single-line typo fix or short appended note)"
+      ],
+      "touches": [
+        "docs"
+      ],
+      "risk_notes": "Low risk \u2014 small textual change. Avoid removing the original instruction line."
+    },
+    {
+      "id": "s1-f3",
+      "name": "Commit and Push to Remote",
+      "description": "Stage both changes (new HELLO.md and edited docs/TEST.md), commit with a clear message describing the smoke-test execution, and push the commit to the current branch's remote so the test artifacts are visible upstream.",
+      "acceptance_criteria": [
+        "Both HELLO.md and docs/TEST.md changes are included in a single commit (or clearly related commits)",
+        "Commit message references the test execution",
+        "git push completes successfully against the tracking remote",
+        "git status reports a clean working tree after push"
+      ],
+      "touches": [
+        "git history",
+        "remote repository"
+      ],
+      "risk_notes": "Ensure the push targets the correct branch (do not force-push to main/master). If no upstream is set, set it explicitly with -u."
+    }
+  ],
+  "success_criteria": [
+    "HELLO.md is present in the repo with a hello greeting",
+    "docs/TEST.md shows a small edit",
+    "The commit containing both changes is visible on the remote branch",
+    "No unrelated files are modified or committed"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "Scope is strictly limited to the literal instructions in docs/TEST.md plus the user's request for a small markdown edit and a push",
+  "Do not introduce new application features, dependencies, or architectural changes",
+  "Do not force-push or modify protected branches without explicit confirmation",
+  "Do not commit secrets or unrelated working-tree changes"
+]
+
+## Out of Scope
+[
+  "Any new product features beyond the smoke test",
+  "AI/LLM integrations",
+  "CI/CD configuration changes",
+  "Refactoring of existing source code",
+  "Documentation overhauls beyond the single small edit to docs/TEST.md"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 1 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260425-200548" in the contract.
+Set branch to "ai/sprint-1-smoke-test-execution" in the contract.
