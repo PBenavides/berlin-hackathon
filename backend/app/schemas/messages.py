@@ -3,9 +3,10 @@ from datetime import datetime
 from typing import List, Optional, Any, Dict
 
 from app.schemas.attachments import AttachmentOut
+from app.schemas.base import CamelModel
 
 
-class ActionTaken(BaseModel):
+class ActionTaken(CamelModel):
     action: str
     entity_type: str
     entity_id: Optional[str] = None
@@ -13,7 +14,7 @@ class ActionTaken(BaseModel):
     created_at: datetime
 
 
-class OwnerMessageOut(BaseModel):
+class OwnerMessageOut(CamelModel):
     id: str
     property_id: str
     text: str
@@ -24,10 +25,8 @@ class OwnerMessageOut(BaseModel):
     latency_ms: Optional[int] = None
     created_at: datetime
 
-    model_config = {"from_attributes": True}
 
-
-class MessageDispatchResult(BaseModel):
+class MessageDispatchResult(CamelModel):
     """Returned from POST /properties/{id}/messages — bundles message,
     reply, attachments, and the side-effects Hermes performed (if any)."""
 

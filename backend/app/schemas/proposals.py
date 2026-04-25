@@ -3,8 +3,10 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from decimal import Decimal
 
+from app.schemas.base import CamelModel
 
-class AgentProposalOut(BaseModel):
+
+class AgentProposalOut(CamelModel):
     id: str
     ticket_id: str
     context_version_id: Optional[str] = None
@@ -24,5 +26,3 @@ class AgentProposalOut(BaseModel):
     rejection_reason: Optional[str] = None
     slack_message_ts: Optional[str] = None
     created_at: datetime
-
-    model_config = {"from_attributes": True}

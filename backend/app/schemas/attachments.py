@@ -2,8 +2,10 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
+from app.schemas.base import CamelModel
 
-class AttachmentOut(BaseModel):
+
+class AttachmentOut(CamelModel):
     id: str
     owner_message_id: str
     filename: str
@@ -13,5 +15,3 @@ class AttachmentOut(BaseModel):
     vision_description: Optional[str] = None
     url: str
     created_at: datetime
-
-    model_config = {"from_attributes": True}

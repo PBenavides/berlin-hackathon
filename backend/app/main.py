@@ -4,6 +4,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.routes import (
     properties,
@@ -22,6 +24,7 @@ from app.api.routes import (
     units,
 )
 from app.config import get_settings
+from app.exceptions import StateConflictError, state_conflict_handler
 
 app = FastAPI(
     title="Buena ContextOps API",
@@ -54,6 +57,11 @@ _STATUS_CODES: dict[int, str] = {
     422: "VALIDATION_ERROR",
     500: "INTERNAL_ERROR",
 }
+
+
+@app.exception_handler(StateConflictError)
+async def _state_conflict_handler(request: Request, exc: StateConflictError) -> JSONResponse:
+    return await state_conflict_handler(request, exc)
 
 
 @app.exception_handler(HTTPException)
@@ -131,3 +139,13 @@ for _router, _tag in _routers:
 @app.get("/api/v1/health", tags=["health"])
 def health_check():
     return JSONResponse({"status": "ok", "service": "buena-contextops"})
+
+
+# ---------------------------------------------------------------------------
+# Enable camelCase (by_alias) serialization on every response-model route.
+# Must run AFTER all routers are included so all APIRoute objects exist.
+# ---------------------------------------------------------------------------
+
+for _route in app.routes:
+    if isinstance(_route, APIRoute) and _route.response_model is not None:
+        _route.response_model_by_alias = True

@@ -1,4 +1,4 @@
-"""Integration tests for /api/v1/properties/{id}/documents and /documents/*.
+"""Integration tests for /api/properties/{id}/documents and /documents/*.
 
 These exercise the full HTTP stack against a real Postgres (the same DB the
 dev server uses). Each test cleans up the rows + files it creates.
@@ -106,27 +106,27 @@ def cleanup():
 def test_upload_pdf_happy_path(client, property_id, cleanup):
     pdf = _make_pdf_bytes(["Invoice 2026", "Total: 1234"])
     resp = client.post(
-        f"/api/v1/properties/{property_id}/documents",
+        f"/api/properties/{property_id}/documents",
         files={"file": ("invoice.pdf", pdf, "application/pdf")},
     )
     assert resp.status_code == 201, resp.text
     body = resp.json()
     cleanup(body["id"])
 
-    assert body["property_id"] == property_id
+    assert body["propertyId"] == property_id
     assert body["filename"] == "invoice.pdf"
-    assert body["mime_type"] == "application/pdf"
-    assert body["size_bytes"] == len(pdf)
-    assert body["page_count"] == 1
-    assert body["extraction_error"] is None
-    assert body["has_extracted_text"] is True
-    assert body["file_url"] == f"/api/v1/documents/{body['id']}/file"
-    assert body["extracted_text"]  # non-empty
+    assert body["mimeType"] == "application/pdf"
+    assert body["sizeBytes"] == len(pdf)
+    assert body["pageCount"] == 1
+    assert body["extractionError"] is None
+    assert body["hasExtractedText"] is True
+    assert body["fileUrl"] == f"/api/documents/{body['id']}/file"
+    assert body["extractedText"]  # non-empty
 
 
 def test_upload_rejects_non_pdf(client, property_id):
     resp = client.post(
-        f"/api/v1/properties/{property_id}/documents",
+        f"/api/properties/{property_id}/documents",
         files={"file": ("note.txt", b"hello", "text/plain")},
     )
     assert resp.status_code == 415
@@ -134,7 +134,7 @@ def test_upload_rejects_non_pdf(client, property_id):
 
 def test_upload_rejects_empty(client, property_id):
     resp = client.post(
-        f"/api/v1/properties/{property_id}/documents",
+        f"/api/properties/{property_id}/documents",
         files={"file": ("empty.pdf", b"", "application/pdf")},
     )
     assert resp.status_code == 400
@@ -143,7 +143,7 @@ def test_upload_rejects_empty(client, property_id):
 def test_upload_unknown_property_404(client):
     pdf = _make_pdf_bytes(["x"])
     resp = client.post(
-        "/api/v1/properties/00000000-0000-0000-0000-000000000000/documents",
+        "/api/properties/00000000-0000-0000-0000-000000000000/documents",
         files={"file": ("x.pdf", pdf, "application/pdf")},
     )
     assert resp.status_code == 404
@@ -165,7 +165,7 @@ def test_upload_too_large_413(client, property_id, monkeypatch):
     pdf = _make_pdf_bytes(["a" * 500])
     assert len(pdf) > 100  # sanity
     resp = client.post(
-        f"/api/v1/properties/{property_id}/documents",
+        f"/api/properties/{property_id}/documents",
         files={"file": ("big.pdf", pdf, "application/pdf")},
     )
     assert resp.status_code == 413
@@ -175,7 +175,7 @@ def test_upload_accepts_pdf_with_wrong_content_type(client, property_id, cleanup
     """Browsers sometimes send octet-stream — we should accept by magic bytes."""
     pdf = _make_pdf_bytes(["fallback"])
     resp = client.post(
-        f"/api/v1/properties/{property_id}/documents",
+        f"/api/properties/{property_id}/documents",
         files={"file": ("doc.pdf", pdf, "application/octet-stream")},
     )
     assert resp.status_code == 201, resp.text
@@ -190,23 +190,23 @@ def test_upload_accepts_pdf_with_wrong_content_type(client, property_id, cleanup
 def test_list_documents(client, property_id, cleanup):
     pdf = _make_pdf_bytes(["listing test"])
     up = client.post(
-        f"/api/v1/properties/{property_id}/documents",
+        f"/api/properties/{property_id}/documents",
         files={"file": ("list.pdf", pdf, "application/pdf")},
     )
     assert up.status_code == 201
     cleanup(up.json()["id"])
 
-    resp = client.get(f"/api/v1/properties/{property_id}/documents")
+    resp = client.get(f"/api/properties/{property_id}/documents")
     assert resp.status_code == 200
     rows = resp.json()
     assert any(r["id"] == up.json()["id"] for r in rows)
-    # Summary view should NOT include extracted_text
-    assert "extracted_text" not in rows[0]
+    # Summary view should NOT include extractedText
+    assert "extractedText" not in rows[0]
 
 
 def test_list_documents_unknown_property_404(client):
     resp = client.get(
-        "/api/v1/properties/00000000-0000-0000-0000-000000000000/documents"
+        "/api/properties/00000000-0000-0000-0000-000000000000/documents"
     )
     assert resp.status_code == 404
 
@@ -214,32 +214,32 @@ def test_list_documents_unknown_property_404(client):
 def test_get_document_detail(client, property_id, cleanup):
     pdf = _make_pdf_bytes(["detail test 42"])
     up = client.post(
-        f"/api/v1/properties/{property_id}/documents",
+        f"/api/properties/{property_id}/documents",
         files={"file": ("detail.pdf", pdf, "application/pdf")},
     ).json()
     cleanup(up["id"])
 
-    resp = client.get(f"/api/v1/documents/{up['id']}")
+    resp = client.get(f"/api/documents/{up['id']}")
     assert resp.status_code == 200
     body = resp.json()
     assert body["id"] == up["id"]
-    assert body["extracted_text"] == up["extracted_text"]
+    assert body["extractedText"] == up["extractedText"]
 
 
 def test_get_document_404(client):
-    resp = client.get("/api/v1/documents/does-not-exist-id")
+    resp = client.get("/api/documents/does-not-exist-id")
     assert resp.status_code == 404
 
 
 def test_download_document_file(client, property_id, cleanup):
     pdf = _make_pdf_bytes(["download me"])
     up = client.post(
-        f"/api/v1/properties/{property_id}/documents",
+        f"/api/properties/{property_id}/documents",
         files={"file": ("dl.pdf", pdf, "application/pdf")},
     ).json()
     cleanup(up["id"])
 
-    resp = client.get(f"/api/v1/documents/{up['id']}/file")
+    resp = client.get(f"/api/documents/{up['id']}/file")
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("application/pdf")
     # File bytes should match what we uploaded
@@ -254,7 +254,7 @@ def test_download_document_file(client, property_id, cleanup):
 def test_delete_document(client, property_id):
     pdf = _make_pdf_bytes(["delete me"])
     up = client.post(
-        f"/api/v1/properties/{property_id}/documents",
+        f"/api/properties/{property_id}/documents",
         files={"file": ("del.pdf", pdf, "application/pdf")},
     ).json()
     storage_path = None
@@ -270,11 +270,11 @@ def test_delete_document(client, property_id):
     finally:
         db.close()
 
-    resp = client.delete(f"/api/v1/documents/{up['id']}")
+    resp = client.delete(f"/api/documents/{up['id']}")
     assert resp.status_code == 204
 
     # Row should be gone
-    resp2 = client.get(f"/api/v1/documents/{up['id']}")
+    resp2 = client.get(f"/api/documents/{up['id']}")
     assert resp2.status_code == 404
 
     # File on disk should be gone
@@ -283,5 +283,5 @@ def test_delete_document(client, property_id):
 
 
 def test_delete_document_404(client):
-    resp = client.delete("/api/v1/documents/does-not-exist-id")
+    resp = client.delete("/api/documents/does-not-exist-id")
     assert resp.status_code == 404
