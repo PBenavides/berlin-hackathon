@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "bee65ba6479a",
+  "session_id": "a4a90d7c-6200-4c53-bfcd-5eeff229ebbc",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T20:55:13.109501Z",
+  "branch": "feat/ai-builder-overnight",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "frontend/app/components/PropertySidebar.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "edcea56c9ae2",
+  "token_usage": {
+    "input_tokens": 69,
+    "cache_creation_tokens": 277989,
+    "cache_read_tokens": 2636082,
+    "output_tokens": 35043,
+    "api_call_count": 42
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T20:55:13.094703Z",
+    "agent_lines": 13,
+    "agent_removed": 0,
+    "human_added": 1678,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1691,
+    "total_lines_changed": 1691,
+    "agent_percentage": 0.768775872264932,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "bee65ba6479a",
+  "strategy": "manual-commit",
+  "branch": "feat/ai-builder-overnight",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "frontend/app/components/PropertySidebar.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/be/e65ba6479a/0/metadata.json",
+      "transcript": "/be/e65ba6479a/0/full.jsonl",
+      "content_hash": "/be/e65ba6479a/0/content_hash.txt",
+      "prompt": "/be/e65ba6479a/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 69,
+    "cache_creation_tokens": 277989,
+    "cache_read_tokens": 2636082,
+    "output_tokens": 35043,
+    "api_call_count": 42
+  }
+}
