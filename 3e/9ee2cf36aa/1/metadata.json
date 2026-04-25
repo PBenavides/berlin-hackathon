@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "3e9ee2cf36aa",
+  "session_id": "de1ac8df-f32b-43b7-b393-44ab6a202164",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T23:06:39.394463Z",
+  "branch": "ai/sprint-1-foundation-wire-compatibility",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "backend/app/schemas/base.py",
+    "backend/app/schemas/properties.py",
+    "backend/app/schemas/tickets.py",
+    "backend/app/schemas/proposals.py",
+    "backend/app/schemas/context_versions.py",
+    "backend/app/schemas/audit.py",
+    "backend/app/schemas/attachments.py",
+    "backend/app/schemas/messages.py",
+    "backend/app/schemas/policies.py",
+    "backend/app/schemas/property_documents.py",
+    "backend/app/schemas/sources.py",
+    "backend/app/api/routes/documents.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "4bbd21686cb6",
+  "checkpoint_transcript_start": 286,
+  "transcript_lines_at_start": 286,
+  "token_usage": {
+    "input_tokens": 1,
+    "cache_creation_tokens": 388,
+    "cache_read_tokens": 115004,
+    "output_tokens": 539,
+    "api_call_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T23:06:39.374529Z",
+    "agent_lines": 77,
+    "agent_removed": 39,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 77,
+    "total_lines_changed": 116,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
