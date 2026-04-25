@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "53e2788d6e71",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-1-foundation-wire-compatibility",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/tests/test_documents_api.py",
+    "backend/tests/test_health.py",
+    "backend/tests/test_properties_api.py",
+    "backend/tests/test_sprint1.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/53/e2788d6e71/0/metadata.json",
+      "transcript": "/53/e2788d6e71/0/full.jsonl",
+      "content_hash": "/53/e2788d6e71/0/content_hash.txt",
+      "prompt": "/53/e2788d6e71/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 97,
+    "cache_creation_tokens": 425665,
+    "cache_read_tokens": 7698568,
+    "output_tokens": 61822,
+    "api_call_count": 88
+  }
+}
