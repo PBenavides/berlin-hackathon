@@ -1,0 +1,20 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "477510918bba",
+  "session_id": "ca501b9c-6e82-4d85-81b7-8f2bb7088b22",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T22:57:53.719388Z",
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "aa383f60ef54",
+  "token_usage": {
+    "input_tokens": 71,
+    "cache_creation_tokens": 111929,
+    "cache_read_tokens": 5348149,
+    "output_tokens": 35300,
+    "api_call_count": 67
+  }
+}

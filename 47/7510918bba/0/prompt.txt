@@ -1,0 +1,143 @@
+## Task
+Implement Sprint 1: API Foundation & Schema Expansion
+
+## Branch
+Create and switch to branch: `ai/sprint-1-api-foundation-schema-expansion`
+Run: `git checkout -b ai/sprint-1-api-foundation-schema-expansion` (or `git checkout ai/sprint-1-api-foundation-schema-expansion` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 1,
+  "name": "API Foundation & Schema Expansion",
+  "goal": "Re-prefix all backend routes to /api, add standardized error handling, create all new database tables, and extend existing models so the data layer is ready for feature work.",
+  "features": [
+    {
+      "id": "s1-f1",
+      "name": "Re-prefix API routes from /api/v1 to /api",
+      "description": "All backend endpoints move from /api/v1/... to /api/... to match the canonical contract. The old /api/v1 prefix may remain temporarily for backward compatibility but /api is the primary surface.",
+      "acceptance_criteria": [
+        "GET /api/properties returns data",
+        "GET /api/v1/properties still works (temporary parallel mount)",
+        "OpenAPI docs accessible at /api/docs",
+        "All existing tests pass against the new prefix"
+      ],
+      "touches": [
+        "backend main.py",
+        "backend routes"
+      ],
+      "risk_notes": "Any hardcoded /api/v1 references in tests, seed scripts, or frontend mock data will break. Need a sweep."
+    },
+    {
+      "id": "s1-f2",
+      "name": "Standardized error envelope",
+      "description": "Every API error returns {error, code, status} with machine-readable codes: NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, CONFLICT. FastAPI's default 422 validation errors are reshaped to match.",
+      "acceptance_criteria": [
+        "Invalid requests return {error, code: 'VALIDATION_ERROR', status: 422}",
+        "Missing resources return {error, code: 'NOT_FOUND', status: 404}",
+        "State conflicts return {error, code: 'CONFLICT', status: 409}",
+        "No stack traces leak into error responses"
+      ],
+      "touches": [
+        "backend error handling",
+        "backend routes"
+      ],
+      "risk_notes": null
+    },
+    {
+      "id": "s1-f3",
+      "name": "Knowledge-layer database schema",
+      "description": "Create all new tables in a single migration: owners, buildings, building_vendors (M:N), vendors, vendor_cases, units, call_sessions, vendor_jobs, extractions, and property_ticket_counters. Owner policies/decisions and building systems stored as JSON columns.",
+      "acceptance_criteria": [
+        "All 10 new tables exist after running alembic upgrade head",
+        "Foreign key relationships are correct (cascade deletes from property to units/tickets/vendor_jobs)",
+        "vendor_jobs has nullable completed_at with index",
+        "extractions has (status, created_at) composite index",
+        "property_ticket_counters supports atomic counter increments"
+      ],
+      "touches": [
+        "backend models",
+        "backend migrations"
+      ],
+      "risk_notes": "Must land before seed data reset (s1-f5) to avoid backfilling twice."
+    },
+    {
+      "id": "s1-f4",
+      "name": "Property and Ticket model extensions",
+      "description": "Properties gain building_id, owner_id, city, phone, email. Tickets gain num (per-property monotonic counter), unit_id, risk, excerpt, raised_by_phone, confidence, and a 10-state status enum. Old 'open' status migrated to 'new'.",
+      "acceptance_criteria": [
+        "Property responses include all new fields",
+        "Ticket num is auto-generated in GAR-118 format using property_ticket_counters",
+        "Ticket status supports 10 states: new, triaged, proposed, approved, awaiting_vendor, scheduled, in_progress, completed, resolved, rejected",
+        "Existing 'open' rows migrated to 'new'",
+        "Illegal status transitions return 409 CONFLICT"
+      ],
+      "touches": [
+        "backend models",
+        "backend schemas",
+        "backend services",
+        "backend migrations"
+      ],
+      "risk_notes": "Status enum extension \u2014 use string column validation in app layer, not Postgres ENUM type, to allow easy additions."
+    },
+    {
+      "id": "s1-f5",
+      "name": "Seed data aligned to frontend mocks",
+      "description": "Reset seed service to produce the exact demo dataset the frontend expects: Gartenstra\u00dfe/Brunnenstra\u00dfe/Linienstra\u00dfe properties, Heinz/Bekey/Schmidt/Berlin Elektro vendors, units 1A-7A + E1, and the pr-7831 proposal scenario \u2014 all with stable string IDs matching lib/data.ts.",
+      "acceptance_criteria": [
+        "POST /api/dev/reset creates the full demo dataset",
+        "All IDs match the frontend's lib/data.ts (p1, b1, o1, v1, u-1a, t-7831, etc.)",
+        "Seed is idempotent \u2014 calling reset twice produces the same state",
+        "Context versions use the 4-layer heading format (## Vendor layer, etc.)"
+      ],
+      "touches": [
+        "backend seed service",
+        "backend dev routes"
+      ],
+      "risk_notes": "Must run after schema migration (s1-f3) lands."
+    }
+  ],
+  "success_criteria": [
+    "Backend starts with no errors on /api prefix",
+    "alembic upgrade head creates all tables without errors",
+    "POST /api/dev/reset populates the full demo dataset",
+    "All error responses match the {error, code, status} shape"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "Backend uses FastAPI + SQLAlchemy with PostgreSQL 16; SQLite not supported",
+  "Frontend uses Next.js 14 App Router with TypeScript and TailwindCSS",
+  "All API responses must use camelCase field names (backend must alias from snake_case)",
+  "Proposal resource is internal only \u2014 never exposed on the /api surface",
+  "Stable string IDs required for seed data to match frontend deep links",
+  "No authentication for hackathon \u2014 bearer token plumbing omitted",
+  "Memory decision must be gated on vendor job completion (architectural invariant)",
+  "Error envelope shape {error, code, status} is a contract obligation on every endpoint",
+  "SSE streaming for chat must not buffer \u2014 tokens streamed incrementally",
+  "Context layers split server-side, not client-side"
+]
+
+## Out of Scope
+[
+  "Authentication and multi-tenancy",
+  "Real SMS/email vendor notifications (mocks acceptable)",
+  "Editor tab 'Propose change' endpoint",
+  "Versions/Sources/Policies/Calls property tab APIs (no contract yet)",
+  "Audit log API endpoint (kept internal)",
+  "Agents registry / system-prompt viewer",
+  "Apply-extracted-diffs mutation (no backend route)",
+  "Multi-conversation chat history",
+  "Rolling back ContextVersions",
+  "Streaming for endpoints other than /api/chat"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 1 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-004212" in the contract.
+Set branch to "ai/sprint-1-api-foundation-schema-expansion" in the contract.
