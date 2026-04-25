@@ -4,7 +4,9 @@
   "strategy": "manual-commit",
   "branch": "ai/sprint-1-api-foundation-schema-expansion",
   "checkpoints_count": 1,
-  "files_touched": null,
+  "files_touched": [
+    "backend/app/models/__init__.py"
+  ],
   "sessions": [
     {
       "metadata": "/3c/17d03a55a9/0/metadata.json",
@@ -17,6 +19,12 @@
       "transcript": "/3c/17d03a55a9/1/full.jsonl",
       "content_hash": "/3c/17d03a55a9/1/content_hash.txt",
       "prompt": "/3c/17d03a55a9/1/prompt.txt"
+    },
+    {
+      "metadata": "/3c/17d03a55a9/2/metadata.json",
+      "transcript": "/3c/17d03a55a9/2/full.jsonl",
+      "content_hash": "/3c/17d03a55a9/2/content_hash.txt",
+      "prompt": "/3c/17d03a55a9/2/prompt.txt"
     }
   ],
   "token_usage": {
