@@ -110,6 +110,28 @@ def preflight_checks(use_api_key: bool = False) -> bool:
     return ok
 
 
+def _detect_target_branch() -> str | None:
+    """Detect the branch the builder should attach to.
+
+    Precedence: AI_BUILDER_TARGET_BRANCH env var, then `git branch --show-current`.
+    Returns None on detached HEAD or git failure.
+    """
+    override = os.environ.get("AI_BUILDER_TARGET_BRANCH")
+    if override:
+        return override.strip()
+
+    result = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=str(config.project_root),
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    branch = result.stdout.strip()
+    return branch or None
+
+
 def _load_resume_state() -> tuple[dict, dict, int] | None:
     """Load state.json and determine resume point.
 
@@ -222,6 +244,15 @@ async def main() -> None:
 
     if not preflight_checks(use_api_key=args.api_key):
         sys.exit(1)
+
+    # ── Pin to current branch ────────────────────────────────────
+    target_branch = _detect_target_branch()
+    if not target_branch:
+        print("ERROR: Could not determine current git branch (detached HEAD?).")
+        print("  Check out a branch, or set AI_BUILDER_TARGET_BRANCH.")
+        sys.exit(1)
+    config.main_branch = target_branch
+    print(f"  Target branch: {target_branch} (sprints will merge here)")
 
     # ── Tracing (opt-in) ─────────────────────────────────────────
     if config.tracing_enabled:
