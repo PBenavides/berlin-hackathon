@@ -5,7 +5,6 @@ from typing import List, Optional
 from app.database import get_db
 from app.models.buildings import Building
 from app.models.building_vendors import BuildingVendor
-from app.models.units import Unit
 from app.schemas.buildings import BuildingOut
 
 router = APIRouter()
@@ -19,11 +18,6 @@ def _enrich(building: Building, db: Session) -> BuildingOut:
         .filter(BuildingVendor.building_id == building.id)
         .all()
     ]
-    units_count = db.query(Unit).filter(Unit.property_id.in_(
-        # Units belong to properties which belong to this building
-        # For simplicity, use building.units_count directly
-        []
-    )).count()
 
     out = BuildingOut.model_validate(building)
     out.vendors = vendor_ids
