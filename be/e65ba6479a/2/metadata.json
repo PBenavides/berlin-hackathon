@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "bee65ba6479a",
+  "session_id": "fbbaf8cd-aca2-4968-84a7-c9d13b5e94f5",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T20:55:16.958227Z",
+  "branch": "feat/ai-builder-overnight",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/alembic/versions/0002_owner_messages_attachments.py",
+    "backend/app/api/routes/attachments.py",
+    "backend/app/api/routes/messages.py",
+    "backend/app/models/attachments.py",
+    "backend/app/models/owner_messages.py",
+    "backend/app/schemas/attachments.py",
+    "backend/app/schemas/messages.py",
+    "backend/app/services/concierge_dispatcher.py",
+    "docs/HERMES_PLAN.md",
+    "docs/HERMES_PRD.md",
+    "frontend/.dockerignore",
+    "frontend/app/components/ConciergeChat.tsx",
+    "frontend/app/components/PropertySidebar.tsx",
+    "frontend/app/properties/[id]/concierge/page.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "0c9f4fef94df",
+  "token_usage": {
+    "input_tokens": 1584,
+    "cache_creation_tokens": 758053,
+    "cache_read_tokens": 29036399,
+    "output_tokens": 122116,
+    "api_call_count": 179
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T20:55:16.914774Z",
+    "agent_lines": 1807,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1807,
+    "total_lines_changed": 1807,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 952738,
+      "agent_lines_removed": 98
+    }
+  ]
+}

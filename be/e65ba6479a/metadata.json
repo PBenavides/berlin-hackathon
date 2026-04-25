@@ -3,11 +3,22 @@
   "checkpoint_id": "bee65ba6479a",
   "strategy": "manual-commit",
   "branch": "feat/ai-builder-overnight",
-  "checkpoints_count": 4,
+  "checkpoints_count": 5,
   "files_touched": [
+    "backend/alembic/versions/0002_owner_messages_attachments.py",
     "backend/app/api/routes/attachments.py",
     "backend/app/api/routes/messages.py",
-    "frontend/app/components/PropertySidebar.tsx"
+    "backend/app/models/attachments.py",
+    "backend/app/models/owner_messages.py",
+    "backend/app/schemas/attachments.py",
+    "backend/app/schemas/messages.py",
+    "backend/app/services/concierge_dispatcher.py",
+    "docs/HERMES_PLAN.md",
+    "docs/HERMES_PRD.md",
+    "frontend/.dockerignore",
+    "frontend/app/components/ConciergeChat.tsx",
+    "frontend/app/components/PropertySidebar.tsx",
+    "frontend/app/properties/[id]/concierge/page.tsx"
   ],
   "sessions": [
     {
@@ -21,13 +32,19 @@
       "transcript": "/be/e65ba6479a/1/full.jsonl",
       "content_hash": "/be/e65ba6479a/1/content_hash.txt",
       "prompt": "/be/e65ba6479a/1/prompt.txt"
+    },
+    {
+      "metadata": "/be/e65ba6479a/2/metadata.json",
+      "transcript": "/be/e65ba6479a/2/full.jsonl",
+      "content_hash": "/be/e65ba6479a/2/content_hash.txt",
+      "prompt": "/be/e65ba6479a/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 159,
-    "cache_creation_tokens": 453902,
-    "cache_read_tokens": 7973277,
-    "output_tokens": 67920,
-    "api_call_count": 127
+    "input_tokens": 1743,
+    "cache_creation_tokens": 1211955,
+    "cache_read_tokens": 37009676,
+    "output_tokens": 190036,
+    "api_call_count": 306
   }
 }
