@@ -4,9 +4,10 @@ import { Badge } from "@repo/ui/components/badge";
 import { units, properties, owners } from "@/lib/data";
 import { formatEur } from "@/lib/utils";
 
-export default function UnitsPage({ params }: { params: { id: string } }) {
-  const propUnits = units.filter((u) => u.propertyId === params.id);
-  const prop = properties.find((p) => p.id === params.id)!;
+export default async function UnitsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const propUnits = units.filter((u) => u.propertyId === id);
+  const prop = properties.find((p) => p.id === id)!;
   const owner = owners.find((o) => o.id === prop.ownerId);
 
   const totalArea = propUnits.reduce((s, u) => s + u.areaQm, 0);

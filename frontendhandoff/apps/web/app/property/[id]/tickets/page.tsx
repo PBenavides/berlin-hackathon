@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import Link from "next/link";
 import { useState } from "react";
 import { Card, CardContent } from "@repo/ui/components/card";
@@ -12,9 +13,10 @@ import { cn } from "@repo/ui/lib/utils";
 
 type Filter = "unsolved" | "all" | "resolved";
 
-export default function PropertyTicketsPage({ params }: { params: { id: string } }) {
+export default function PropertyTicketsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [filter, setFilter] = useState<Filter>("unsolved");
-  const propTickets = tickets.filter((t) => t.propertyId === params.id);
+  const propTickets = tickets.filter((t) => t.propertyId === id);
   const counts = {
     unsolved: propTickets.filter((t) => !["resolved", "rejected"].includes(t.status)).length,
     all: propTickets.length,

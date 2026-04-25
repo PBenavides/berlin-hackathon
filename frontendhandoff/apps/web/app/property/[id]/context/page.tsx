@@ -2,8 +2,9 @@ import { Card, CardContent } from "@repo/ui/components/card";
 import { Badge } from "@repo/ui/components/badge";
 import { properties, owners, buildings } from "@/lib/data";
 
-export default function ContextPage({ params }: { params: { id: string } }) {
-  const prop = properties.find((p) => p.id === params.id)!;
+export default async function ContextPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const prop = properties.find((p) => p.id === id)!;
   const owner = owners.find((o) => o.id === prop.ownerId)!;
   const building = buildings.find((b) => b.id === prop.buildingId)!;
 

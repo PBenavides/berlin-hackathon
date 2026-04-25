@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
@@ -17,8 +17,9 @@ import {
   CheckCircle2, Clock, MessageSquare, Wrench, FileEdit,
 } from "lucide-react";
 
-export default function TicketDetailPage({ params }: { params: { id: string } }) {
-  const t = tickets.find((x) => x.id === params.id);
+export default function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const t = tickets.find((x) => x.id === id);
   if (!t) notFound();
 
   const prop = properties.find((p) => p.id === t.propertyId);

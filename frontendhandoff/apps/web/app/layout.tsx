@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${mono.variable} font-sans antialiased bg-background text-foreground`}>
+      <body className={`${geist.variable} ${mono.variable} font-sans antialiased bg-background text-foreground`}>
         <ThemeProvider>
           <div className="flex h-screen overflow-hidden">
             <Sidebar />
