@@ -24,7 +24,7 @@ from app.api.routes import (
     units,
 )
 from app.config import get_settings
-from app.exceptions import StateConflictError, state_conflict_handler
+from app.exceptions import StateConflictError, state_conflict_handler, _CODE_MAP
 
 app = FastAPI(
     title="Buena ContextOps API",
@@ -46,17 +46,14 @@ app.add_middleware(
 
 # ---------------------------------------------------------------------------
 # Standardised error envelope  {error, code, status}
+# Handlers delegate to app.exceptions which owns _CODE_MAP (single source of truth)
 # ---------------------------------------------------------------------------
 
-_STATUS_CODES: dict[int, str] = {
-    400: "BAD_REQUEST",
-    401: "UNAUTHORIZED",
-    403: "FORBIDDEN",
-    404: "NOT_FOUND",
-    409: "CONFLICT",
-    422: "VALIDATION_ERROR",
-    500: "INTERNAL_ERROR",
-}
+from app.exceptions import (  # noqa: E402 — after app init
+    http_exception_handler as _http_handler,
+    validation_exception_handler as _validation_handler,
+    generic_exception_handler as _generic_handler,
+)
 
 
 @app.exception_handler(StateConflictError)
@@ -69,39 +66,19 @@ async def _state_conflict_handler(request: Request, exc: StateConflictError) -> 
 @app.exception_handler(StarletteHTTPException)
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    code = _STATUS_CODES.get(exc.status_code, "ERROR")
-    detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": detail, "code": code, "status": exc.status_code},
-    )
+    return await _http_handler(request, exc)
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    errors = exc.errors()
-    messages_list = [
-        f"{' -> '.join(str(loc) for loc in e['loc'])}: {e['msg']}" for e in errors
-    ]
-    error_msg = "; ".join(messages_list) if messages_list else "Validation error"
-    return JSONResponse(
-        status_code=422,
-        content={"error": error_msg, "code": "VALIDATION_ERROR", "status": 422},
-    )
+    return await _validation_handler(request, exc)
 
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": "An unexpected error occurred",
-            "code": "INTERNAL_ERROR",
-            "status": 500,
-        },
-    )
+    return await _generic_handler(request, exc)
 
 
 @app.on_event("startup")
