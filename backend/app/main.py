@@ -64,6 +64,9 @@ async def _state_conflict_handler(request: Request, exc: StateConflictError) -> 
     return await state_conflict_handler(request, exc)
 
 
+# Register for both FastAPI HTTPException (raised in routes) and Starlette
+# HTTPException (raised by the router itself for path-not-found 404s).
+@app.exception_handler(StarletteHTTPException)
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     code = _STATUS_CODES.get(exc.status_code, "ERROR")
