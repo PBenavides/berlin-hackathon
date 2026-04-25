@@ -4,9 +4,22 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
 
-from app.database import get_db, engine, Base
-from app.models import Property, ContextVersion, ContextChunk, PropertyPolicy, ContextSource, Ticket, AgentProposal, AuditLog
+from app.database import get_db
+from app.models import (
+    Property, ContextVersion, ContextChunk, PropertyPolicy, ContextSource,
+    Ticket, AgentProposal, AuditLog, OwnerMessage, Attachment,
+)
 from app.models.properties import Property as PropertyModel
+from app.models.owners import Owner
+from app.models.buildings import Building
+from app.models.building_vendors import BuildingVendor
+from app.models.vendors import Vendor
+from app.models.vendor_cases import VendorCase
+from app.models.units import Unit
+from app.models.call_sessions import CallSession
+from app.models.vendor_jobs import VendorJob
+from app.models.extractions import Extraction
+from app.models.property_ticket_counters import PropertyTicketCounter
 from app.schemas.tickets import TicketOut
 from app.seed import TICKET_TEMPLATES, run_seed
 from app.services.audit_service import create_audit_entry
@@ -21,18 +34,31 @@ class SimulateTicketRequest(BaseModel):
 @router.post("/dev/reset")
 def reset_database(db: Session = Depends(get_db)):
     """
-    Drop all data and re-seed the database.
+    Drop all data and re-seed the database with the full demo dataset.
     WARNING: Destructive operation — for dev/demo use only.
+    Idempotent: calling reset twice produces the same state.
     """
-    # Delete in reverse FK order
+    # Delete in reverse FK dependency order
     db.query(AuditLog).delete()
+    db.query(Attachment).delete()
+    db.query(OwnerMessage).delete()
+    db.query(VendorJob).delete()
+    db.query(CallSession).delete()
+    db.query(Extraction).delete()
+    db.query(PropertyTicketCounter).delete()
     db.query(AgentProposal).delete()
     db.query(Ticket).delete()
+    db.query(Unit).delete()
     db.query(ContextSource).delete()
     db.query(PropertyPolicy).delete()
     db.query(ContextChunk).delete()
     db.query(ContextVersion).delete()
+    db.query(VendorCase).delete()
+    db.query(BuildingVendor).delete()
     db.query(Property).delete()
+    db.query(Building).delete()
+    db.query(Vendor).delete()
+    db.query(Owner).delete()
     db.commit()
 
     result = run_seed(db)
@@ -64,6 +90,14 @@ def simulate_ticket(
             detail=f"Property '{template['property']}' not found in database. Run /dev/reset first.",
         )
 
+    # Auto-generate ticket number
+    ticket_num = None
+    try:
+        from app.services.ticket_number_service import next_ticket_num
+        ticket_num = next_ticket_num(db, prop.id)
+    except Exception:
+        pass
+
     from app.models.tickets import Ticket
     ticket = Ticket(
         property_id=prop.id,
@@ -71,7 +105,8 @@ def simulate_ticket(
         raised_by=template["raised_by"],
         subject=template["subject"],
         body=template["body"],
-        status="open",
+        status="new",
+        num=ticket_num,
     )
     db.add(ticket)
     db.flush()
