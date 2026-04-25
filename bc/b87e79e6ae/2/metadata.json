@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "bcb87e79e6ae",
+  "session_id": "fbbaf8cd-aca2-4968-84a7-c9d13b5e94f5",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T20:55:45.012834Z",
+  "branch": "feat/ai-builder-overnight",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".gitignore",
+    "backend/pytest.ini",
+    "backend/tests/__init__.py",
+    "backend/tests/conftest.py",
+    "backend/tests/test_database.py",
+    "backend/tests/test_gcs.py",
+    "backend/tests/test_health.py",
+    "backend/tests/test_properties_api.py",
+    "docker-compose.local.yml",
+    "docker-compose.yml"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "0c9f4fef94df",
+  "token_usage": {
+    "input_tokens": 1586,
+    "cache_creation_tokens": 760223,
+    "cache_read_tokens": 29629756,
+    "output_tokens": 123233,
+    "api_call_count": 181
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T20:55:44.961874Z",
+    "agent_lines": 189,
+    "agent_removed": 25,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 189,
+    "total_lines_changed": 214,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}

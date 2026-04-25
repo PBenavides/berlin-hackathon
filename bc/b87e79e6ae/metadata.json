@@ -3,7 +3,7 @@
   "checkpoint_id": "bcb87e79e6ae",
   "strategy": "manual-commit",
   "branch": "feat/ai-builder-overnight",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     ".gitignore",
     "backend/pytest.ini",
@@ -28,13 +28,19 @@
       "transcript": "/bc/b87e79e6ae/1/full.jsonl",
       "content_hash": "/bc/b87e79e6ae/1/content_hash.txt",
       "prompt": "/bc/b87e79e6ae/1/prompt.txt"
+    },
+    {
+      "metadata": "/bc/b87e79e6ae/2/metadata.json",
+      "transcript": "/bc/b87e79e6ae/2/full.jsonl",
+      "content_hash": "/bc/b87e79e6ae/2/content_hash.txt",
+      "prompt": "/bc/b87e79e6ae/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 162,
-    "cache_creation_tokens": 457253,
-    "cache_read_tokens": 8071622,
-    "output_tokens": 68090,
-    "api_call_count": 128
+    "input_tokens": 1748,
+    "cache_creation_tokens": 1217476,
+    "cache_read_tokens": 37701378,
+    "output_tokens": 191323,
+    "api_call_count": 309
   }
 }
