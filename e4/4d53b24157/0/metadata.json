@@ -1,0 +1,81 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "e44d53b24157",
+  "session_id": "89a52253-caf7-49fd-bc6c-d5c302f3be04",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T22:46:53.180854Z",
+  "branch": "feat/frontend-fix",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".ai_builder/artifacts/events.jsonl",
+    "frontend/Dockerfile",
+    "frontend/app/audit/AuditClient.tsx",
+    "frontend/app/audit/loading.tsx",
+    "frontend/app/audit/page.tsx",
+    "frontend/app/components/DiffViewer.tsx",
+    "frontend/app/components/MarkdownRenderer.tsx",
+    "frontend/app/components/PropertySidebar.tsx",
+    "frontend/app/components/TicketFilterTabs.tsx",
+    "frontend/app/error.tsx",
+    "frontend/app/globals.css",
+    "frontend/app/layout.tsx",
+    "frontend/app/loading.tsx",
+    "frontend/app/page.tsx",
+    "frontend/app/properties/[id]/context/loading.tsx",
+    "frontend/app/properties/[id]/context/page.tsx",
+    "frontend/app/properties/[id]/loading.tsx",
+    "frontend/app/properties/[id]/page.tsx",
+    "frontend/app/properties/[id]/tickets/page.tsx",
+    "frontend/app/tickets/DemoGuide.tsx",
+    "frontend/app/tickets/SimulatePanel.tsx",
+    "frontend/app/tickets/[id]/DemoFlowHint.tsx",
+    "frontend/app/tickets/[id]/ProposalReview.tsx",
+    "frontend/app/tickets/[id]/loading.tsx",
+    "frontend/app/tickets/[id]/not-found.tsx",
+    "frontend/app/tickets/[id]/page.tsx",
+    "frontend/app/tickets/loading.tsx",
+    "frontend/app/tickets/page.tsx",
+    "frontend/docs/README.md",
+    "frontend/next-env.d.ts",
+    "frontend/next.config.js",
+    "frontend/package-lock.json",
+    "frontend/package.json",
+    "frontend/postcss.config.js",
+    "frontend/tailwind.config.ts",
+    "frontend/tsconfig.json"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "5d7bf7775fd2",
+  "token_usage": {
+    "input_tokens": 213,
+    "cache_creation_tokens": 235210,
+    "cache_read_tokens": 7631764,
+    "output_tokens": 49778,
+    "api_call_count": 90
+  },
+  "session_metrics": {
+    "turn_count": 5
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T22:46:53.13653Z",
+    "agent_lines": 10,
+    "agent_removed": 6366,
+    "human_added": 46629,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 46639,
+    "total_lines_changed": 53005,
+    "agent_percentage": 12.029053862843128,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

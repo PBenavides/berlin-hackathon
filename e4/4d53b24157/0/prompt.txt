@@ -1,0 +1,32 @@
+Lets continue
+
+---
+
+[Image #1]npx shadcn@latest init --preset b5d3AD0yW --template next --monorepo --pointer it has to match this which looks like this with giest [Image #2] and create a doc what end points forntend expects and 'residential' 'comericial' chips are also not well differntiated and tea is primary color which is not evident
+
+---
+
+create a branch and create a pr
+
+---
+
+Runtime ReferenceError
+Server
+
+
+inter is not defined
+
+app/layout.tsx (18:27) @ RootLayout
+
+
+  16 |   return (
+  17 |     <html lang="en" suppressHydrationWarning>
+> 18 |       <body className={`${inter.variable} ${mono.variable} font-sans antialiased bg-background text-foreground`}>
+     |                           ^
+  19 |         <ThemeProvider>
+  20 |           <div className="flex h-screen overflow-hidden">
+  21 |             <Sidebar /> got this error
+
+---
+
+[Image #4] getting 404
