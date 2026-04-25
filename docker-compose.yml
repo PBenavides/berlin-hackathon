@@ -1,38 +1,24 @@
 version: "3.9"
 
-services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: buena_postgres
-    environment:
-      POSTGRES_USER: buena
-      POSTGRES_PASSWORD: buena
-      POSTGRES_DB: buena
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U buena -d buena"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+# Cloud deployment: postgres service removed — backend uses Cloud SQL via proxy.
+# For local development without Cloud SQL, see docker-compose.local.yml.
 
+services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: buena_backend
     environment:
-      DATABASE_URL: postgresql://buena:buena@postgres:5432/buena
-      ENVIRONMENT: development
+      DATABASE_URL: ${DATABASE_URL}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      PROPOSAL_ENGINE: ${PROPOSAL_ENGINE:-ai}
+      GCS_BUCKET: ${GCS_BUCKET:-}
     ports:
       - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
     volumes:
       - ./backend:/app
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
@@ -53,6 +39,3 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
-
-volumes:
-  postgres_data:

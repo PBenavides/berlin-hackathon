@@ -61,6 +61,8 @@ export function PropertySidebar({ properties }: PropertySidebarProps) {
     pathname.startsWith(`/properties/${id}/context`);
   const isTicketsActive = (id: string) =>
     pathname.startsWith(`/properties/${id}/tickets`);
+  const isConciergeActive = (id: string) =>
+    pathname.startsWith(`/properties/${id}/concierge`);
 
   return (
     <aside className="w-60 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col">
@@ -163,6 +165,17 @@ export function PropertySidebar({ properties }: PropertySidebarProps) {
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
                       Tickets
+                    </Link>
+                    <Link
+                      href={`/properties/${property.id}/concierge`}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        isConciergeActive(property.id)
+                          ? "bg-brand-100 text-brand-700"
+                          : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
+                      Concierge
                     </Link>
                     <Link
                       href={`/audit?property_id=${property.id}`}

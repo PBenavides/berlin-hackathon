@@ -8,7 +8,7 @@ from claude_agent_sdk import ClaudeAgentOptions
 
 from config import config
 from src.comms import load_prompt
-from src.sdk_helpers import run_agent
+from src.sdk_helpers import run_agent_resilient
 
 logger = logging.getLogger("ai_builder.planner")
 
@@ -68,15 +68,12 @@ def _extract_json(text: str) -> dict:
     raise ValueError(f"Could not extract valid JSON from planner output:\n{text[:500]}")
 
 
-async def run_planner(user_prompt: str, run_id: str) -> dict:
+async def run_planner(user_prompt: str, run_id: str) -> dict | None:
     """Run the planner agent and return the product spec as a dict.
 
-    Args:
-        user_prompt: The user's feature request (1-4 sentences)
-        run_id: Unique identifier for this build run
-
-    Returns:
-        Parsed spec dict matching the planner output schema
+    Returns the spec dict on success. Returns None if the planner failed
+    after all retries — callers should treat this as a fatal run abort
+    (no spec means no sprints to iterate).
     """
     system_prompt = load_prompt("planner")
     prompt = _build_planner_prompt(user_prompt, run_id)
@@ -84,7 +81,7 @@ async def run_planner(user_prompt: str, run_id: str) -> dict:
     logger.info(f"Starting planner for run {run_id}")
     logger.info(f"User prompt: {user_prompt}")
 
-    result = await run_agent(
+    result = await run_agent_resilient(
         prompt=prompt,
         options=ClaudeAgentOptions(
             model=config.planner_model,
@@ -94,14 +91,22 @@ async def run_planner(user_prompt: str, run_id: str) -> dict:
             cwd=str(config.project_root),
             max_turns=config.planner_max_turns,
         ),
+        max_attempts=config.agent_max_attempts,
+        label="planner",
     )
 
-    if result.is_error:
-        raise RuntimeError(f"Planner agent failed: {result.error_detail}")
-    if not result.result_text:
-        raise RuntimeError("Planner returned empty result")
+    if result.is_error or not result.result_text:
+        logger.error(
+            f"Planner gave up: {result.error_detail or 'empty result'}"
+        )
+        return None
 
-    spec = _extract_json(result.result_text)
+    try:
+        spec = _extract_json(result.result_text)
+    except ValueError as e:
+        logger.error(f"Planner output unparseable: {e}")
+        return None
+
     logger.info(
         f"Spec generated: {len(spec.get('sprints', []))} sprints, "
         f"{sum(len(s.get('features', [])) for s in spec.get('sprints', []))} features"

@@ -5,6 +5,28 @@
 *.db
 ticket-detail-top.png
 
+# GCP service account keys
+*-sa-key.json
+
+# Runtime data dirs
+backend/data/
+
+# Heavy source datasets — kept on disk but not tracked
+# (PDFs and .eml files; load locally per data/README.md)
+data/briefe/
+data/emails/
+data/rechnungen/
+data/incremental/**/briefe/
+data/incremental/**/emails/
+data/incremental/**/rechnungen/
+
+# Vendored Hermes source (cloned for spike; not part of the repo)
+hermes/upstream/
+hermes/runtime/
+
+# Claude memory (local only)
+.claude/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -369,4 +391,4 @@ dist
 # Vite files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-.vite/
+.vite/.DS_Store

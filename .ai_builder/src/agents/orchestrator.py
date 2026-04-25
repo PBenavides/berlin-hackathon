@@ -102,6 +102,7 @@ async def run_build_loop(
     dry_run: bool = False,
     start_sprint: int = 1,
     spec_override: dict | None = None,
+    skip_evaluator: bool = False,
 ) -> dict:
     """Run the full Planner -> Generator -> Evaluator loop.
 
@@ -110,6 +111,8 @@ async def run_build_loop(
         dry_run: If True, only run planner (no generation)
         start_sprint: Sprint number to start from (for resume)
         spec_override: Pre-existing spec to skip planning
+        skip_evaluator: If True, bypass the Playwright evaluator and
+            auto-merge sprints after self-critic (no QA report run).
 
     Returns:
         Final state dict with run summary
@@ -136,8 +139,26 @@ async def run_build_loop(
             "ai_builder.phase": "planning",
         }):
             plan_start = time.time()
-            spec = await run_planner(user_prompt, run_id)
+            try:
+                spec = await run_planner(user_prompt, run_id)
+            except Exception as e:
+                logger.error(f"Planner raised unexpectedly: {e}")
+                spec = None
             plan_duration = time.time() - plan_start
+
+        if spec is None:
+            state["status"] = "planning_failed"
+            append_history(
+                state, "planning_failed",
+                duration_s=round(plan_duration, 1),
+            )
+            save_state(state)
+            emit_session_end(run_id, "planning_failed", round(time.time() - total_start, 1))
+            print(
+                f"\n  Planning FAILED. Resume with: python run.py --resume "
+                f"once the underlying issue is fixed."
+            )
+            return state
 
         save_artifact("specs", f"spec-{run_id}.json", spec)
         append_history(state, "planning", duration_s=round(plan_duration, 1))
@@ -204,10 +225,41 @@ async def run_build_loop(
                         "ai_builder.has_bug_report": bug_report is not None,
                     }):
                         gen_start = time.time()
-                        contract, session_id = await run_generator(
-                            spec, sprint, run_id, bug_report,
-                        )
+                        try:
+                            contract, session_id = await run_generator(
+                                spec, sprint, run_id, bug_report,
+                            )
+                        except Exception as e:
+                            logger.error(f"Generator raised unexpectedly: {e}")
+                            contract, session_id = None, None
                         gen_duration = time.time() - gen_start
+
+                    if contract is None:
+                        # Generator gave up (or crashed) after all retries.
+                        # Skip self-critic / evaluator and fail the sprint.
+                        logger.error(
+                            f"Sprint {sprint['sprint_number']}: generator "
+                            f"failed after retries. Skipping to next sprint."
+                        )
+                        append_history(
+                            state, "generation_failed",
+                            sprint=sprint["sprint_number"],
+                            retry=retry_count,
+                            duration_s=round(gen_duration, 1),
+                        )
+                        if attempt_span:
+                            attempt_span.set_attribute(
+                                "ai_builder.verdict", "generation_failed",
+                            )
+                        emit_sprint_end(run_id, sprint["sprint_number"], "fail", 0)
+                        state["status"] = "sprint_failed"
+                        save_state(state)
+                        _git(["checkout", config.main_branch], check=False)
+                        print(
+                            f"\n  Sprint {sprint['sprint_number']} FAILED: "
+                            f"generator agent error. Moving on to next sprint."
+                        )
+                        break
 
                     save_artifact(
                         "sprint_contracts",
@@ -266,9 +318,20 @@ async def run_build_loop(
                         "ai_builder.step": "self_critique",
                     }):
                         critic_start = time.time()
-                        review = await run_self_critic(
-                            sprint, contract, session_id,
-                        )
+                        try:
+                            review = await run_self_critic(
+                                sprint, contract, session_id,
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                f"Self-critic raised unexpectedly: {e}; "
+                                f"defaulting to rework_needed verdict"
+                            )
+                            review = {
+                                "verdict": "rework_needed",
+                                "issues": [],
+                                "_error": str(e),
+                            }
                         critic_duration = time.time() - critic_start
 
                     save_artifact(
@@ -297,15 +360,25 @@ async def run_build_loop(
                             ]),
                         }):
                             fix_start = time.time()
-                            await run_self_fix(review, session_id)
+                            try:
+                                await run_self_fix(review, session_id)
+                            except Exception as e:
+                                logger.warning(f"Self-fix raised: {e}; continuing")
                             fix_duration = time.time() - fix_start
 
                         with trace_span("self-critique-post-fix", attributes={
                             "ai_builder.step": "self_critique_post_fix",
                         }):
-                            review2 = await run_self_critic(
-                                sprint, contract, session_id,
-                            )
+                            try:
+                                review2 = await run_self_critic(
+                                    sprint, contract, session_id,
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"Post-fix self-critic raised: {e}; "
+                                    f"using prior review"
+                                )
+                                review2 = review
 
                         save_artifact(
                             "reviews",
@@ -324,15 +397,52 @@ async def run_build_loop(
                     state["status"] = "evaluating"
                     save_state(state)
 
-                    with trace_span("evaluate", attributes={
-                        "ai_builder.step": "evaluate",
-                    }):
-                        eval_start = time.time()
-                        qa_report = await run_evaluator(
-                            contract, sprint, run_id,
-                            attempt=retry_count + 1,
+                    if skip_evaluator:
+                        logger.info(
+                            f"Sprint {sprint['sprint_number']}: evaluator "
+                            f"SKIPPED via --skip-evaluator. Auto-passing."
                         )
-                        eval_duration = time.time() - eval_start
+                        eval_duration = 0.0
+                        qa_report = {
+                            "verdict": "pass",
+                            "overall_score": config.pass_threshold,
+                            "scores": {},
+                            "bugs": [],
+                            "regression_results": [],
+                            "run_id": run_id,
+                            "sprint_number": sprint["sprint_number"],
+                            "attempt": retry_count + 1,
+                            "pass_threshold": config.pass_threshold,
+                            "notes": "Evaluator skipped via --skip-evaluator flag.",
+                        }
+                    else:
+                        with trace_span("evaluate", attributes={
+                            "ai_builder.step": "evaluate",
+                        }):
+                            eval_start = time.time()
+                            try:
+                                qa_report = await run_evaluator(
+                                    contract, sprint, run_id,
+                                    attempt=retry_count + 1,
+                                )
+                            except Exception as e:
+                                logger.error(
+                                    f"Evaluator raised unexpectedly: {e}; "
+                                    f"synthesizing fail report"
+                                )
+                                qa_report = {
+                                    "verdict": "fail",
+                                    "overall_score": 0,
+                                    "scores": {},
+                                    "bugs": [],
+                                    "regression_results": [],
+                                    "run_id": run_id,
+                                    "sprint_number": sprint["sprint_number"],
+                                    "attempt": retry_count + 1,
+                                    "pass_threshold": config.pass_threshold,
+                                    "notes": f"Evaluator crashed: {e}",
+                                }
+                            eval_duration = time.time() - eval_start
 
                     save_artifact(
                         "qa_reports",

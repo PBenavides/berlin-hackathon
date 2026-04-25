@@ -1,8 +1,22 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import properties, context, policies, audit, dev, tickets, proposals
+from app.api.routes import (
+    properties,
+    context,
+    policies,
+    audit,
+    dev,
+    tickets,
+    proposals,
+    messages,
+    attachments,
+    documents,
+)
+from app.config import get_settings
 
 app = FastAPI(
     title="Buena ContextOps API",
@@ -21,6 +35,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.on_event("startup")
+def _ensure_runtime_dirs() -> None:
+    settings = get_settings()
+    os.makedirs(settings.attachments_dir, exist_ok=True)
+    os.makedirs(settings.documents_dir, exist_ok=True)
+
+
 # Include routers
 app.include_router(properties.router, prefix="/api/v1", tags=["properties"])
 app.include_router(context.router, prefix="/api/v1", tags=["context"])
@@ -29,6 +51,9 @@ app.include_router(audit.router, prefix="/api/v1", tags=["audit"])
 app.include_router(dev.router, prefix="/api/v1", tags=["dev"])
 app.include_router(tickets.router, prefix="/api/v1", tags=["tickets"])
 app.include_router(proposals.router, prefix="/api/v1", tags=["proposals"])
+app.include_router(messages.router, prefix="/api/v1", tags=["messages"])
+app.include_router(attachments.router, prefix="/api/v1", tags=["attachments"])
+app.include_router(documents.router, prefix="/api/v1", tags=["documents"])
 
 
 @app.get("/api/v1/health", tags=["health"])
