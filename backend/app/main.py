@@ -1,6 +1,7 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -36,6 +37,58 @@ app.add_middleware(
 )
 
 
+# ---------------------------------------------------------------------------
+# Standardised error envelope  {error, code, status}
+# ---------------------------------------------------------------------------
+
+_STATUS_CODES: dict[int, str] = {
+    400: "BAD_REQUEST",
+    401: "UNAUTHORIZED",
+    403: "FORBIDDEN",
+    404: "NOT_FOUND",
+    409: "CONFLICT",
+    422: "VALIDATION_ERROR",
+    500: "INTERNAL_ERROR",
+}
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    code = _STATUS_CODES.get(exc.status_code, "ERROR")
+    detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": detail, "code": code, "status": exc.status_code},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    errors = exc.errors()
+    messages_list = [
+        f"{' -> '.join(str(loc) for loc in e['loc'])}: {e['msg']}" for e in errors
+    ]
+    error_msg = "; ".join(messages_list) if messages_list else "Validation error"
+    return JSONResponse(
+        status_code=422,
+        content={"error": error_msg, "code": "VALIDATION_ERROR", "status": 422},
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "An unexpected error occurred",
+            "code": "INTERNAL_ERROR",
+            "status": 500,
+        },
+    )
+
+
 @app.on_event("startup")
 def _ensure_runtime_dirs() -> None:
     settings = get_settings()
@@ -43,19 +96,29 @@ def _ensure_runtime_dirs() -> None:
     os.makedirs(settings.documents_dir, exist_ok=True)
 
 
-# Include routers
-app.include_router(properties.router, prefix="/api/v1", tags=["properties"])
-app.include_router(context.router, prefix="/api/v1", tags=["context"])
-app.include_router(policies.router, prefix="/api/v1", tags=["policies"])
-app.include_router(audit.router, prefix="/api/v1", tags=["audit"])
-app.include_router(dev.router, prefix="/api/v1", tags=["dev"])
-app.include_router(tickets.router, prefix="/api/v1", tags=["tickets"])
-app.include_router(proposals.router, prefix="/api/v1", tags=["proposals"])
-app.include_router(messages.router, prefix="/api/v1", tags=["messages"])
-app.include_router(attachments.router, prefix="/api/v1", tags=["attachments"])
-app.include_router(documents.router, prefix="/api/v1", tags=["documents"])
+# ---------------------------------------------------------------------------
+# Routers — mounted at both /api (primary) and /api/v1 (backward compat)
+# ---------------------------------------------------------------------------
+
+_routers = [
+    (properties.router, "properties"),
+    (context.router, "context"),
+    (policies.router, "policies"),
+    (audit.router, "audit"),
+    (dev.router, "dev"),
+    (tickets.router, "tickets"),
+    (proposals.router, "proposals"),
+    (messages.router, "messages"),
+    (attachments.router, "attachments"),
+    (documents.router, "documents"),
+]
+
+for _router, _tag in _routers:
+    app.include_router(_router, prefix="/api", tags=[_tag])
+    app.include_router(_router, prefix="/api/v1", tags=[f"{_tag}-v1"])
 
 
+@app.get("/api/health", tags=["health"])
 @app.get("/api/v1/health", tags=["health"])
 def health_check():
     return JSONResponse({"status": "ok", "service": "buena-contextops"})
