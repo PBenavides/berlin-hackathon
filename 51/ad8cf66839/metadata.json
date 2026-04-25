@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "51ad8cf66839",
+  "strategy": "manual-commit",
+  "branch": "feat/ai-builder-overnight",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "data/jobs/data_loader.py",
+    "data/jobs/load.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/51/ad8cf66839/0/metadata.json",
+      "transcript": "/51/ad8cf66839/0/full.jsonl",
+      "content_hash": "/51/ad8cf66839/0/content_hash.txt",
+      "prompt": "/51/ad8cf66839/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 40,
+    "cache_creation_tokens": 49742,
+    "cache_read_tokens": 1487696,
+    "output_tokens": 16293,
+    "api_call_count": 34
+  }
+}

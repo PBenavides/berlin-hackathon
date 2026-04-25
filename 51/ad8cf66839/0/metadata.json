@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "51ad8cf66839",
+  "session_id": "d62f728b-892f-4a92-8a51-6ee2ae32a314",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T21:25:20.217967Z",
+  "branch": "feat/ai-builder-overnight",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "data/jobs/data_loader.py",
+    "data/jobs/load.sh"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "f3843cd04109",
+  "token_usage": {
+    "input_tokens": 40,
+    "cache_creation_tokens": 49742,
+    "cache_read_tokens": 1487696,
+    "output_tokens": 16293,
+    "api_call_count": 34
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T21:25:20.210182Z",
+    "agent_lines": 215,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 215,
+    "total_lines_changed": 215,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
