@@ -45,6 +45,11 @@ class BuildConfig:
     max_retries: int = 1
     pass_threshold: float = 7.5
 
+    # In-process resilience: how many attempts each SDK call gets before
+    # the orchestrator is allowed to skip the sprint. The first attempt is
+    # the original call; subsequent attempts resume the captured session_id.
+    agent_max_attempts: int = 2
+
     # Git
     main_branch: str = "main"
     branch_prefix: str = "ai/sprint"

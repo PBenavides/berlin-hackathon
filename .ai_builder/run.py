@@ -203,6 +203,12 @@ Examples:
         help="Use ANTHROPIC_API_KEY instead of CLI subscription auth",
     )
     parser.add_argument(
+        "--skip-evaluator",
+        action="store_true",
+        help="Skip the Playwright evaluator phase. Each sprint is "
+             "auto-merged after self-critic (no QA report).",
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Enable debug logging",
@@ -276,6 +282,8 @@ async def main() -> None:
         print(f"  Mode:   Resume from sprint {start_sprint}")
     elif args.dry_run:
         print(f"  Mode:   Dry run (plan only)")
+    elif args.skip_evaluator:
+        print(f"  Mode:   Build (evaluator SKIPPED — sprints auto-merge)")
     else:
         print(f"  Mode:   Full build")
     if start_sprint > 1:
@@ -285,18 +293,40 @@ async def main() -> None:
 
     from src.agents.orchestrator import run_build_loop
 
+    exit_code = 0
     try:
         state = await run_build_loop(
             user_prompt=prompt,
             dry_run=args.dry_run,
             start_sprint=start_sprint,
             spec_override=spec_override,
+            skip_evaluator=args.skip_evaluator,
         )
+    except KeyboardInterrupt:
+        # Let the user's Ctrl-C bubble up cleanly.
+        print("\n  Interrupted. Resume with: python run.py --resume")
+        raise
+    except Exception as e:
+        # Last-resort safety net. Layer 2 should already have caught
+        # per-sprint failures, but if anything escapes — orchestrator
+        # bug, OOM, etc. — preserve state.json so the run is resumable.
+        logger = logging.getLogger("ai_builder")
+        logger.exception(f"Build loop crashed: {e}")
+        print()
+        print("=" * 60)
+        print(f"  Build halted with an unexpected error: {e}")
+        print("  state.json has been preserved.")
+        print("  Resume once fixed:  python run.py --resume")
+        print("=" * 60)
+        exit_code = 1
     finally:
         if config.tracing_enabled:
             from src.tracing import shutdown_tracing
 
             shutdown_tracing()
+
+    if exit_code:
+        sys.exit(exit_code)
 
 
 if __name__ == "__main__":

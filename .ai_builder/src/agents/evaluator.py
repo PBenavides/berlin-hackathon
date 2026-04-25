@@ -8,7 +8,7 @@ from claude_agent_sdk import ClaudeAgentOptions
 
 from config import config
 from src.comms import load_prompt
-from src.sdk_helpers import run_agent
+from src.sdk_helpers import run_agent_resilient
 
 logger = logging.getLogger("ai_builder.evaluator")
 
@@ -133,7 +133,7 @@ async def run_evaluator(
         f"attempt {attempt}"
     )
 
-    result = await run_agent(
+    result = await run_agent_resilient(
         prompt=prompt,
         options=ClaudeAgentOptions(
             model=config.evaluator_model,
@@ -149,6 +149,8 @@ async def run_evaluator(
                 }
             },
         ),
+        max_attempts=config.agent_max_attempts,
+        label=f"evaluator-sprint-{sprint['sprint_number']}",
     )
 
     # Handle max turns — evaluator ran out of turns mid-testing.
@@ -184,7 +186,23 @@ async def run_evaluator(
             )
             return qa_report
         else:
-            raise RuntimeError(f"Evaluator agent failed: {result.error_detail}")
+            # Non-max-turns error after retries — synthesize a fail report
+            # so the orchestrator can move on instead of crashing.
+            logger.error(
+                f"Evaluator failed after retries: {result.error_detail}. "
+                f"Generating synthetic fail report."
+            )
+            qa_report = _incomplete_report(sprint, attempt, result)
+            qa_report["run_id"] = run_id
+            qa_report["sprint_number"] = sprint["sprint_number"]
+            qa_report["attempt"] = attempt
+            qa_report["pass_threshold"] = config.pass_threshold
+            qa_report["verdict"] = "fail"
+            qa_report["notes"] = (
+                f"Evaluator agent failed: {result.error_detail}. "
+                f"Cost: ${result.cost_usd:.2f}"
+            )
+            return qa_report
 
     if not result.result_text:
         if result.tool_calls:
@@ -204,9 +222,33 @@ async def run_evaluator(
             )
             logger.info(f"Evaluator verdict: fail (empty result, {len(result.tool_calls)} tool calls)")
             return qa_report
-        raise RuntimeError("Evaluator returned empty result with no tool calls")
+        # Empty result and no tool calls — synthesize a fail report instead
+        # of raising, so the orchestrator can move on.
+        logger.error(
+            "Evaluator returned empty result with no tool calls. "
+            "Generating synthetic fail report."
+        )
+        qa_report = _incomplete_report(sprint, attempt, result)
+        qa_report["run_id"] = run_id
+        qa_report["sprint_number"] = sprint["sprint_number"]
+        qa_report["attempt"] = attempt
+        qa_report["pass_threshold"] = config.pass_threshold
+        qa_report["verdict"] = "fail"
+        qa_report["notes"] = "Evaluator returned no output and made no tool calls."
+        return qa_report
 
-    qa_report = _extract_qa_report(result.result_text)
+    try:
+        qa_report = _extract_qa_report(result.result_text)
+    except ValueError as e:
+        logger.error(f"Evaluator output unparseable ({e}); generating fail report")
+        qa_report = _incomplete_report(sprint, attempt, result)
+        qa_report["run_id"] = run_id
+        qa_report["sprint_number"] = sprint["sprint_number"]
+        qa_report["attempt"] = attempt
+        qa_report["pass_threshold"] = config.pass_threshold
+        qa_report["verdict"] = "fail"
+        qa_report["notes"] = f"Evaluator output unparseable: {e}"
+        return qa_report
 
     # Ensure metadata fields
     qa_report["run_id"] = run_id

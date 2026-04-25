@@ -8,7 +8,7 @@ from claude_agent_sdk import ClaudeAgentOptions
 
 from config import config
 from src.comms import load_prompt
-from src.sdk_helpers import run_agent
+from src.sdk_helpers import run_agent_resilient
 
 logger = logging.getLogger("ai_builder.generator")
 
@@ -112,17 +112,13 @@ async def run_generator(
     sprint: dict,
     run_id: str,
     bug_report: dict | None = None,
-) -> tuple[dict, str]:
+) -> tuple[dict | None, str | None]:
     """Run the generator agent for a sprint.
 
-    Args:
-        spec: Full product spec from planner
-        sprint: The specific sprint to implement
-        run_id: Build run identifier
-        bug_report: Previous QA bugs to fix (on retry)
-
     Returns:
-        Tuple of (sprint_contract_dict, session_id)
+        (contract_dict, session_id) on success.
+        (None, session_id_or_None) when the generator failed after all
+        retries — orchestrator should treat the sprint as failed.
     """
     system_prompt = load_prompt("generator")
     prompt = _build_generator_prompt(spec, sprint, run_id, bug_report)
@@ -131,7 +127,7 @@ async def run_generator(
     if bug_report:
         logger.info(f"Retry mode: fixing {len(bug_report.get('bugs', []))} bugs")
 
-    result = await run_agent(
+    result = await run_agent_resilient(
         prompt=prompt,
         options=ClaudeAgentOptions(
             model=config.generator_model,
@@ -147,18 +143,23 @@ async def run_generator(
                 }
             }
         ),
+        max_attempts=config.agent_max_attempts,
+        label=f"generator-sprint-{sprint['sprint_number']}",
     )
 
-    if result.is_error:
-        raise RuntimeError(f"Generator agent failed: {result.error_detail}")
-
-    if not result.result_text:
-        raise RuntimeError(
-            f"Generator returned empty result "
-            f"(tools called: {len(result.tool_calls)}, cost: ${result.cost_usd:.4f})"
+    if result.is_error or not result.result_text:
+        logger.error(
+            f"Generator gave up for sprint {sprint['sprint_number']}: "
+            f"{result.error_detail or 'empty result'}"
         )
+        return None, result.session_id
 
-    contract = _extract_json(result.result_text)
+    try:
+        contract = _extract_json(result.result_text)
+    except ValueError as e:
+        logger.error(f"Generator output unparseable: {e}")
+        return None, result.session_id
+
     logger.info(
         f"Contract: {len(contract.get('features_implemented', []))} features, "
         f"branch: {contract.get('branch', 'unknown')}"
@@ -200,7 +201,7 @@ Return ONLY the review JSON. No other text."""
 
     logger.info(f"Starting self-critic for sprint {sprint['sprint_number']}")
 
-    result = await run_agent(
+    result = await run_agent_resilient(
         prompt=prompt,
         options=ClaudeAgentOptions(
             model=config.generator_model,
@@ -217,14 +218,31 @@ Return ONLY the review JSON. No other text."""
                 }
             }
         ),
+        max_attempts=config.agent_max_attempts,
+        label=f"self-critic-sprint-{sprint['sprint_number']}",
     )
 
-    if result.is_error:
-        raise RuntimeError(f"Self-critic failed: {result.error_detail}")
-    if not result.result_text:
-        raise RuntimeError("Self-critic returned empty result")
+    if result.is_error or not result.result_text:
+        logger.warning(
+            f"Self-critic failed: {result.error_detail or 'empty'}; "
+            f"defaulting to rework_needed verdict"
+        )
+        return {
+            "verdict": "rework_needed",
+            "issues": [],
+            "_error": result.error_detail or "empty self-critic result",
+        }
 
-    review = _extract_json_review(result.result_text)
+    try:
+        review = _extract_json_review(result.result_text)
+    except ValueError as e:
+        logger.warning(f"Self-critic output unparseable ({e}); defaulting to rework_needed")
+        return {
+            "verdict": "rework_needed",
+            "issues": [],
+            "_error": f"unparseable: {e}",
+        }
+
     high_issues = [i for i in review.get("issues", []) if i.get("severity") == "high"]
     logger.info(
         f"Self-critic verdict: {review.get('verdict')} "
@@ -311,7 +329,7 @@ This commit triggers session tracking hooks — do not skip it."""
 
     logger.info(f"Starting self-fix for {len(fixable_issues)} issues")
 
-    result = await run_agent(
+    result = await run_agent_resilient(
         prompt=prompt,
         options=ClaudeAgentOptions(
             model=config.generator_model,
@@ -321,6 +339,8 @@ This commit triggers session tracking hooks — do not skip it."""
             resume=generator_session_id,
             max_turns=config.self_fix_max_turns,
         ),
+        max_attempts=config.agent_max_attempts,
+        label="self-fix",
     )
 
     if result.is_error:
