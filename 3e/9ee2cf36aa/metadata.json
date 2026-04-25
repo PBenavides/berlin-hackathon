@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "3e9ee2cf36aa",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-1-foundation-wire-compatibility",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/app/api/routes/documents.py",
+    "backend/app/schemas/attachments.py",
+    "backend/app/schemas/audit.py",
+    "backend/app/schemas/base.py",
+    "backend/app/schemas/context_versions.py",
+    "backend/app/schemas/messages.py",
+    "backend/app/schemas/policies.py",
+    "backend/app/schemas/properties.py",
+    "backend/app/schemas/property_documents.py",
+    "backend/app/schemas/proposals.py",
+    "backend/app/schemas/sources.py",
+    "backend/app/schemas/tickets.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/3e/9ee2cf36aa/0/metadata.json",
+      "transcript": "/3e/9ee2cf36aa/0/full.jsonl",
+      "content_hash": "/3e/9ee2cf36aa/0/content_hash.txt",
+      "prompt": "/3e/9ee2cf36aa/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 96,
+    "cache_creation_tokens": 425072,
+    "cache_read_tokens": 7532630,
+    "output_tokens": 61148,
+    "api_call_count": 87
+  }
+}
