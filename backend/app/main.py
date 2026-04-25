@@ -16,6 +16,10 @@ from app.api.routes import (
     messages,
     attachments,
     documents,
+    owners,
+    buildings,
+    vendors,
+    units,
 )
 from app.config import get_settings
 
@@ -111,6 +115,11 @@ _routers = [
     (messages.router, "messages"),
     (attachments.router, "attachments"),
     (documents.router, "documents"),
+    # Knowledge-layer routers (sprint 1)
+    (owners.router, "owners"),
+    (buildings.router, "buildings"),
+    (vendors.router, "vendors"),
+    (units.router, "units"),
 ]
 
 for _router, _tag in _routers:
