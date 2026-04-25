@@ -3,7 +3,7 @@
   "checkpoint_id": "b33b2d9c4477",
   "strategy": "manual-commit",
   "branch": "feat/ai-builder-overnight",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     ".ai_builder/config.py",
     ".ai_builder/run.py",
@@ -11,7 +11,10 @@
     ".ai_builder/src/agents/generator.py",
     ".ai_builder/src/agents/orchestrator.py",
     ".ai_builder/src/agents/planner.py",
-    ".ai_builder/src/sdk_helpers.py"
+    ".ai_builder/src/sdk_helpers.py",
+    "docs/ENTIRE_INTEGRATION.md",
+    "docs/GCP_MIGRATION.md",
+    "docs/ner-extraction.md"
   ],
   "sessions": [
     {
@@ -25,13 +28,19 @@
       "transcript": "/b3/3b2d9c4477/1/full.jsonl",
       "content_hash": "/b3/3b2d9c4477/1/content_hash.txt",
       "prompt": "/b3/3b2d9c4477/1/prompt.txt"
+    },
+    {
+      "metadata": "/b3/3b2d9c4477/2/metadata.json",
+      "transcript": "/b3/3b2d9c4477/2/full.jsonl",
+      "content_hash": "/b3/3b2d9c4477/2/content_hash.txt",
+      "prompt": "/b3/3b2d9c4477/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 70,
-    "cache_creation_tokens": 278385,
-    "cache_read_tokens": 2737778,
-    "output_tokens": 36033,
-    "api_call_count": 43
+    "input_tokens": 1658,
+    "cache_creation_tokens": 1039538,
+    "cache_read_tokens": 32964750,
+    "output_tokens": 159613,
+    "api_call_count": 226
   }
 }
