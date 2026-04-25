@@ -1,0 +1,123 @@
+## Task
+Implement Sprint 1: Smoke Test Artifact
+
+## Branch
+Create and switch to branch: `ai/sprint-1-smoke-test-artifact`
+Run: `git checkout -b ai/sprint-1-smoke-test-artifact` (or `git checkout ai/sprint-1-smoke-test-artifact` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 1,
+  "name": "Smoke Test Artifact",
+  "goal": "Produce the HELLO.md file requested by the test spec to confirm the pipeline works end-to-end.",
+  "features": [
+    {
+      "id": "s1-f1",
+      "name": "Create HELLO.md greeting file",
+      "description": "As a tester validating the system, I want a file named HELLO.md to appear at the project root containing the word 'hello' so that I can confirm the planner-to-executor pipeline can read a request from docs/TEST.md and produce the requested artifact.",
+      "acceptance_criteria": [
+        "A file named HELLO.md exists at the repository root",
+        "The file contains the text 'hello' (case as specified by the test request)",
+        "The file is plain Markdown and contains no extraneous boilerplate, frontmatter, or unrelated content",
+        "No existing project files are modified or deleted as a side effect"
+      ],
+      "touches": [
+        "repository root file"
+      ],
+      "risk_notes": "Trivial risk; ensure the filename casing matches HELLO.md exactly and that no pre-existing HELLO.md is overwritten with unrelated content."
+    }
+  ],
+  "success_criteria": [
+    "HELLO.md is present at the project root with the greeting content",
+    "The original docs/TEST.md request is satisfied verbatim",
+    "No regressions to any other files in the repository"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "Scope is strictly limited to the single instruction found in docs/TEST.md",
+  "No new features, dependencies, or infrastructure should be introduced",
+  "Avoid creating additional documentation files beyond the requested HELLO.md"
+]
+
+## Out of Scope
+[
+  "Any test framework setup, CI configuration, or automated test harnesses",
+  "Refactoring or modifications to existing project code or docs",
+  "Additional greeting variants, localization, or templating",
+  "Updating CLAUDE.md or other project documentation"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 1 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260425-195708" in the contract.
+Set branch to "ai/sprint-1-smoke-test-artifact" in the contract.
+
+---
+
+## Task
+Implement Sprint 1: Smoke Test Artifact
+
+## Branch
+Create and switch to branch: `ai/sprint-1-smoke-test-artifact`
+Run: `git checkout -b ai/sprint-1-smoke-test-artifact` (or `git checkout ai/sprint-1-smoke-test-artifact` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 1,
+  "name": "Smoke Test Artifact",
+  "goal": "Produce the HELLO.md file requested by the test spec to confirm the pipeline works end-to-end.",
+  "features": [
+    {
+      "id": "s1-f1",
+      "name": "Create HELLO.md greeting file",
+      "description": "As a tester validating the system, I want a file named HELLO.md to appear at the project root containing the word 'hello' so that I can confirm the planner-to-executor pipeline can read a request from docs/TEST.md and produce the requested artifact.",
+      "acceptance_criteria": [
+        "A file named HELLO.md exists at the repository root",
+        "The file contains the text 'hello' (case as specified by the test request)",
+        "The file is plain Markdown and contains no extraneous boilerplate, frontmatter, or unrelated content",
+        "No existing project files are modified or deleted as a side effect"
+      ],
+      "touches": [
+        "repository root file"
+      ],
+      "risk_notes": "Trivial risk; ensure the filename casing matches HELLO.md exactly and that no pre-existing HELLO.md is overwritten with unrelated content."
+    }
+  ],
+  "success_criteria": [
+    "HELLO.md is present at the project root with the greeting content",
+    "The original docs/TEST.md request is satisfied verbatim",
+    "No regressions to any other files in the repository"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "Scope is strictly limited to the single instruction found in docs/TEST.md",
+  "No new features, dependencies, or infrastructure should be introduced",
+  "Avoid creating additional documentation files beyond the requested HELLO.md"
+]
+
+## Out of Scope
+[
+  "Any test framework setup, CI configuration, or automated test harnesses",
+  "Refactoring or modifications to existing project code or docs",
+  "Additional greeting variants, localization, or templating",
+  "Updating CLAUDE.md or other project documentation"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 1 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260425-195708" in the contract.
+Set branch to "ai/sprint-1-smoke-test-artifact" in the contract.

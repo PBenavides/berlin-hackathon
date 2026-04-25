@@ -1,0 +1,53 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "16c67a7bd530",
+  "session_id": "7d0c3af5-e839-4afc-975f-a7aa736c1b80",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T17:58:12.743542Z",
+  "branch": "ai/sprint-1-smoke-test-artifact",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "HELLO.md"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "ca17afaeb70d",
+  "token_usage": {
+    "input_tokens": 9,
+    "cache_creation_tokens": 15624,
+    "cache_read_tokens": 86904,
+    "output_tokens": 922,
+    "api_call_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T17:58:12.737756Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 1,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1,
+    "total_lines_changed": 1,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 394,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".ai_builder/artifacts/events.jsonl": 2,
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".codex/agents/entire-search.toml": 23,
+        ".codex/config.toml": 3,
+        ".codex/hooks.json": 40,
+        ".opencode/plugins/entire.ts": 216,
+        "docs/TEST.md": 1
+      }
+    }
+  ]
+}
