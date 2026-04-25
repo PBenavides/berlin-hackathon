@@ -3,9 +3,17 @@
   "checkpoint_id": "bcb87e79e6ae",
   "strategy": "manual-commit",
   "branch": "feat/ai-builder-overnight",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     ".gitignore",
+    "backend/pytest.ini",
+    "backend/tests/__init__.py",
+    "backend/tests/conftest.py",
+    "backend/tests/test_database.py",
+    "backend/tests/test_gcs.py",
+    "backend/tests/test_health.py",
+    "backend/tests/test_properties_api.py",
+    "docker-compose.local.yml",
     "docker-compose.yml"
   ],
   "sessions": [
@@ -14,13 +22,19 @@
       "transcript": "/bc/b87e79e6ae/0/full.jsonl",
       "content_hash": "/bc/b87e79e6ae/0/content_hash.txt",
       "prompt": "/bc/b87e79e6ae/0/prompt.txt"
+    },
+    {
+      "metadata": "/bc/b87e79e6ae/1/metadata.json",
+      "transcript": "/bc/b87e79e6ae/1/full.jsonl",
+      "content_hash": "/bc/b87e79e6ae/1/content_hash.txt",
+      "prompt": "/bc/b87e79e6ae/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 69,
-    "cache_creation_tokens": 277989,
-    "cache_read_tokens": 2636082,
-    "output_tokens": 35043,
-    "api_call_count": 42
+    "input_tokens": 162,
+    "cache_creation_tokens": 457253,
+    "cache_read_tokens": 8071622,
+    "output_tokens": 68090,
+    "api_call_count": 128
   }
 }
