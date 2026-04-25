@@ -3,7 +3,7 @@
   "checkpoint_id": "c517214d76d3",
   "strategy": "manual-commit",
   "branch": "feat/ai-builder-overnight",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "backend/alembic/versions/0003_property_documents.py",
     "backend/app/api/routes/documents.py",
@@ -29,13 +29,19 @@
       "transcript": "/c5/17214d76d3/1/full.jsonl",
       "content_hash": "/c5/17214d76d3/1/content_hash.txt",
       "prompt": "/c5/17214d76d3/1/prompt.txt"
+    },
+    {
+      "metadata": "/c5/17214d76d3/2/metadata.json",
+      "transcript": "/c5/17214d76d3/2/full.jsonl",
+      "content_hash": "/c5/17214d76d3/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 155,
-    "cache_creation_tokens": 450806,
-    "cache_read_tokens": 7648719,
-    "output_tokens": 66781,
-    "api_call_count": 123
+    "input_tokens": 1725,
+    "cache_creation_tokens": 1199089,
+    "cache_read_tokens": 34064088,
+    "output_tokens": 182121,
+    "api_call_count": 293
   }
 }
