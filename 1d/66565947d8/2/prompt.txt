@@ -1,0 +1,1 @@
+❯ Ok, now with only listing commands we have to bring a schema of the infomration we have inside data, i dump a bunch of files and only by looking to the filenames lets provide an overview of what we have. Complement that with the previous message you sent me about the stammdaten folder AND write everythign in README.md should be short and concise.
