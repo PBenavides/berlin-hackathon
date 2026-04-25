@@ -3,3 +3,7 @@ In the .ai_builder I want to make sure that we are always attached to one and on
 ---
 
 I think detect-on-startup within the git branch show-current command will work
+
+---
+
+❯ ok lets group the files we have edited to add them and commit to the current branch with specific commits comments
