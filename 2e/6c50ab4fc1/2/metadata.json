@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "2e6c50ab4fc1",
+  "session_id": "fbbaf8cd-aca2-4968-84a7-c9d13b5e94f5",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T22:52:35.392577Z",
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/app/main.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "81470aa3a023",
+  "token_usage": {
+    "input_tokens": 1629,
+    "cache_creation_tokens": 789038,
+    "cache_read_tokens": 38382533,
+    "output_tokens": 138897,
+    "api_call_count": 209
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T22:52:35.345013Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 63,
+    "human_modified": 12,
+    "human_removed": 0,
+    "total_committed": 63,
+    "total_lines_changed": 75,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}

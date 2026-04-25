@@ -1,0 +1,9 @@
+❯ ok lets group the files we have edited to add them and commit to the current branch with specific commits comments
+
+---
+
+lets uncommit the pdfs and add them in .gitignore i think would be better
+
+---
+
+Yeah lets run the options B then
