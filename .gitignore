@@ -2,7 +2,6 @@
 .env.*
 !.env.example
 .playwright-mcp/
-.ai_builder/
 *.db
 ticket-detail-top.png
 

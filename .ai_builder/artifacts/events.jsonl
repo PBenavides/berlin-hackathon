@@ -1,0 +1,2 @@
+{"type": "session_start", "timestamp": "2026-04-25T14:55:42.167454+00:00", "session_id": "ai-builder-20260425-165542", "data": {"user_prompt": "Build the hello world app from docs/REQS.md"}}
+{"type": "sprint_start", "timestamp": "2026-04-25T14:59:24.653680+00:00", "session_id": "ai-builder-20260425-165542", "data": {"sprint_number": 1, "sprint_name": "Infrastructure & Data Foundation"}}
