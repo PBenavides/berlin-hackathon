@@ -1,0 +1,49 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "b0ab3fd9281a",
+  "session_id": "fbbaf8cd-aca2-4968-84a7-c9d13b5e94f5",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T21:35:41.665596Z",
+  "branch": "feat/ai-builder-overnight",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".gitignore"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "81470aa3a023",
+  "token_usage": {
+    "input_tokens": 1627,
+    "cache_creation_tokens": 787002,
+    "cache_read_tokens": 37730684,
+    "output_tokens": 138377,
+    "api_call_count": 207
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T21:35:41.608714Z",
+    "agent_lines": 9,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 9,
+    "total_lines_changed": 163272,
+    "agent_percentage": 0.005512273996766133,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 400,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "hermes/upstream/.env.example": 400
+      }
+    }
+  ]
+}
