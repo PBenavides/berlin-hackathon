@@ -1,0 +1,5 @@
+Lets group the edited files, siwtch to the branch origin/feat/ai-builder-overnight and create a commit that aligns with what we are building now. Upload and add the commit to the branch
+
+---
+
+Ok, there are some remaining things to add, can we group them by category of feature and add them as commits in the origin?
