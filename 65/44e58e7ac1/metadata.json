@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "6544e58e7ac1",
+  "strategy": "manual-commit",
+  "branch": "feat/handoff-ui-polish",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "frontendhandoff/apps/web/app/layout.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/65/44e58e7ac1/0/metadata.json",
+      "transcript": "/65/44e58e7ac1/0/full.jsonl",
+      "content_hash": "/65/44e58e7ac1/0/content_hash.txt",
+      "prompt": "/65/44e58e7ac1/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 212,
+    "cache_creation_tokens": 234370,
+    "cache_read_tokens": 7492421,
+    "output_tokens": 49631,
+    "api_call_count": 89
+  }
+}
