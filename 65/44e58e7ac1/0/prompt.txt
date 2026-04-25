@@ -26,3 +26,7 @@ app/layout.tsx (18:27) @ RootLayout
   19 |         <ThemeProvider>
   20 |           <div className="flex h-screen overflow-hidden">
   21 |             <Sidebar /> got this error
+
+---
+
+[Image #4] getting 404
