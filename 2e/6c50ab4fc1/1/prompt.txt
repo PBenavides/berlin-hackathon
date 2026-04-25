@@ -1,0 +1,121 @@
+## Task
+Implement Sprint 1: Foundation & Wire Compatibility
+
+## Branch
+Create and switch to branch: `ai/sprint-1-foundation-wire-compatibility`
+Run: `git checkout -b ai/sprint-1-foundation-wire-compatibility` (or `git checkout ai/sprint-1-foundation-wire-compatibility` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 1,
+  "name": "Foundation & Wire Compatibility",
+  "goal": "Make every existing endpoint reachable under the /api prefix with camelCase responses and a standardized error envelope, so the frontend can connect without patching.",
+  "features": [
+    {
+      "id": "s1-f1",
+      "name": "Re-prefix routers to /api",
+      "description": "All routers switch from /api/v1 to /api. The old /api/v1 prefix is kept temporarily as a parallel mount so that existing seed/dev scripts don't break during the migration. OpenAPI docs move to /api/docs and /api/redoc.",
+      "acceptance_criteria": [
+        "GET /api/properties returns 200 with the list of properties",
+        "GET /api/v1/properties also returns 200 (parallel mount) during this sprint",
+        "OpenAPI UI is accessible at /api/docs",
+        "All existing tests are updated to hit /api and pass"
+      ],
+      "touches": [
+        "main.py",
+        "routes",
+        "tests"
+      ],
+      "risk_notes": "Tests are hardcoded to /api/v1 \u2014 must update them all in lockstep or they'll all fail."
+    },
+    {
+      "id": "s1-f2",
+      "name": "CamelCase response serialization",
+      "description": "A base Pydantic model with alias_generator=to_camel is introduced and inherited by all response schemas. Every JSON response now uses camelCase field names (e.g., propertyId, createdAt) matching the frontend contract.",
+      "acceptance_criteria": [
+        "GET /api/properties returns fields in camelCase (e.g., 'openTickets', not 'open_tickets')",
+        "GET /api/tickets/:id returns camelCase keys throughout nested objects",
+        "Existing POST/PUT endpoints still accept snake_case input (populate_by_name=True)"
+      ],
+      "touches": [
+        "schemas",
+        "base model"
+      ],
+      "risk_notes": "Every schema file must inherit the new base model. Missing one causes mixed casing."
+    },
+    {
+      "id": "s1-f3",
+      "name": "Standardized error envelope",
+      "description": "A central exception handler maps all errors to the contract shape: {error, code, status}. Covers HTTPException, RequestValidationError, and a new StateConflictError. FastAPI's default 422 body is replaced with the {error, code: 'VALIDATION_ERROR', status: 422} shape.",
+      "acceptance_criteria": [
+        "A request to a non-existent resource returns {error: '...', code: 'NOT_FOUND', status: 404}",
+        "A malformed request body returns {error: '...', code: 'VALIDATION_ERROR', status: 422}",
+        "No stack traces appear in error responses",
+        "A StateConflictError raised in code returns {code: 'CONFLICT', status: 409}"
+      ],
+      "touches": [
+        "main.py",
+        "error handling middleware"
+      ],
+      "risk_notes": null
+    },
+    {
+      "id": "s1-f4",
+      "name": "Sprint 1 test suite",
+      "description": "Tests validating that the /api prefix works, camelCase responses are correct, and each error code (NOT_FOUND, VALIDATION_ERROR, CONFLICT) returns the expected envelope shape.",
+      "acceptance_criteria": [
+        "Test hits /api/properties and asserts camelCase keys in response",
+        "Test hits /api/nonexistent and asserts NOT_FOUND envelope",
+        "Test sends invalid body to a POST endpoint and asserts VALIDATION_ERROR envelope",
+        "All pre-existing tests pass after prefix migration"
+      ],
+      "touches": [
+        "tests"
+      ],
+      "risk_notes": null
+    }
+  ],
+  "success_criteria": [
+    "curl localhost:8000/api/properties returns a camelCase JSON array",
+    "curl localhost:8000/api/tickets/nonexistent returns {code: 'NOT_FOUND', status: 404}",
+    "All tests pass with pytest"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "Backend is FastAPI + SQLAlchemy with PostgreSQL (or SQLite for dev/tests)",
+  "All responses must use camelCase field names to match the frontend contract in API.md",
+  "All errors must use the standardized {error, code, status} envelope",
+  "Entity IDs must be deterministic strings (p1, b1, o1, v1, t-7831, etc.) matching frontend lib/data.ts",
+  "Proposal endpoints remain internal \u2014 the frontend only interacts with ticket-level approve/reject/memory",
+  "Ticket status is a string column, not a Postgres ENUM, to allow easy extension",
+  "Memory proposal must NOT be visible until vendor job is completed (gating rule)",
+  "Stub/template mode must work for proposal engine, chat, and extract without API keys",
+  "Port 8000 for backend, no authentication for hackathon"
+]
+
+## Out of Scope
+[
+  "Authentication and authorization (bearer token omitted for hackathon)",
+  "Audit log public endpoints (internal use only until frontend page lands)",
+  "Policy CRUD public endpoints (internal use only)",
+  "Context editor 'propose change' feature",
+  "Agents registry endpoint",
+  "Per-property concierge messages endpoint",
+  "Document listing under /api (old /api/v1/documents stays internal)",
+  "Apply selected diffs endpoint for PDF extraction (frontend page not yet built)",
+  "Frontend changes \u2014 this spec covers backend only",
+  "Production deployment, CI/CD, or cloud infrastructure",
+  "Celery or external task queue (BackgroundTasks is sufficient for hackathon)"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 1 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-004325" in the contract.
+Set branch to "ai/sprint-1-foundation-wire-compatibility" in the contract.
