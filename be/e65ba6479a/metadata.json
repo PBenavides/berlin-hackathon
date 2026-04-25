@@ -3,8 +3,10 @@
   "checkpoint_id": "bee65ba6479a",
   "strategy": "manual-commit",
   "branch": "feat/ai-builder-overnight",
-  "checkpoints_count": 2,
+  "checkpoints_count": 4,
   "files_touched": [
+    "backend/app/api/routes/attachments.py",
+    "backend/app/api/routes/messages.py",
     "frontend/app/components/PropertySidebar.tsx"
   ],
   "sessions": [
@@ -13,13 +15,19 @@
       "transcript": "/be/e65ba6479a/0/full.jsonl",
       "content_hash": "/be/e65ba6479a/0/content_hash.txt",
       "prompt": "/be/e65ba6479a/0/prompt.txt"
+    },
+    {
+      "metadata": "/be/e65ba6479a/1/metadata.json",
+      "transcript": "/be/e65ba6479a/1/full.jsonl",
+      "content_hash": "/be/e65ba6479a/1/content_hash.txt",
+      "prompt": "/be/e65ba6479a/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 69,
-    "cache_creation_tokens": 277989,
-    "cache_read_tokens": 2636082,
-    "output_tokens": 35043,
-    "api_call_count": 42
+    "input_tokens": 159,
+    "cache_creation_tokens": 453902,
+    "cache_read_tokens": 7973277,
+    "output_tokens": 67920,
+    "api_call_count": 127
   }
 }
