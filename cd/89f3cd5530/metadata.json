@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "cd89f3cd5530",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/app/api/routes/tickets.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/cd/89f3cd5530/0/metadata.json",
+      "transcript": "/cd/89f3cd5530/0/full.jsonl",
+      "content_hash": "/cd/89f3cd5530/0/content_hash.txt",
+      "prompt": "/cd/89f3cd5530/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 116,
+    "cache_creation_tokens": 468107,
+    "cache_read_tokens": 8271141,
+    "output_tokens": 66702,
+    "api_call_count": 105
+  }
+}

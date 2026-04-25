@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "cd89f3cd5530",
+  "session_id": "ca501b9c-6e82-4d85-81b7-8f2bb7088b22",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T23:09:54.772135Z",
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/app/api/routes/tickets.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "2a9ca848e2a7",
+  "token_usage": {
+    "input_tokens": 116,
+    "cache_creation_tokens": 468107,
+    "cache_read_tokens": 8271141,
+    "output_tokens": 66702,
+    "api_call_count": 105
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T23:09:54.726245Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 92,
+    "human_modified": 37,
+    "human_removed": 0,
+    "total_committed": 92,
+    "total_lines_changed": 129,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
