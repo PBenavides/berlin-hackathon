@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Buena Context Engine — Wireframes</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css?v=7" />
+<style>
+/* API strip */
+.api-strip { display: flex !important; flex-wrap: wrap; column-gap: 6px; row-gap: 4px; padding: 6px 14px; background: #14171A; color: #C4C7CB; border-bottom: 1px solid #E5E7EB; align-items: center; font-family: ui-monospace, "JetBrains Mono", monospace; font-size: 11px; }
+.api-strip > * { margin-right: 6px; }
+.api-strip > *:last-child { margin-right: 0; }
+.api-strip .label { color: #6E7480; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; font-size: 9.5px; margin-right: 8px; }
+.api-pill { display: inline-flex !important; align-items: baseline; column-gap: 6px; padding: 1px 6px; background: #1F242A; border: 1px solid #2A2F36; border-radius: 4px; color: #D7DBDF; }
+.api-pill .verb { font-weight: 700; font-size: 10px; margin-right: 5px; }
+.api-pill .verb.get { color: #6FB8FF; }
+.api-pill .verb.post { color: #79D89C; }
+.api-pill .verb.patch { color: #F1B86B; }
+.api-pill .verb.delete { color: #F08D8D; }
+
+/* Layer badge */
+.layer-badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; }
+.layer-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.layer-row { display: flex; align-items: center; gap: 7px; }
+.layer-cascade { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.layer-cascade span.dim { align-self: center; }
+
+/* Property nested tabs */
+.property-tab {
+  padding: 9px 14px; font-size: 12.5px; font-weight: 500; border: none; background: none; cursor: pointer;
+  color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
+  font-family: var(--font-sans); transition: color 0.12s;
+}
+.property-tab:hover { color: var(--ink); }
+.property-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Chat interface */
+.chat-msg-out { align-self: flex-end; }
+.chat-msg-in { align-self: flex-start; }
+
+/* Sidebar layer items */
+.sb-item.layer-row { display: flex; align-items: center; gap: 7px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js?v=6"></script>
+<script src="data-agents.js?v=6"></script>
+<script src="data-layers.js?v=1"></script>
+<script type="text/babel" src="shell.jsx?v=6"></script>
+<script type="text/babel" src="screens-1.jsx?v=6"></script>
+<script type="text/babel" src="screens-2.jsx?v=6"></script>
+<script type="text/babel" src="screens-3.jsx?v=6"></script>
+<script type="text/babel" src="screens-4.jsx?v=1"></script>
+
+<script type="text/babel">
+function App() {
+  const route = useHashRoute();
+  const [path, queryStr] = route.split("?");
+  const query = new URLSearchParams(queryStr || "");
+  const parts = path.split("/").filter(Boolean);
+  const [head, a, b] = parts;
+
+  let screen = null;
+
+  // Top-level routes
+  if (!head || head === "overview") screen = <OverviewPage />;
+  else if (head === "coverage") screen = <CoveragePage />;
+  else if (head === "escalations") screen = <EscalationsPage />;
+  else if (head === "audit") screen = <AuditPage />;
+  else if (head === "extract") screen = <PDFExtractPage />;
+  else if (head === "chat") screen = <HermesChatPage />;
+
+  // Context layers
+  else if (head === "vendors" && !a) screen = <VendorsPage />;
+  else if (head === "vendor" && a) screen = <VendorDetailPage vendorId={a} />;
+  else if (head === "owners" && !a) screen = <OwnersPage />;
+  else if (head === "owner" && a) screen = <OwnerDetailPage ownerId={a} />;
+  else if (head === "buildings" && !a) screen = <BuildingsPage />;
+  else if (head === "building" && a) screen = <BuildingDetailPage buildingId={a} />;
+  else if (head === "properties") screen = <PropertiesPage />;
+
+  // Property shell with nested tabs
+  else if (head === "property" && a) {
+    const tab = b || "overview";
+    screen = <PropertyShell propId={a} tab={tab} />;
+  }
+
+  // Legacy property routes (inbox, context, editor etc.) → redirect into property shell
+  else if (head === "inbox" && a) screen = <PropertyShell propId={a} tab="tickets" />;
+  else if (head === "context" && a) screen = <PropertyShell propId={a} tab="context" />;
+  else if (head === "editor" && a) screen = <PropertyShell propId={a} tab="editor" />;
+  else if (head === "versions" && a) screen = <PropertyShell propId={a} tab="versions" />;
+  else if (head === "policies" && a) screen = <PropertyShell propId={a} tab="policies" />;
+  else if (head === "sources" && a) screen = <PropertyShell propId={a} tab="sources" />;
+  else if (head === "calls" && a) screen = <PropertyShell propId={a} tab="calls" />;
+  else if (head === "suggestions" && a) screen = <SuggestionsPage propId={a} query={query} />;
+
+  // Ticket detail routes
+  else if (head === "ticket") screen = <TicketPage ticketId={a} query={query} />;
+  else if (head === "timeline") screen = <TimelinePage ticketId={a} />;
+  else if (head === "tenant-thread") screen = <TenantThreadPage ticketId={a} />;
+
+  else screen = <OverviewPage />;
+
+  return (
+    <div className="app">
+      <Sidebar />
+      {screen}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

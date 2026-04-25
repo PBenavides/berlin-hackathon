@@ -1,2 +1,12 @@
 {"type": "session_start", "timestamp": "2026-04-25T14:55:42.167454+00:00", "session_id": "ai-builder-20260425-165542", "data": {"user_prompt": "Build the hello world app from docs/REQS.md"}}
 {"type": "sprint_start", "timestamp": "2026-04-25T14:59:24.653680+00:00", "session_id": "ai-builder-20260425-165542", "data": {"sprint_number": 1, "sprint_name": "Infrastructure & Data Foundation"}}
+{"type": "session_start", "timestamp": "2026-04-25T17:57:08.404438+00:00", "session_id": "ai-builder-20260425-195708", "data": {"user_prompt": "excecute the test reqs in @docs/TEST.md"}}
+{"type": "sprint_start", "timestamp": "2026-04-25T17:57:32.565140+00:00", "session_id": "ai-builder-20260425-195708", "data": {"sprint_number": 1, "sprint_name": "Smoke Test Artifact"}}
+{"type": "generation_complete", "timestamp": "2026-04-25T17:58:30.066331+00:00", "session_id": "ai-builder-20260425-195708", "data": {"sprint_number": 1, "session_id": "7d0c3af5-e839-4afc-975f-a7aa736c1b80", "cost_usd": 0.0}}
+{"type": "sprint_end", "timestamp": "2026-04-25T18:00:05.125454+00:00", "session_id": "ai-builder-20260425-195708", "data": {"sprint_number": 1, "verdict": "pass", "score": 9.0}}
+{"type": "session_end", "timestamp": "2026-04-25T18:00:05.125985+00:00", "session_id": "ai-builder-20260425-195708", "data": {"status": "complete", "total_duration_s": 176.7}}
+{"type": "session_start", "timestamp": "2026-04-25T18:05:48.578306+00:00", "session_id": "ai-builder-20260425-200548", "data": {"user_prompt": "excecute the test reqs in @docs/TEST.md please push it and do a small edit to the markdown file"}}
+{"type": "sprint_start", "timestamp": "2026-04-25T18:06:18.547293+00:00", "session_id": "ai-builder-20260425-200548", "data": {"sprint_number": 1, "sprint_name": "Smoke Test Execution"}}
+{"type": "generation_complete", "timestamp": "2026-04-25T18:07:43.883963+00:00", "session_id": "ai-builder-20260425-200548", "data": {"sprint_number": 1, "session_id": "a7780b9f-7400-45a7-9b0e-2d4f111de0c7", "cost_usd": 0.0}}
+{"type": "sprint_end", "timestamp": "2026-04-25T18:12:28.139115+00:00", "session_id": "ai-builder-20260425-200548", "data": {"sprint_number": 1, "verdict": "pass", "score": 8.0}}
+{"type": "session_end", "timestamp": "2026-04-25T18:12:28.139843+00:00", "session_id": "ai-builder-20260425-200548", "data": {"status": "complete", "total_duration_s": 399.6}}
