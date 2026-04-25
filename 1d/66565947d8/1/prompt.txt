@@ -1,0 +1,15 @@
+Inside the data folder we have to create a jobs folder, which the main purpose is to organize incremental triggers to the endpoints we have. Specifically to the agentic endpoint. We have to throw information related to one or two sources, incrementally, so we can simulate interactions with a small interface. THere are some temporal information in there so it should work around that easily.
+
+Ideally we have to take into account the succession of requests we have to send there, so lets think a bit about it and try to throw it away incrementally and clearly. It is fine if we select a handful of things to test it first
+
+---
+
+heey but instead of doing that by hand (token by token) can you just refer to the files and create a script that throws them into an endpoint? incrementally and programatically by an .sh? 
+
+For example
+
+python data_loader.py --load --steps 5 (which will throw the first 5 docs)
+
+---
+
+ok lets group the files we have edited to add them and commit to the current branch with specific commits comments
