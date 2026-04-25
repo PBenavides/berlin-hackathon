@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "1d66565947d8",
+  "session_id": "d3861816-2885-479f-ab42-2b9a44a4de5e",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T21:24:40.45541Z",
+  "branch": "feat/ai-builder-overnight",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "4e802edb6fd1",
+  "token_usage": {
+    "input_tokens": 38,
+    "cache_creation_tokens": 65501,
+    "cache_read_tokens": 1168801,
+    "output_tokens": 7603,
+    "api_call_count": 23
+  },
+  "session_metrics": {
+    "turn_count": 2
+  }
+}
