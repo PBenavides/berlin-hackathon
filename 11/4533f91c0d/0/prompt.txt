@@ -3,3 +3,7 @@ Lets continue
 ---
 
 [Image #1]npx shadcn@latest init --preset b5d3AD0yW --template next --monorepo --pointer it has to match this which looks like this with giest [Image #2] and create a doc what end points forntend expects and 'residential' 'comericial' chips are also not well differntiated and tea is primary color which is not evident
+
+---
+
+create a branch and create a pr
