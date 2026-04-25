@@ -5,6 +5,19 @@
 *.db
 ticket-detail-top.png
 
+# GCP service account keys
+*-sa-key.json
+
+# Runtime data dirs
+backend/data/
+
+# Vendored Hermes source (cloned for spike; not part of the repo)
+hermes/upstream/
+hermes/runtime/
+
+# Claude memory (local only)
+.claude/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

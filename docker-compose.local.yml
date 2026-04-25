@@ -1,0 +1,32 @@
+version: "3.9"
+
+# Local development override — starts a local PostgreSQL container.
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.local.yml up
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: buena_postgres
+    environment:
+      POSTGRES_USER: buena
+      POSTGRES_PASSWORD: buena
+      POSTGRES_DB: buena
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U buena -d buena"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    environment:
+      DATABASE_URL: postgresql://buena:buena@postgres:5432/buena
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
