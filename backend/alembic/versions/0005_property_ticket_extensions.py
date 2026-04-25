@@ -76,6 +76,7 @@ def upgrade() -> None:
         server_default="new",
         existing_type=sa.Text(),
         existing_nullable=False,
+        existing_server_default="open",
     )
 
     # Index for fast lookup by num
@@ -111,4 +112,5 @@ def downgrade() -> None:
         server_default="open",
         existing_type=sa.Text(),
         existing_nullable=False,
+        existing_server_default="new",
     )
