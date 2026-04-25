@@ -404,11 +404,11 @@ export default async function TicketDetailPage({
                       {proposal.proposed_external_action.type}
                     </span>
                   )}
-                  {(proposal.proposed_external_action as Record<string, unknown>).title && (
+                  {(proposal.proposed_external_action as Record<string, unknown>).title ? (
                     <span className="text-sm font-semibold text-slate-900 leading-tight">
                       {String((proposal.proposed_external_action as Record<string, unknown>).title)}
                     </span>
-                  )}
+                  ) : null}
                 </div>
 
                 <p className="text-sm text-slate-700 leading-relaxed mb-4 bg-slate-50 rounded-lg px-3 py-2">
