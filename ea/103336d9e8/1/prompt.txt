@@ -1,0 +1,279 @@
+## Self-Review Time
+
+You just implemented Sprint 1: Foundation & Wire Compatibility.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-004325",
+  "sprint_number": 1,
+  "branch": "ai/sprint-1-foundation-wire-compatibility",
+  "features_implemented": [
+    {
+      "id": "s1-f1",
+      "name": "Re-prefix routers to /api",
+      "files_changed": [
+        "backend/app/main.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/properties",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/tickets",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "body": null
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties \u2192 200 with property list",
+        "GET /api/v1/properties \u2192 200 with same list (backward compat)",
+        "GET /api/health \u2192 {status: ok, service: buena-contextops}",
+        "GET /api/v1/health \u2192 same response",
+        "GET /api/docs \u2192 200 (OpenAPI UI)"
+      ],
+      "known_limitations": [
+        "/api/v1 compat mount should be removed in sprint 2"
+      ]
+    },
+    {
+      "id": "s1-f2",
+      "name": "CamelCase response serialization",
+      "files_changed": [
+        "backend/app/schemas/base.py",
+        "backend/app/schemas/properties.py",
+        "backend/app/schemas/tickets.py",
+        "backend/app/schemas/proposals.py",
+        "backend/app/schemas/context_versions.py",
+        "backend/app/schemas/audit.py",
+        "backend/app/schemas/attachments.py",
+        "backend/app/schemas/messages.py",
+        "backend/app/schemas/policies.py",
+        "backend/app/schemas/property_documents.py",
+        "backend/app/schemas/sources.py",
+        "backend/app/main.py",
+        "backend/app/api/routes/documents.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties \u2192 each item has 'createdAt' (not 'created_at'), 'slackChannel' (not 'slack_channel')",
+        "GET /api/tickets \u2192 each item has 'propertyId', 'raisedBy', 'createdAt'",
+        "GET /api/tickets/:id \u2192 nested proposal uses 'ticketId', 'actionStatus', 'memoryStatus'",
+        "POST /api/tickets with snake_case body {property_id: '...'} \u2192 still accepted (populate_by_name=True)"
+      ],
+      "known_limitations": [
+        "Inline schemas defined in route files (e.g. TicketWithProposal in tickets.py) inherit CamelModel via TicketOut parent \u2014 no manual update needed"
+      ]
+    },
+    {
+      "id": "s1-f3",
+      "name": "Standardized error envelope",
+      "files_changed": [
+        "backend/app/exceptions.py",
+        "backend/app/main.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/tickets/nonexistent \u2192 {error: 'Ticket not found', code: 'NOT_FOUND', status: 404}",
+        "GET /api/this-path-does-not-exist \u2192 {error: 'Not Found', code: 'NOT_FOUND', status: 404}",
+        "POST /api/tickets with {} body \u2192 {error: '...', code: 'VALIDATION_ERROR', status: 422}",
+        "Raise StateConflictError in code \u2192 {code: 'CONFLICT', status: 409}",
+        "No 'detail' key, no 'Traceback' text in any error response"
+      ],
+      "known_limitations": [
+        "StateConflictError requires caller code to import and raise it explicitly \u2014 no existing routes use it yet"
+      ]
+    },
+    {
+      "id": "s1-f4",
+      "name": "Sprint 1 test suite",
+      "files_changed": [
+        "backend/tests/test_sprint1.py",
+        "backend/tests/test_health.py",
+        "backend/tests/test_properties_api.py",
+        "backend/tests/test_documents_api.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "cd backend && pytest tests/test_sprint1.py -v",
+        "cd backend && pytest tests/test_health.py tests/test_properties_api.py -v",
+        "cd backend && pytest tests/test_documents_api.py -v  # requires running Postgres with seeded data"
+      ],
+      "known_limitations": [
+        "test_documents_api.py and camelCase assertions in test_sprint1.py require a running Postgres DB with seeded properties",
+        "Error envelope tests (404, 422, no-stack-trace) run without DB"
+      ]
+    }
+  ],
+  "migrations_applied": [],
+  "how_to_verify": {
+    "start_command": "cd hackathon2026/backend && python run.py",
+    "base_url": "http://localhost:8000",
+    "auth": {
+      "description": "No authentication \u2014 all endpoints are public for the hackathon"
+    }
+  },
+  "regression_checks": [
+    "GET /api/v1/health still returns 200 (backward compat)",
+    "GET /api/v1/properties still returns 200 (backward compat)",
+    "GET /api/docs returns OpenAPI UI (unchanged URL)",
+    "POST /api/dev/reset still works for DB seeding",
+    "All existing route logic unchanged \u2014 only prefix and response serialization updated"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 1: Foundation & Wire Compatibility.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-004325",
+  "sprint_number": 1,
+  "branch": "ai/sprint-1-foundation-wire-compatibility",
+  "features_implemented": [
+    {
+      "id": "s1-f1",
+      "name": "Re-prefix routers to /api",
+      "files_changed": [
+        "backend/app/main.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/properties",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/tickets",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "body": null
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties \u2192 200 with property list",
+        "GET /api/v1/properties \u2192 200 with same list (backward compat)",
+        "GET /api/health \u2192 {status: ok, service: buena-contextops}",
+        "GET /api/v1/health \u2192 same response",
+        "GET /api/docs \u2192 200 (OpenAPI UI)"
+      ],
+      "known_limitations": [
+        "/api/v1 compat mount should be removed in sprint 2"
+      ]
+    },
+    {
+      "id": "s1-f2",
+      "name": "CamelCase response serialization",
+      "files_changed": [
+        "backend/app/schemas/base.py",
+        "backend/app/schemas/properties.py",
+        "backend/app/schemas/tickets.py",
+        "backend/app/schemas/proposals.py",
+        "backend/app/schemas/context_versions.py",
+        "backend/app/schemas/audit.py",
+        "backend/app/schemas/attachments.py",
+        "backend/app/schemas/messages.py",
+        "backend/app/schemas/policies.py",
+        "backend/app/schemas/property_documents.py",
+        "backend/app/schemas/sources.py",
+        "backend/app/main.py",
+        "backend/app/api/routes/documents.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties \u2192 each item has 'createdAt' (not 'created_at'), 'slackChannel' (not 'slack_channel')",
+        "GET /api/tickets \u2192 each item has 'propertyId', 'raisedBy', 'createdAt'",
+        "GET /api/tickets/:id \u2192 nested proposal uses 'ticketId', 'actionStatus', 'memoryStatus'",
+        "POST /api/tickets with snake_case body {property_id: '...'} \u2192 still accepted (populate_by_name=True)"
+      ],
+      "known_limitations": [
+        "Inline schemas defined in route files (e.g. TicketWithProposal in tickets.py) inherit CamelModel via TicketOut parent \u2014 no manual update needed"
+      ]
+    },
+    {
+      "id": "s1-f3",
+      "name": "Standardized error envelope",
+      "files_changed": [
+        "backend/app/exceptions.py",
+        "backend/app/main.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/tickets/nonexistent \u2192 {error: 'Ticket not found', code: 'NOT_FOUND', status: 404}",
+        "GET /api/this-path-does-not-exist \u2192 {error: 'Not Found', code: 'NOT_FOUND', status: 404}",
+        "POST /api/tickets with {} body \u2192 {error: '...', code: 'VALIDATION_ERROR', status: 422}",
+        "Raise StateConflictError in code \u2192 {code: 'CONFLICT', status: 409}",
+        "No 'detail' key, no 'Traceback' text in any error response"
+      ],
+      "known_limitations": [
+        "StateConflictError requires caller code to import and raise it explicitly \u2014 no existing routes use it yet"
+      ]
+    },
+    {
+      "id": "s1-f4",
+      "name": "Sprint 1 test suite",
+      "files_changed": [
+        "backend/tests/test_sprint1.py",
+        "backend/tests/test_health.py",
+        "backend/tests/test_properties_api.py",
+        "backend/tests/test_documents_api.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "cd backend && pytest tests/test_sprint1.py -v",
+        "cd backend && pytest tests/test_health.py tests/test_properties_api.py -v",
+        "cd backend && pytest tests/test_documents_api.py -v  # requires running Postgres with seeded data"
+      ],
+      "known_limitations": [
+        "test_documents_api.py and camelCase assertions in test_sprint1.py require a running Postgres DB with seeded properties",
+        "Error envelope tests (404, 422, no-stack-trace) run without DB"
+      ]
+    }
+  ],
+  "migrations_applied": [],
+  "how_to_verify": {
+    "start_command": "cd hackathon2026/backend && python run.py",
+    "base_url": "http://localhost:8000",
+    "auth": {
+      "description": "No authentication \u2014 all endpoints are public for the hackathon"
+    }
+  },
+  "regression_checks": [
+    "GET /api/v1/health still returns 200 (backward compat)",
+    "GET /api/v1/properties still returns 200 (backward compat)",
+    "GET /api/docs returns OpenAPI UI (unchanged URL)",
+    "POST /api/dev/reset still works for DB seeding",
+    "All existing route logic unchanged \u2014 only prefix and response serialization updated"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
