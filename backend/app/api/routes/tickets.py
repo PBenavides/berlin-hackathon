@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models.tickets import Ticket, VALID_TICKET_STATUSES
 from app.models.properties import Property
 from app.models.agent_proposals import AgentProposal
-from app.schemas.tickets import TicketOut, TicketCreate
+from app.schemas.tickets import TicketOut, TicketCreate, RejectRequest
 from app.schemas.proposals import AgentProposalOut
 from app.services.audit_service import create_audit_entry
 
@@ -209,7 +209,7 @@ def approve_ticket(ticket_id: str, db: Session = Depends(get_db)):
 @router.post("/tickets/{ticket_id}/reject", response_model=TicketOut)
 def reject_ticket(
     ticket_id: str,
-    payload: Optional[dict] = None,
+    payload: Optional[RejectRequest] = None,
     db: Session = Depends(get_db),
 ):
     """Operator rejects the agent proposal for a ticket."""
@@ -231,7 +231,7 @@ def reject_ticket(
         entity_type="ticket",
         property_id=ticket.property_id,
         entity_id=ticket_id,
-        metadata={"reason": (payload or {}).get("reason")},
+        metadata={"reason": payload.reason if payload else None},
     )
     db.commit()
     db.refresh(ticket)

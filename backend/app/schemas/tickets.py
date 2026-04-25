@@ -39,3 +39,8 @@ class TicketOut(CamelModel):
     excerpt: Optional[str] = None
     confidence: Optional[float] = None
     created_at: datetime
+
+
+class RejectRequest(BaseModel):
+    """Optional body for POST /tickets/{id}/reject."""
+    reason: Optional[str] = None
