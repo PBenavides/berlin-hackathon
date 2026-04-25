@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "53e2788d6e71",
+  "session_id": "de1ac8df-f32b-43b7-b393-44ab6a202164",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T23:06:57.836963Z",
+  "branch": "ai/sprint-1-foundation-wire-compatibility",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "backend/tests/test_health.py",
+    "backend/tests/test_properties_api.py",
+    "backend/tests/test_documents_api.py",
+    "backend/tests/test_sprint1.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "4bbd21686cb6",
+  "checkpoint_transcript_start": 288,
+  "transcript_lines_at_start": 288,
+  "token_usage": {
+    "input_tokens": 1,
+    "cache_creation_tokens": 606,
+    "cache_read_tokens": 115392,
+    "output_tokens": 508,
+    "api_call_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T23:06:57.818407Z",
+    "agent_lines": 274,
+    "agent_removed": 32,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 274,
+    "total_lines_changed": 306,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
