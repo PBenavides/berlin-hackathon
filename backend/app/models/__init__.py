@@ -21,6 +21,9 @@ from app.models.call_sessions import CallSession
 from app.models.vendor_jobs import VendorJob
 from app.models.extractions import Extraction
 from app.models.property_ticket_counters import PropertyTicketCounter
+from app.models.agent_actions import AgentAction
+# Sprint 3: global activity feed for auto-solve queue
+from app.models.agent_activity import AgentActivityEntry
 
 __all__ = [
     "Property",
@@ -45,4 +48,7 @@ __all__ = [
     "VendorJob",
     "Extraction",
     "PropertyTicketCounter",
+    "AgentAction",
+    # Sprint 3
+    "AgentActivityEntry",
 ]

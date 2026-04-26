@@ -27,6 +27,7 @@ from app.services import agent_tools
 from app.services.context_layer_service import parse_layers
 from app.models.context_versions import ContextVersion
 from app.models.tickets import Ticket
+from app.config import get_settings
 
 
 _MODEL = "google/gemini-2.5-flash"
@@ -67,8 +68,15 @@ def _system_prompt(db: Session, property_id: Optional[str], scope: Optional[Dict
         "- Always use tools for facts (ticket status, vendor history, context). Never invent IDs, "
         "  numbers, or vendor names.\n"
         "- Cite ticket numbers (e.g. GAR-118) when you discuss them.\n"
-        "- For write actions (approve, reject, save_memory, skip_memory, propose_context_edit), "
+        "- For write actions (approve, reject, save_memory, skip_memory, propose_context_edit, "
+        "  send_vendor_email, respond_to_tenant, send_owner_report, escalate_to_human), "
         "  CALL the tool — it does not mutate state, it surfaces a confirm button to the operator.\n"
+        "- Ticket action selection logic:\n"
+        "  * Maintenance/repair ticket → use get_property_context + list_vendors + get_vendor, then approve_ticket or send_vendor_email\n"
+        "  * Tenant FAQ/inquiry → use get_property_context to find the answer, then respond_to_tenant (channel matches ticket source: voice→sms, email→email_reply, portal→portal_message)\n"
+        "  * Financial/cost/invoice request → use list_units + get_owner, then send_owner_report\n"
+        "  * Legal dispute/formal notice/Abmahnung/Kündigung/rent_arrears > threshold → ALWAYS escalate_to_human\n"
+        "  * Costs above property threshold → escalate_to_human\n"
         "- Be concise (2-4 sentences once you have the answer).\n"
         f"- The hard tool-call budget is {MAX_TURNS} turns; gather info efficiently."
     )
@@ -93,7 +101,12 @@ def _system_prompt(db: Session, property_id: Optional[str], scope: Optional[Dict
     scope_line = ""
     if scope:
         scope_line = f"\nCurrent operator scope: layer={scope.get('layer')}, id={scope.get('id')}\n"
-    return f"{base}\n\n{ctx_preview}\n# Open tickets:\n{open_tickets}{scope_line}"
+    property_id_line = (
+        f"\n\nIMPORTANT: When calling tools, always use the internal property ID '{property_id}' "
+        f"(not a derived slug). For example: list_tickets(propertyId='{property_id}'), "
+        f"get_property_context(propertyId='{property_id}')."
+    ) if property_id else ""
+    return f"{base}\n\n{ctx_preview}\n# Open tickets:\n{open_tickets}{scope_line}{property_id_line}"
 
 
 # ---------------------------------------------------------------------------
@@ -190,7 +203,8 @@ def stream_agent(
     Top-level generator. Yields (event_name, data) tuples.
     Caller (chat route) wraps each into SSE bytes.
     """
-    api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    settings = get_settings()
+    api_key = settings.openrouter_api_key or settings.openai_api_key or os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY")
     message_id = f"msg-{uuid.uuid4().hex[:10]}"
 
     if not api_key:
@@ -292,4 +306,13 @@ def _summarise(tool_name: str, result: Dict[str, Any]) -> str:
         return f"list_vendors → {len(result.get('vendors', []))} vendors"
     if tool_name == "get_vendor":
         return f"get_vendor → {result.get('name')} ({len(result.get('cases', []))} cases)"
+    # Sprint 2 write tools (appear as action_proposal, not tool_result, but include for completeness)
+    if tool_name == "send_vendor_email":
+        return f"send_vendor_email → draft to {result.get('email', {}).get('to', '?')}"
+    if tool_name == "respond_to_tenant":
+        return f"respond_to_tenant → {result.get('response', {}).get('channelLabel', '?')}"
+    if tool_name == "send_owner_report":
+        return f"send_owner_report → {result.get('report', {}).get('formatLabel', '?')}"
+    if tool_name == "escalate_to_human":
+        return f"escalate_to_human → {result.get('escalation', {}).get('reason', '?')[:60]}"
     return f"{tool_name} ok"

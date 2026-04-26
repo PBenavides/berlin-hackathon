@@ -1,0 +1,57 @@
+{
+  "run_id": "20260426-031913",
+  "status": "evaluating",
+  "current_sprint": 4,
+  "retry_count": 0,
+  "history": [
+    {
+      "stage": "generating",
+      "timestamp": "2026-04-26T11:11:38.072565",
+      "sprint": 3,
+      "retry": 0,
+      "duration_s": 378.4
+    },
+    {
+      "stage": "generation_empty",
+      "timestamp": "2026-04-26T11:11:38.120977",
+      "sprint": 3,
+      "retry": 0
+    },
+    {
+      "stage": "generating",
+      "timestamp": "2026-04-26T11:19:20.503561",
+      "sprint": 3,
+      "retry": 1,
+      "duration_s": 462.4
+    },
+    {
+      "stage": "generation_empty",
+      "timestamp": "2026-04-26T11:19:20.551901",
+      "sprint": 3,
+      "retry": 1
+    },
+    {
+      "stage": "generating",
+      "timestamp": "2026-04-26T11:36:08.647723",
+      "sprint": 4,
+      "retry": 0,
+      "duration_s": 1008.1
+    },
+    {
+      "stage": "self_critique",
+      "timestamp": "2026-04-26T11:39:18.167677",
+      "sprint": 4,
+      "verdict": "self_correcting",
+      "duration_s": 189.5
+    },
+    {
+      "stage": "self_fix",
+      "timestamp": "2026-04-26T11:50:53.412784",
+      "sprint": 4,
+      "duration_s": 357.9,
+      "post_fix_verdict": "self_correcting"
+    }
+  ],
+  "created_at": "2026-04-26T11:05:19.659243",
+  "last_updated": "2026-04-26T11:50:53.414053"
+}

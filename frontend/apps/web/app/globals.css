@@ -108,3 +108,99 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Sprint 4 (s4-f2): Micro-interactions & transition animations
+   --------------------------------------------------------------------------- */
+
+/* Fade-in: used for dialogs and summary panel */
+@keyframes fade-in {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Slide-up: used for the Demo Control Bar */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Slide-in-right: used for new ticket cards entering a pipeline column */
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Stagger-fade-in: used for action cards appearing in ticket detail */
+@keyframes stagger-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Badge pop: used for status badge transitions */
+@keyframes badge-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+/* Zap pulse: for the toggle button ON state */
+@keyframes zap-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  50%       { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25); }
+}
+
+/* Animation utility classes */
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out both;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.2s ease-out both;
+}
+
+.animate-stagger-fade-in {
+  animation: stagger-fade-in 0.25s ease-out both;
+}
+
+.animate-badge-pop {
+  animation: badge-pop 0.3s ease-out;
+}
+
+/* Staggered children — apply to parent; first 8 children get delay */
+.stagger-children > *:nth-child(1)  { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2)  { animation-delay: 40ms; }
+.stagger-children > *:nth-child(3)  { animation-delay: 80ms; }
+.stagger-children > *:nth-child(4)  { animation-delay: 120ms; }
+.stagger-children > *:nth-child(5)  { animation-delay: 160ms; }
+.stagger-children > *:nth-child(6)  { animation-delay: 200ms; }
+.stagger-children > *:nth-child(7)  { animation-delay: 240ms; }
+.stagger-children > *:nth-child(8)  { animation-delay: 280ms; }
+
+/* Pipeline ticket card transition — smooth column moves */
+.pipeline-card {
+  transition: opacity 0.25s ease, transform 0.25s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pipeline-card-enter {
+  animation: slide-in-right 0.25s ease-out both;
+}
+
+/* Status badge smooth color transition */
+.status-badge {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Activity feed entry appear */
+.feed-entry-appear {
+  animation: stagger-fade-in 0.18s ease-out both;
+}
+
+/* Toggle button glow when ON */
+.toggle-on-glow {
+  animation: zap-glow 2s ease-in-out infinite;
+}

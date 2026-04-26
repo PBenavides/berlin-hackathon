@@ -50,6 +50,11 @@ class Ticket(Base):
     body = sa.Column(sa.Text, nullable=False)
     # Extended 10-state status (stored as text, validated in service layer)
     status = sa.Column(sa.Text, nullable=False, default="new", server_default="new")
+
+    # Sprint 2: escalation fields — set when escalate_to_human action is confirmed
+    escalation_reason = sa.Column(sa.Text, nullable=True)
+    escalated_at = sa.Column(sa.DateTime(timezone=True), nullable=True)
+
     created_at = sa.Column(
         sa.DateTime(timezone=True),
         nullable=False,

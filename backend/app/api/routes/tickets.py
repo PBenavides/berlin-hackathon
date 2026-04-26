@@ -23,6 +23,7 @@ from app.schemas.tickets import (
     MemorySaveResponse,
     MemorySkipResponse,
 )
+from app.schemas.agent_actions import EscalateRequest, EscalateResponse
 from app.services.audit_service import create_audit_entry
 from app.services import vendor_job_service
 from app.services.context_service import create_context_chunks, get_next_version
@@ -447,3 +448,62 @@ def skip_memory(ticket_id: str, db: Session = Depends(get_db)):
     )
     db.commit()
     return MemorySkipResponse(status="skipped")
+
+
+# ---------------------------------------------------------------------------
+# Sprint 2: Human escalation endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.post("/tickets/{ticket_id}/escalate", response_model=EscalateResponse)
+def escalate_ticket(
+    ticket_id: str,
+    payload: EscalateRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Operator confirms the 'escalate to human' action proposed by Hermes.
+    Sets the ticket risk to 'high' so it surfaces on the escalations page,
+    and records the reason and triggering policy.
+    """
+    from datetime import datetime, timezone
+
+    ticket = _get_ticket_or_404(db, ticket_id)
+
+    if ticket.status in {"resolved", "rejected"}:
+        raise StateConflictError(
+            f"Cannot escalate ticket with status '{ticket.status}'."
+        )
+
+    # Mark as escalated: set risk=high (surfaced on escalations page),
+    # store the reason and timestamp
+    ticket.risk = "high"
+    reason_parts = [payload.reason]
+    if payload.triggering_policy:
+        reason_parts.append(f"Policy: {payload.triggering_policy}")
+    if payload.recommendation:
+        reason_parts.append(f"Recommended: {payload.recommendation}")
+
+    ticket.escalation_reason = "\n".join(reason_parts)
+    ticket.escalated_at = datetime.now(timezone.utc)
+
+    create_audit_entry(
+        db,
+        actor="operator",
+        action="ticket.escalate",
+        entity_type="ticket",
+        property_id=ticket.property_id,
+        entity_id=ticket_id,
+        metadata={
+            "reason": payload.reason,
+            "triggering_policy": payload.triggering_policy,
+            "recommendation": payload.recommendation,
+        },
+    )
+    db.commit()
+
+    return EscalateResponse(
+        status="escalated",
+        ticket_id=ticket_id,
+        escalation_reason=ticket.escalation_reason,
+    )
