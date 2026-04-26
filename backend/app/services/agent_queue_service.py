@@ -375,8 +375,12 @@ def _process_ticket(ticket_id: str, ticket_num: Optional[str], property_id: str)
             f"   - Cost above threshold → escalate_to_human\n"
         )
 
-        # Stream agent events — same loop as agent_run.py but without SSE
-        for event_name, data in agent_runtime.stream_agent(db, user_message, property_id=property_id):
+        # Stream agent events — same loop as agent_run.py but without SSE.
+        # The auto-solve queue *is* Demo Mode, so the agent gets the
+        # tavily_vendor_search override + skips escalation when no vendor matches.
+        for event_name, data in agent_runtime.stream_agent(
+            db, user_message, property_id=property_id, demo_mode=True
+        ):
             # Check for stop signal between events
             if _state._stop_event.is_set():
                 break

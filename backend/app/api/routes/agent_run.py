@@ -73,6 +73,7 @@ _READ_LABELS: Dict[str, str] = {
     "get_vendor": "Read vendor profile",
     "list_units": "Listed units",
     "get_owner": "Read owner profile",
+    "tavily_vendor_search": "Web-searched for vendor candidates",
 }
 
 _READ_DESCRIPTIONS: Dict[str, str] = {
@@ -85,6 +86,7 @@ _READ_DESCRIPTIONS: Dict[str, str] = {
     "get_vendor": "Loaded vendor profile and recent case history",
     "list_units": "Loaded unit details (tenant, rent, owner)",
     "get_owner": "Loaded owner profile, policies, and preferences",
+    "tavily_vendor_search": "Searched the open web for vendor candidates",
 }
 
 _WRITE_DESCRIPTIONS: Dict[str, str] = {
@@ -97,6 +99,7 @@ _WRITE_DESCRIPTIONS: Dict[str, str] = {
     "save_memory": "Proposed saving memory update to context.md",
     "skip_memory": "Proposed skipping the memory update",
     "propose_context_edit": "Proposed editing property context",
+    "send_email_via_mailosaur": "Email round-trip via Mailosaur",
 }
 
 
@@ -114,6 +117,10 @@ def _label_for(tool_name: str, args: Dict[str, Any], is_write: bool) -> str:
             return f"Propose approving ticket"
         if tool_name == "reject_ticket":
             return f"Propose rejecting ticket"
+        if tool_name == "send_email_via_mailosaur":
+            role = args.get("recipientRole", "recipient")
+            addr = args.get("recipientAddress", "?")
+            return f"Email {role} ({addr})"
     return _READ_LABELS.get(tool_name, tool_name)
 
 
@@ -180,6 +187,7 @@ def run_agent_on_ticket(
         raise HTTPException(status_code=404, detail=f"Ticket '{ticket_id}' not found")
 
     prompt_hint = (body.prompt_hint if body else None) or ""
+    demo_mode = bool(body.demo_mode) if body else False
 
     def generator():
         db: Session = SessionLocal()
@@ -225,6 +233,7 @@ def run_agent_on_ticket(
                 db,
                 user_message,
                 property_id=property_id,
+                demo_mode=demo_mode,
             ):
                 # Keepalive
                 if time.time() - last_keepalive > 15:
@@ -258,12 +267,42 @@ def run_agent_on_ticket(
                     pending_actions[call_id] = action
                     yield _sse("action_card", _action_to_dict(action))
 
+                elif event_name == "tool_phase":
+                    # Streaming tool reported an intermediate phase. Append to the
+                    # AgentAction's phase log and re-emit the same card so the
+                    # frontend sees one row mutate (drafting → sending → ...).
+                    call_id = data.get("id", "")
+                    phase_name = data.get("phase", "")
+                    if call_id in pending_actions:
+                        action = pending_actions[call_id]
+                        # Promote action_type to the real tool name so the frontend
+                        # picks the right icon (Mail) instead of the generic
+                        # "write_proposal" placeholder.
+                        if action.tool_name:
+                            action.action_type = action.tool_name
+                        existing = (action.payload or {}).get("phases") or []
+                        new_phase_entry = {
+                            "phase": phase_name,
+                            "label": data.get("label", phase_name),
+                            "ts": data.get("ts"),
+                            "data": data.get("data") or {},
+                        }
+                        action.payload = {
+                            **(action.payload or {}),
+                            "phases": [*existing, new_phase_entry],
+                        }
+                        action.description = data.get("label", phase_name) or action.description
+                        if phase_name == "error":
+                            action.status = "error"
+                        db.commit()
+                        yield _sse("action_card", _action_to_dict(action))
+
                 elif event_name == "tool_result":
                     # Update action to completed
                     call_id = data.get("id", "")
                     if call_id in pending_actions:
                         action = pending_actions[call_id]
-                        action.status = "completed"
+                        action.status = "completed" if data.get("ok", True) else "error"
                         action.description = _description_for(
                             action.tool_name or "",
                             False,

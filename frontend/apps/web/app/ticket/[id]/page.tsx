@@ -13,6 +13,7 @@ import { ActionCard } from "@/components/action-card";
 import { useToast } from "@/components/toaster";
 import { api, agentRun, ApiError, friendlyApiError } from "@/lib/api";
 import { emit } from "@/lib/bus";
+import { useAutoSolve } from "@/lib/auto-solve-context";
 import type { AgentAction, Property, Ticket, Vendor } from "@/lib/types";
 import { formatEur, timeAgo } from "@/lib/utils";
 import { cn } from "@repo/ui/lib/utils";
@@ -28,6 +29,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const router = useRouter();
   const { push: pushToast } = useToast();
+  const { autoSolve } = useAutoSolve();
 
   const [t, setTicket] = useState<Ticket | null>(null);
   const [prop, setProp] = useState<Property | null>(null);
@@ -104,7 +106,9 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             });
           },
           signal: ctrl.signal,
-        }
+        },
+        undefined,
+        { demoMode: autoSolve },
       );
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;

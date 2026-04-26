@@ -60,7 +60,13 @@ def _open_tickets_summary(db: Session, property_id: str, limit: int = 6) -> str:
     )
 
 
-def _system_prompt(db: Session, property_id: Optional[str], scope: Optional[Dict[str, Any]]) -> str:
+def _system_prompt(
+    db: Session,
+    property_id: Optional[str],
+    scope: Optional[Dict[str, Any]],
+    *,
+    demo_mode: bool = False,
+) -> str:
     base = (
         "You are Hermes, the property-management assistant for Buena. "
         "You can read system state via tools and propose write actions for the operator to confirm. "
@@ -71,6 +77,12 @@ def _system_prompt(db: Session, property_id: Optional[str], scope: Optional[Dict
         "- For write actions (approve, reject, save_memory, skip_memory, propose_context_edit, "
         "  send_vendor_email, respond_to_tenant, send_owner_report, escalate_to_human), "
         "  CALL the tool — it does not mutate state, it surfaces a confirm button to the operator.\n"
+        "- For the autonomous Mailosaur email flow (ticket source=email demo), use "
+        "  `send_email_via_mailosaur` instead of `send_vendor_email`/`respond_to_tenant` — it ACTUALLY "
+        "  sends the email and (if expectReply=true) blocks until the recipient replies, then returns "
+        "  the reply text to you. Use recipientRole='vendor' for vendor outreach, 'tenant' to relay options. "
+        "  Set expectReply=false for fire-and-forget final confirmations. Follow the operator hint to know "
+        "  which phase you're in; if no hint is provided, default to the standard propose-only tools.\n"
         "- Ticket action selection logic:\n"
         "  * Maintenance/repair ticket → use get_property_context + list_vendors + get_vendor, then approve_ticket or send_vendor_email\n"
         "  * Tenant FAQ/inquiry → use get_property_context to find the answer, then respond_to_tenant (channel matches ticket source: voice→sms, email→email_reply, portal→portal_message)\n"
@@ -80,6 +92,21 @@ def _system_prompt(db: Session, property_id: Optional[str], scope: Optional[Dict
         "- Be concise (2-4 sentences once you have the answer).\n"
         f"- The hard tool-call budget is {MAX_TURNS} turns; gather info efficiently."
     )
+
+    if demo_mode:
+        base += (
+            "\n\nDEMO MODE — autonomous vendor sourcing:\n"
+            "- For maintenance/repair tickets, after `list_vendors` review the trades returned. "
+            "  If at least one vendor's `trade` matches the ticket → continue normal flow "
+            "  (`get_vendor` → `send_email_via_mailosaur` or `send_vendor_email`).\n"
+            "- If NO seeded vendor matches the required trade, DO NOT call `escalate_to_human`. "
+            "  Instead call `tavily_vendor_search(trade=<X>, location=<city from property context>)`. "
+            "  Pick the highest-scoring credible result and proceed with normal outreach, naming "
+            "  the vendor + citing the source URL in the email body. Solving the issue autonomously "
+            "  is preferred over escalation.\n"
+            "- Escalation is reserved for legal / cost-threshold cases ONLY.\n"
+        )
+
     if not property_id:
         return base
 
@@ -198,6 +225,8 @@ def stream_agent(
     user_message: str,
     property_id: Optional[str] = None,
     scope: Optional[Dict[str, Any]] = None,
+    *,
+    demo_mode: bool = False,
 ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
     """
     Top-level generator. Yields (event_name, data) tuples.
@@ -213,7 +242,7 @@ def stream_agent(
         return
 
     messages: List[Dict[str, Any]] = [
-        {"role": "system", "content": _system_prompt(db, property_id, scope)},
+        {"role": "system", "content": _system_prompt(db, property_id, scope, demo_mode=demo_mode)},
         {"role": "user", "content": user_message},
     ]
     tools = agent_tools.schemas()
@@ -255,22 +284,59 @@ def stream_agent(
         for tc in tool_calls:
             name = tc["name"]
             args_str = tc["arguments_str"]
-            yield ("tool_call", {"id": tc["id"], "name": name, "args": _safe_parse(args_str)})
+            args = _safe_parse(args_str)
+            yield ("tool_call", {"id": tc["id"], "name": name, "args": args})
 
-            result = agent_tools.execute(db, name, args_str)
-            db.commit()  # flush audit log entry per tool call
-
-            if agent_tools.is_write(name):
-                # Surface as an action_proposal — the result IS the proposal envelope
-                yield ("action_proposal", {**result, "id": tc["id"]})
-                tool_payload = {"proposed": True, "label": result.get("label")}
-            else:
-                summary = _summarise(name, result)
+            if agent_tools.is_streaming(name):
+                # Streaming tool: drive the generator, emit a tool_phase per yield,
+                # and feed the final result back to the LLM as a normal tool_result.
+                tool = agent_tools.get_tool(name)
+                agent_tools.audit(db, name, args if isinstance(args, dict) else {})
+                db.commit()
+                final_result: Dict[str, Any] = {"ok": False, "error": "no_final_emitted"}
+                try:
+                    gen = tool.streaming_executor(db, args if isinstance(args, dict) else {})
+                    for phase_name, phase_data in gen:
+                        if phase_name == "__final__":
+                            final_result = phase_data
+                            continue
+                        yield (
+                            "tool_phase",
+                            {
+                                "id": tc["id"],
+                                "name": name,
+                                "phase": phase_name,
+                                **phase_data,
+                            },
+                        )
+                except Exception as e:  # noqa: BLE001
+                    final_result = {
+                        "ok": False,
+                        "error": f"{type(e).__name__}: {e}",
+                    }
+                summary = _summarise(name, final_result)
                 yield ("tool_result", {
-                    "id": tc["id"], "ok": "error" not in result,
-                    "summary": summary, "result": result,
+                    "id": tc["id"],
+                    "ok": bool(final_result.get("ok")),
+                    "summary": summary,
+                    "result": final_result,
                 })
-                tool_payload = result
+                tool_payload = final_result
+            else:
+                result = agent_tools.execute(db, name, args_str)
+                db.commit()  # flush audit log entry per tool call
+
+                if agent_tools.is_write(name):
+                    # Surface as an action_proposal — the result IS the proposal envelope
+                    yield ("action_proposal", {**result, "id": tc["id"]})
+                    tool_payload = {"proposed": True, "label": result.get("label")}
+                else:
+                    summary = _summarise(name, result)
+                    yield ("tool_result", {
+                        "id": tc["id"], "ok": "error" not in result,
+                        "summary": summary, "result": result,
+                    })
+                    tool_payload = result
 
             messages.append({
                 "role": "tool",
@@ -306,6 +372,10 @@ def _summarise(tool_name: str, result: Dict[str, Any]) -> str:
         return f"list_vendors → {len(result.get('vendors', []))} vendors"
     if tool_name == "get_vendor":
         return f"get_vendor → {result.get('name')} ({len(result.get('cases', []))} cases)"
+    if tool_name == "tavily_vendor_search":
+        if "error" in result:
+            return f"tavily_vendor_search → error: {result['error']}"
+        return f"tavily_vendor_search → {len(result.get('results', []))} candidates for '{result.get('query', '?')[:60]}'"
     # Sprint 2 write tools (appear as action_proposal, not tool_result, but include for completeness)
     if tool_name == "send_vendor_email":
         return f"send_vendor_email → draft to {result.get('email', {}).get('to', '?')}"
@@ -315,4 +385,11 @@ def _summarise(tool_name: str, result: Dict[str, Any]) -> str:
         return f"send_owner_report → {result.get('report', {}).get('formatLabel', '?')}"
     if tool_name == "escalate_to_human":
         return f"escalate_to_human → {result.get('escalation', {}).get('reason', '?')[:60]}"
+    if tool_name == "send_email_via_mailosaur":
+        if not result.get("ok"):
+            return f"send_email_via_mailosaur → error: {result.get('error', '?')}"
+        reply = result.get("reply") or {}
+        if reply:
+            return f"send_email_via_mailosaur → reply from {reply.get('from', '?')}"
+        return f"send_email_via_mailosaur → sent to {result.get('to', '?')}"
     return f"{tool_name} ok"

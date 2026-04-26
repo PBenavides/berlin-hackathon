@@ -23,6 +23,18 @@ class Settings(BaseSettings):
     max_document_bytes: int = 25 * 1024 * 1024  # 25 MB
     vision_model: str = "google/gemini-3.1-flash-lite-preview"
 
+    # Mailosaur sandbox (3-way Tenant <-> Agent <-> Vendor email demo)
+    mailosaur_api_key: str = ""
+    mailosaur_smtp_host: str = "smtp.mailosaur.net"
+    mailosaur_smtp_port: int = 465
+    mailosaur_smtp_pass: str = ""
+    mailosaur_agent_server: str = ""
+    mailosaur_tenant_server: str = ""
+    mailosaur_vendor_server: str = ""
+
+    # Tavily web search (used by tavily_vendor_search tool in Demo Mode)
+    tavily_api_key: str = ""
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

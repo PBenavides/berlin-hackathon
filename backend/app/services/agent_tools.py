@@ -13,8 +13,8 @@ Schema format follows OpenAI/OpenRouter function-calling spec
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -28,6 +28,8 @@ from app.models.context_versions import ContextVersion
 from app.models.vendor_jobs import VendorJob
 from app.services.audit_service import create_audit_entry
 from app.services.context_layer_service import parse_layers
+from app.services import email_action
+from app.services.tavily_client import TavilyClient, normalise_results
 
 # Channel mapping from ticket source to communication channel
 _SOURCE_TO_CHANNEL = {
@@ -53,7 +55,15 @@ class Tool:
     description: str
     parameters: Dict[str, Any]      # JSON-schema for arguments
     is_write: bool                  # True → emit proposal, don't execute
-    executor: Callable[[Session, Dict[str, Any]], Dict[str, Any]]
+    executor: Optional[Callable[[Session, Dict[str, Any]], Dict[str, Any]]] = None
+    # "read"   — execute immediately, return result to LLM
+    # "write"  — produce a proposed_action envelope for operator review
+    # "stream" — execute side effects directly while emitting incremental phases.
+    #            Provide `streaming_executor` instead of `executor`.
+    kind: str = "read"
+    streaming_executor: Optional[
+        Callable[[Session, Dict[str, Any]], Iterator[Any]]
+    ] = None
 
     def schema(self) -> Dict[str, Any]:
         """Return the tool descriptor in the OpenAI function-calling shape."""
@@ -244,6 +254,51 @@ def _get_owner(db: Session, args: Dict[str, Any]) -> Dict[str, Any]:
         "id": o.id, "name": o.name, "type": o.type,
         "contact": o.contact, "email": o.email, "phone": o.phone,
         "policies": o.policies, "decisions": o.decisions,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Web-search READ tool (Demo Mode vendor fallback)
+# ---------------------------------------------------------------------------
+
+
+def _tavily_vendor_search(db: Session, args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Web-search vendor candidates via Tavily. Used when the seeded vendor
+    table has nothing for the required trade and the agent is running in
+    Demo Mode (so escalation isn't acceptable).
+
+    Args:
+      - trade (str, required) — e.g. "plumber", "electrician"
+      - location (str, optional) — city or postcode for local results
+      - query (str, optional) — full override; ignored if absent
+    """
+    trade = (args.get("trade") or "").strip()
+    if not trade:
+        return {"error": "trade is required"}
+    location = (args.get("location") or "").strip()
+    override = (args.get("query") or "").strip()
+
+    if override:
+        query = override
+    else:
+        suffix = f" in {location}" if location else ""
+        query = f"reliable {trade} contractor{suffix} contact details"
+
+    try:
+        client = TavilyClient()
+    except RuntimeError as e:
+        return {"error": str(e)}
+
+    try:
+        raw = client.search(query, max_results=5, include_answer=True)
+    except Exception as e:  # noqa: BLE001 — surface to LLM, don't crash run
+        return {"error": f"{type(e).__name__}: {e}"}
+
+    return {
+        "query": query,
+        "answer": raw.get("answer") or "",
+        "results": normalise_results(raw),
     }
 
 
@@ -537,6 +592,29 @@ REGISTRY: List[Tool] = [
         executor=_get_vendor,
     ),
     Tool(
+        name="tavily_vendor_search",
+        description=(
+            "Search the open web (via Tavily) for vendor candidates when no "
+            "seeded vendor matches the requested trade. ONLY use this in Demo "
+            "Mode and ONLY after `list_vendors` returns no match — it replaces "
+            "`escalate_to_human` for the missing-vendor case so the agent can "
+            "solve the issue autonomously. Returns up to 5 ranked results plus a "
+            "short summary; pick the most credible one and continue with normal "
+            "outreach (`send_email_via_mailosaur` or `send_vendor_email`)."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "trade":    {"type": "string", "description": "e.g. plumber, electrician, locksmith"},
+                "location": {"type": "string", "description": "city or postcode for local results"},
+                "query":    {"type": "string", "description": "optional full search query override"},
+            },
+            "required": ["trade"],
+        },
+        is_write=False,
+        executor=_tavily_vendor_search,
+    ),
+    Tool(
         name="list_units",
         description="List all units in a property with tenant, owner and rent.",
         parameters={
@@ -731,6 +809,40 @@ REGISTRY: List[Tool] = [
         is_write=True,
         executor=_propose_escalate_to_human,
     ),
+    Tool(
+        name="send_email_via_mailosaur",
+        description=(
+            "Send a real email through the Mailosaur sandbox SMTP and (optionally) wait "
+            "for the recipient's reply. Use this for the autonomous tenant/vendor "
+            "scheduling flow — vendor outreach, tenant timeslot relay, final confirmations. "
+            "Streams progress phases (drafting → sending → awaiting_reply → reply_received). "
+            "Set expectReply=false for fire-and-forget confirmations."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "ticketId": {"type": "string", "description": "ID of the ticket this email belongs to"},
+                "recipientRole": {
+                    "type": "string",
+                    "enum": ["vendor", "tenant"],
+                    "description": "Which actor we're emailing (decides which Mailosaur server to poll)",
+                },
+                "recipientAddress": {"type": "string", "description": "Recipient email address"},
+                "fromAddress": {
+                    "type": "string",
+                    "description": "Sender address (defaults to hermes@<agent_server>.mailosaur.net)",
+                },
+                "subject": {"type": "string"},
+                "body": {"type": "string"},
+                "expectReply": {"type": "boolean", "default": True},
+                "replyTimeoutSeconds": {"type": "integer", "default": 120},
+            },
+            "required": ["ticketId", "recipientRole", "recipientAddress", "subject", "body"],
+        },
+        is_write=True,
+        kind="stream",
+        streaming_executor=email_action.run,
+    ),
 ]
 
 
@@ -751,10 +863,16 @@ def execute(db: Session, name: str, raw_args: str) -> Dict[str, Any]:
     Run a tool by name. `raw_args` is the JSON-string from the LLM.
     Returns either the read result or the proposed_action envelope.
     Errors are returned as {"error": "..."} — never raised.
+
+    Streaming tools cannot be invoked through this entry point — the runtime
+    must drive their generator directly. Calling `execute` on a streaming
+    tool is a programming error and surfaces as such.
     """
     tool = _BY_NAME.get(name)
     if tool is None:
         return {"error": f"Unknown tool '{name}'"}
+    if tool.kind == "stream" or tool.executor is None:
+        return {"error": f"Tool '{name}' is streaming and must be driven via the runtime"}
     try:
         args = json.loads(raw_args) if raw_args else {}
     except json.JSONDecodeError:
@@ -771,3 +889,23 @@ def execute(db: Session, name: str, raw_args: str) -> Dict[str, Any]:
 def is_write(name: str) -> bool:
     tool = _BY_NAME.get(name)
     return tool is not None and tool.is_write
+
+
+def is_streaming(name: str) -> bool:
+    tool = _BY_NAME.get(name)
+    return tool is not None and tool.kind == "stream"
+
+
+def parse_args(raw_args: str) -> Dict[str, Any]:
+    """Helper for the runtime: parse the LLM's JSON-string args, default to {}."""
+    if not raw_args:
+        return {}
+    try:
+        return json.loads(raw_args)
+    except json.JSONDecodeError:
+        return {}
+
+
+def audit(db: Session, name: str, args: Dict[str, Any]) -> None:
+    """Public wrapper so the runtime can audit streaming tool invocations."""
+    _audit(db, f"agent.stream.{name}", args)

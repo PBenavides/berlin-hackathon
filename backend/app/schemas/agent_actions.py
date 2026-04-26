@@ -37,3 +37,4 @@ class EscalateResponse(CamelModel):
 class AgentRunRequest(CamelModel):
     """Optional body for POST /tickets/{id}/agent-run (all fields optional)."""
     prompt_hint: Optional[str] = None  # optional operator hint to guide the agent
+    demo_mode: bool = False  # when true, agent prefers tavily_vendor_search over escalation

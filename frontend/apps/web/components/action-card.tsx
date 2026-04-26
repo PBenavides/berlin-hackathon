@@ -56,8 +56,59 @@ function ActionIcon({ toolName, className }: { toolName: string | null; classNam
     case "list_tickets":
     case "get_ticket":
     case "list_escalations":         return <Search className={cls} />;
+    case "tavily_vendor_search":     return <Search className={cn(cls, "text-cyan-500")} />;
     default:                         return <Search className={cls} />;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Read-tool result rendering (Tavily web search etc.)
+// ---------------------------------------------------------------------------
+function ReadResultDetail({ toolName, result }: {
+  toolName: string | null;
+  result: Record<string, unknown> | null | undefined;
+}) {
+  if (!result) return null;
+  if (toolName === "tavily_vendor_search") {
+    const query = (result.query as string) || "";
+    const answer = (result.answer as string) || "";
+    const items = (result.results as Array<{ title?: string; url?: string; content?: string; score?: number }>) || [];
+    return (
+      <div className="mt-3 rounded-md border border-cyan-500/30 bg-cyan-500/5 p-3 text-sm">
+        <div className="mb-2 flex items-center gap-2 text-xs">
+          <Search className="h-3 w-3 text-cyan-500" />
+          <span className="font-medium text-cyan-700 dark:text-cyan-300">Tavily web search</span>
+        </div>
+        {query && (
+          <div className="mb-2 text-xs text-muted-foreground">
+            <span className="font-medium">Query:</span> {query}
+          </div>
+        )}
+        {answer && (
+          <p className="mb-3 text-xs leading-relaxed text-muted-foreground">{answer}</p>
+        )}
+        <div className="space-y-2">
+          {items.slice(0, 5).map((r, i) => (
+            <div key={i} className="rounded-sm border bg-background p-2">
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-medium text-cyan-700 hover:underline dark:text-cyan-300"
+              >
+                {r.title || r.url}
+              </a>
+              <div className="mt-0.5 truncate text-[10px] text-muted-foreground">{r.url}</div>
+              {r.content && (
+                <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">{r.content}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -193,6 +244,8 @@ export function ActionCard({ action, onConfirmed, onRejected, className }: Actio
   }, [action.status]);
 
   const proposal = action.payload?.proposal as ActionProposalEnvelope | undefined;
+  const readResult = (action.payload?.result as Record<string, unknown> | undefined) ?? undefined;
+  const hasReadResultUI = action.toolName === "tavily_vendor_search" && !!readResult;
   const isProposed = localStatus === "proposed";
   const isRead = action.actionType === "read";
   const isWrite = !isRead && action.actionType !== "write_proposal";
@@ -257,7 +310,7 @@ export function ActionCard({ action, onConfirmed, onRejected, className }: Actio
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <StatusBadgeLocal status={localStatus} />
-            {proposal && (
+            {(proposal || hasReadResultUI) && (
               <button
                 onClick={() => setOpen((o) => !o)}
                 className="text-muted-foreground hover:text-foreground"
@@ -268,9 +321,14 @@ export function ActionCard({ action, onConfirmed, onRejected, className }: Actio
           </div>
         </div>
 
-        {/* Expandable proposal detail */}
+        {/* Expandable proposal detail (write tools) */}
         {open && proposal && (
           <ProposalDetail proposal={proposal} toolName={action.toolName} />
+        )}
+
+        {/* Expandable read-tool result (e.g. Tavily web search) */}
+        {open && !proposal && hasReadResultUI && (
+          <ReadResultDetail toolName={action.toolName} result={readResult} />
         )}
 
         {/* Confirm / reject buttons for proposed write actions */}

@@ -181,13 +181,17 @@ export const agentRun = {
   stream: async (
     ticketId: string,
     handlers: AgentRunHandlers,
-    promptHint?: string
+    promptHint?: string,
+    options?: { demoMode?: boolean }
   ): Promise<void> => {
     const url = buildUrl(`/api/tickets/${encodeURIComponent(ticketId)}/agent-run`);
+    const body: Record<string, unknown> = {};
+    if (promptHint) body.promptHint = promptHint;
+    if (options?.demoMode) body.demoMode = true;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
-      body: JSON.stringify(promptHint ? { promptHint } : {}),
+      body: JSON.stringify(body),
       signal: handlers.signal,
     });
 

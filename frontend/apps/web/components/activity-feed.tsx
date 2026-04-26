@@ -30,6 +30,7 @@ import {
   Loader2,
   Zap,
   BarChart3,
+  Search,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAutoSolve } from "@/lib/auto-solve-context";
@@ -58,12 +59,14 @@ function ActionIcon({ actionType, eventType }: { actionType: string | null; even
   if (eventType === "queue_started" || eventType === "queue_stopped") return <Zap className="h-3 w-3 text-blue-500" />;
   if (eventType === "ticket_error") return <XCircle className="h-3 w-3 text-red-500" />;
   switch (actionType) {
-    case "send_vendor_email":  return <Mail className="h-3 w-3 text-muted-foreground" />;
-    case "respond_to_tenant":  return <MessageCircle className="h-3 w-3 text-muted-foreground" />;
-    case "send_owner_report":  return <FileText className="h-3 w-3 text-muted-foreground" />;
-    case "escalate_to_human":  return <ShieldAlert className="h-3 w-3 text-amber-500" />;
-    case "approve_ticket":     return <TicketCheck className="h-3 w-3 text-emerald-500" />;
-    default:                   return <Activity className="h-3 w-3 text-muted-foreground" />;
+    case "send_vendor_email":         return <Mail className="h-3 w-3 text-muted-foreground" />;
+    case "send_email_via_mailosaur":  return <Mail className="h-3 w-3 text-blue-500" />;
+    case "respond_to_tenant":         return <MessageCircle className="h-3 w-3 text-muted-foreground" />;
+    case "send_owner_report":         return <FileText className="h-3 w-3 text-muted-foreground" />;
+    case "escalate_to_human":         return <ShieldAlert className="h-3 w-3 text-amber-500" />;
+    case "approve_ticket":            return <TicketCheck className="h-3 w-3 text-emerald-500" />;
+    case "tavily_vendor_search":      return <Search className="h-3 w-3 text-cyan-500" />;
+    default:                          return <Activity className="h-3 w-3 text-muted-foreground" />;
   }
 }
 
