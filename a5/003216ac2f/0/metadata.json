@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "a5003216ac2f",
+  "session_id": "e355e00b-f99c-4288-94fd-8915eab483a0",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T09:35:13.268041Z",
+  "branch": "ai/sprint-4-polish-transitions-end-to-end-demo-flow",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ai_builder/artifacts/instances/default/events.jsonl",
+    ".ai_builder/artifacts/instances/default/state.json",
+    "after-cancel.png",
+    "after-reset-confirm.png",
+    "buildings-page.png",
+    "chat-page.png",
+    "escalations-page.png",
+    "light-theme.png",
+    "overview-page.png",
+    "owners-page.png",
+    "reset-dialog.png",
+    "sidebar-collapsed.png",
+    "t7843-ticket.png",
+    "vendors-page.png"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "4f1c884a9f36",
+  "token_usage": {
+    "input_tokens": 79,
+    "cache_creation_tokens": 126923,
+    "cache_read_tokens": 7514677,
+    "output_tokens": 48250,
+    "api_call_count": 73
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T09:35:13.242117Z",
+    "agent_lines": 18,
+    "agent_removed": 3,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 18,
+    "total_lines_changed": 21,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}

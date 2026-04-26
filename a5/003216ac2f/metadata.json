@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "a5003216ac2f",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-4-polish-transitions-end-to-end-demo-flow",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ai_builder/artifacts/instances/default/events.jsonl",
+    ".ai_builder/artifacts/instances/default/state.json",
+    "after-cancel.png",
+    "after-reset-confirm.png",
+    "buildings-page.png",
+    "chat-page.png",
+    "escalations-page.png",
+    "light-theme.png",
+    "overview-page.png",
+    "owners-page.png",
+    "reset-dialog.png",
+    "sidebar-collapsed.png",
+    "t7843-ticket.png",
+    "vendors-page.png"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a5/003216ac2f/0/metadata.json",
+      "transcript": "/a5/003216ac2f/0/full.jsonl",
+      "content_hash": "/a5/003216ac2f/0/content_hash.txt",
+      "prompt": "/a5/003216ac2f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 79,
+    "cache_creation_tokens": 126923,
+    "cache_read_tokens": 7514677,
+    "output_tokens": 48250,
+    "api_call_count": 73
+  }
+}
