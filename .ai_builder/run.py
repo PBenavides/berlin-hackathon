@@ -11,12 +11,16 @@ Usage:
 
 import argparse
 import asyncio
+import atexit
 import json
 import logging
 import os
+import signal
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 # Ensure .ai_builder is on sys.path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -84,10 +88,11 @@ def preflight_checks(use_api_key: bool = False) -> bool:
         print("  Run: pip install claude-agent-sdk")
         ok = False
 
-    # Check git is clean (warn, don't block)
+    # Check git is clean (warn, don't block). Use work_dir so that in
+    # worktree mode this reflects the worktree's state, not the monorepo.
     result = subprocess.run(
         ["git", "status", "--porcelain"],
-        cwd=str(config.project_root),
+        cwd=str(config.work_dir),
         capture_output=True,
         text=True,
     )
@@ -108,6 +113,108 @@ def preflight_checks(use_api_key: bool = False) -> bool:
         print()
 
     return ok
+
+
+def _pid_alive(pid: int) -> bool:
+    """Best-effort check if a process is still running."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        # Process exists but is owned by another user — treat as alive.
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def _acquire_instance_lock() -> Path:
+    """Refuse to start if another ai-build is running for this instance.
+
+    The lock file lives at <instance_dir>/.lock and stores the holding
+    process's PID. A stale lock (PID dead) is silently overwritten.
+    """
+    instance_dir = config.instance_dir
+    instance_dir.mkdir(parents=True, exist_ok=True)
+    lock_path = instance_dir / ".lock"
+
+    if lock_path.exists():
+        try:
+            data = json.loads(lock_path.read_text())
+            holder_pid = int(data.get("pid", 0))
+            holder_started = data.get("started_at", "?")
+        except (json.JSONDecodeError, ValueError, OSError):
+            holder_pid, holder_started = 0, "?"
+
+        if holder_pid and holder_pid != os.getpid() and _pid_alive(holder_pid):
+            print(
+                f"ERROR: another ai-build is already running for instance "
+                f"'{config.instance}' (pid {holder_pid}, started {holder_started})."
+            )
+            print(f"  Lock file: {lock_path}")
+            print(
+                "  Wait for it to finish, or set AI_BUILDER_INSTANCE to a different "
+                "name to run a separate instance."
+            )
+            sys.exit(1)
+        # Stale lock — fall through and overwrite.
+
+    lock_path.write_text(
+        json.dumps(
+            {
+                "pid": os.getpid(),
+                "instance": config.instance,
+                "started_at": datetime.now().isoformat(),
+            },
+            indent=2,
+        )
+    )
+
+    def _release():
+        try:
+            if lock_path.exists():
+                data = json.loads(lock_path.read_text())
+                if int(data.get("pid", 0)) == os.getpid():
+                    lock_path.unlink()
+        except (OSError, json.JSONDecodeError, ValueError):
+            pass
+
+    atexit.register(_release)
+
+    # Best-effort signal cleanup so Ctrl-C doesn't leave a stale lock.
+    def _signal_release(signum, frame):
+        _release()
+        # Re-raise default behavior.
+        signal.signal(signum, signal.SIG_DFL)
+        os.kill(os.getpid(), signum)
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            signal.signal(sig, _signal_release)
+        except (ValueError, OSError):
+            pass
+
+    return lock_path
+
+
+def _stamp_lock_with_run_context(target_branch: str, work_dir: Path) -> None:
+    """Add target_branch + work_dir to the lock file for diagnostics.
+
+    Best-effort: only updates the lock if it's still ours.
+    """
+    lock_path = config.instance_dir / ".lock"
+    try:
+        if not lock_path.exists():
+            return
+        data = json.loads(lock_path.read_text())
+        if int(data.get("pid", 0)) != os.getpid():
+            return
+        data["target_branch"] = target_branch
+        data["work_dir"] = str(work_dir)
+        lock_path.write_text(json.dumps(data, indent=2))
+    except (OSError, json.JSONDecodeError, ValueError):
+        pass
 
 
 def _detect_target_branch() -> str | None:
@@ -132,15 +239,244 @@ def _detect_target_branch() -> str | None:
     return branch or None
 
 
+# ── Worktree helpers ──────────────────────────────────────────────────────
+
+
+def _branch_short_name(refname: str) -> str:
+    """Strip refs/heads/ prefix from a branch ref."""
+    if refname.startswith("refs/heads/"):
+        return refname[len("refs/heads/"):]
+    return refname
+
+
+def _list_worktrees() -> list[dict[str, Any]]:
+    """Parse `git worktree list --porcelain` from the monorepo."""
+    result = subprocess.run(
+        ["git", "worktree", "list", "--porcelain"],
+        cwd=str(config.project_root),
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+    entries: list[dict[str, Any]] = []
+    current: dict[str, Any] = {}
+    for line in result.stdout.splitlines():
+        if not line.strip():
+            if current:
+                entries.append(current)
+                current = {}
+            continue
+        if line.startswith("worktree "):
+            current["path"] = line[len("worktree "):]
+        elif line.startswith("HEAD "):
+            current["head"] = line[len("HEAD "):]
+        elif line.startswith("branch "):
+            current["branch"] = _branch_short_name(line[len("branch "):])
+        elif line == "detached":
+            current["detached"] = True
+        elif line == "bare":
+            current["bare"] = True
+    if current:
+        entries.append(current)
+    return entries
+
+
+def _branch_exists(branch: str) -> bool:
+    result = subprocess.run(
+        ["git", "show-ref", "--verify", "--quiet", f"refs/heads/{branch}"],
+        cwd=str(config.project_root),
+    )
+    return result.returncode == 0
+
+
+def _worktree_mode_enabled(args: argparse.Namespace) -> bool:
+    """True if the user opted in to worktree mode via flag or env var."""
+    if getattr(args, "worktree", False):
+        return True
+    return os.environ.get("AI_BUILDER_USE_WORKTREE") == "1"
+
+
+def _resolve_target_branch(args: argparse.Namespace, worktree_mode: bool) -> str:
+    """Resolve the branch the run should target / pin its worktree to.
+
+    Precedence:
+    1. --branch CLI arg
+    2. AI_BUILDER_TARGET_BRANCH env var
+    3. Worktree mode default: ai-builder/<instance>
+    4. Otherwise: current branch (legacy `_detect_target_branch`)
+    """
+    if getattr(args, "branch", None):
+        return args.branch.strip()
+
+    env_branch = os.environ.get("AI_BUILDER_TARGET_BRANCH")
+    if env_branch:
+        return env_branch.strip()
+
+    if worktree_mode:
+        return f"ai-builder/{config.instance}"
+
+    detected = _detect_target_branch()
+    if not detected:
+        print("ERROR: Could not determine current git branch (detached HEAD?).")
+        print("  Check out a branch, or set AI_BUILDER_TARGET_BRANCH.")
+        sys.exit(1)
+    return detected
+
+
+def _ensure_worktree(instance: str, target_branch: str) -> Path:
+    """Create or validate the worktree for this instance.
+
+    Returns the worktree path on success; aborts on irrecoverable errors.
+    """
+    worktree_path = config.worktrees_root / instance
+    worktrees = _list_worktrees()
+
+    existing = None
+    for w in worktrees:
+        try:
+            if Path(w["path"]).resolve() == worktree_path.resolve():
+                existing = w
+                break
+        except (OSError, KeyError):
+            continue
+
+    branch_holder = None
+    for w in worktrees:
+        if existing and w is existing:
+            continue
+        if w.get("branch") == target_branch:
+            branch_holder = w
+            break
+
+    if existing:
+        if not worktree_path.exists():
+            print(f"  Pruning stale worktree entry for {worktree_path}")
+            subprocess.run(
+                ["git", "worktree", "prune"],
+                cwd=str(config.project_root),
+                check=False,
+            )
+            existing = None
+        elif existing.get("branch") != target_branch:
+            print(
+                f"ERROR: worktree at {worktree_path} is on branch "
+                f"'{existing.get('branch', '(detached)')}', expected '{target_branch}'."
+            )
+            print(f"  Remove with:  ai-build worktree remove {instance}")
+            print(f"  Then re-run.")
+            sys.exit(1)
+        else:
+            return worktree_path
+
+    if branch_holder:
+        print(
+            f"ERROR: branch '{target_branch}' is already checked out at "
+            f"{branch_holder['path']}."
+        )
+        print(
+            "  Use --branch <other> or AI_BUILDER_TARGET_BRANCH=<other>, "
+            "or remove the conflicting worktree."
+        )
+        sys.exit(1)
+
+    config.worktrees_root.mkdir(parents=True, exist_ok=True)
+
+    if _branch_exists(target_branch):
+        print(f"  Creating worktree for branch '{target_branch}' at {worktree_path}")
+        cmd = ["git", "worktree", "add", str(worktree_path), target_branch]
+    else:
+        print(
+            f"  Creating new branch '{target_branch}' and worktree at {worktree_path}"
+        )
+        cmd = ["git", "worktree", "add", "-b", target_branch, str(worktree_path), "HEAD"]
+
+    result = subprocess.run(
+        cmd,
+        cwd=str(config.project_root),
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print("ERROR: git worktree add failed:")
+        if result.stderr.strip():
+            for line in result.stderr.strip().splitlines():
+                print(f"  {line}")
+        sys.exit(1)
+    return worktree_path
+
+
+def _handle_worktree_command(argv: list[str]) -> int:
+    """Dispatch `ai-build worktree {list|remove|prune}`.
+
+    Returns the process exit code.
+    """
+    usage = "Usage: ai-build worktree {list | remove <instance> | prune}"
+    if not argv:
+        print(usage)
+        return 1
+    cmd = argv[0]
+
+    if cmd in ("-h", "--help", "help"):
+        print(usage)
+        return 0
+
+    if cmd == "list":
+        worktrees = _list_worktrees()
+        if not worktrees:
+            print("No worktrees registered.")
+            return 0
+        print(f"{'PATH':<70} {'BRANCH':<40}")
+        for w in worktrees:
+            branch = w.get("branch") or "(detached)"
+            print(f"{w.get('path', '?'):<70} {branch:<40}")
+        return 0
+
+    if cmd == "remove":
+        if len(argv) < 2:
+            print(usage)
+            return 1
+        instance = argv[1]
+        wt_path = config.worktrees_root / instance
+        result = subprocess.run(
+            ["git", "worktree", "remove", str(wt_path)],
+            cwd=str(config.project_root),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            stderr = result.stderr.strip()
+            print(f"ERROR: {stderr or 'failed to remove worktree'}")
+            return 1
+        print(f"Removed worktree at {wt_path}")
+        return 0
+
+    if cmd == "prune":
+        result = subprocess.run(
+            ["git", "worktree", "prune", "-v"],
+            cwd=str(config.project_root),
+            capture_output=True,
+            text=True,
+        )
+        out = result.stdout.rstrip()
+        print(out if out else "Nothing to prune.")
+        return result.returncode
+
+    print(f"Unknown worktree subcommand: {cmd}")
+    print(usage)
+    return 1
+
+
 def _load_resume_state() -> tuple[dict, dict, int] | None:
     """Load state.json and determine resume point.
 
     Returns:
         (spec, state, start_sprint) or None if no resumable run.
     """
-    state_path = config.artifacts_dir / "state.json"
+    state_path = config.instance_dir / "state.json"
     if not state_path.exists():
-        print("ERROR: No state.json found — nothing to resume.")
+        print(f"ERROR: No state.json found for instance '{config.instance}' — nothing to resume.")
+        print(f"  Expected: {state_path}")
         return None
 
     state = json.loads(state_path.read_text())
@@ -231,6 +567,19 @@ Examples:
              "auto-merged after self-critic (no QA report).",
     )
     parser.add_argument(
+        "--worktree",
+        action="store_true",
+        help="Run agents inside a per-instance git worktree at "
+             ".ai_builder/worktrees/<instance>/. Same as AI_BUILDER_USE_WORKTREE=1.",
+    )
+    parser.add_argument(
+        "--branch",
+        type=str,
+        default=None,
+        help="Target branch the worktree is pinned to (defaults to "
+             "ai-builder/<instance> in worktree mode, or current branch otherwise).",
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Enable debug logging",
@@ -239,20 +588,43 @@ Examples:
 
 
 async def main() -> None:
+    # ── Worktree management subcommand: dispatch before normal arg parsing ──
+    if len(sys.argv) > 1 and sys.argv[1] == "worktree":
+        sys.exit(_handle_worktree_command(sys.argv[2:]))
+
     args = parse_args()
     setup_logging(args.verbose)
 
     if not preflight_checks(use_api_key=args.api_key):
         sys.exit(1)
 
-    # ── Pin to current branch ────────────────────────────────────
-    target_branch = _detect_target_branch()
-    if not target_branch:
-        print("ERROR: Could not determine current git branch (detached HEAD?).")
-        print("  Check out a branch, or set AI_BUILDER_TARGET_BRANCH.")
-        sys.exit(1)
+    # ── Refuse to run two ai-builds for the same instance ────────
+    _acquire_instance_lock()
+    print(f"  Instance: {config.instance} (artifacts: {config.instance_dir.relative_to(config.ai_builder_root)})")
+
+    # ── Resolve target branch + (optionally) ensure worktree ──────
+    worktree_mode = _worktree_mode_enabled(args)
+    target_branch = _resolve_target_branch(args, worktree_mode)
+
+    if worktree_mode:
+        worktree_path = _ensure_worktree(config.instance, target_branch)
+        config.work_dir = worktree_path
+        print(
+            f"  Worktree:      {worktree_path.relative_to(config.ai_builder_root)} "
+            f"(branch: {target_branch})"
+        )
+    else:
+        # Legacy single-tree mode: agents operate in the monorepo.
+        config.work_dir = config.project_root
+
     config.main_branch = target_branch
-    print(f"  Target branch: {target_branch} (sprints will merge here)")
+    print(
+        f"  Target branch: {target_branch} "
+        f"(sprints branch off and merge back here)"
+    )
+
+    # Re-stamp the lock with worktree info for diagnostics.
+    _stamp_lock_with_run_context(target_branch=target_branch, work_dir=config.work_dir)
 
     # ── Tracing (opt-in) ─────────────────────────────────────────
     if config.tracing_enabled:

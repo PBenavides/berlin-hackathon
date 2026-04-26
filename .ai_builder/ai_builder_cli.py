@@ -23,6 +23,10 @@ def cli():
     # Fall back to the installed location only if no .ai_builder/ in tree
     ai_builder_dir = found or os.path.dirname(os.path.abspath(__file__))
 
+    # Preserve the directory the user actually invoked from, so config can
+    # derive a per-invocation instance key (e.g. "frontend" vs "backend").
+    os.environ.setdefault("AI_BUILDER_INVOKE_DIR", os.path.abspath(os.getcwd()))
+
     os.chdir(ai_builder_dir)
     # Add it to sys.path so `import run`, `import config`, `import src.*` work.
     if ai_builder_dir not in sys.path:

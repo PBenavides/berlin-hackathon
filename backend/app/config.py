@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     gcs_bucket: str = ""  # if set, attachments go to GCS instead of local disk
     documents_dir: str = "./data/documents"
     max_document_bytes: int = 25 * 1024 * 1024  # 25 MB
-    vision_model: str = "google/gemini-2.5-flash"
+    vision_model: str = "google/gemini-3.1-flash-lite-preview"
 
     class Config:
         env_file = ".env"

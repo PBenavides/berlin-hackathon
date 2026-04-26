@@ -5,6 +5,10 @@
 *.db
 ticket-detail-top.png
 
+# AI Builder per-instance worktrees (created by `git worktree add`).
+# The worktrees live inside .ai_builder/ but should not be tracked.
+.ai_builder/worktrees/
+
 # GCP service account keys
 *-sa-key.json
 

@@ -41,18 +41,27 @@ def list_artifacts(category: str, prefix: str = "") -> list[Path]:
     return files
 
 
+def state_path() -> Path:
+    """Path to this instance's state.json."""
+    return config.instance_dir / "state.json"
+
+
 def save_state(state: dict) -> Path:
-    """Write orchestrator state to artifacts/state.json."""
+    """Write orchestrator state to the per-instance state.json."""
     state["last_updated"] = datetime.now().isoformat()
-    return save_artifact("", "state.json", state)
+    path = state_path()
+    _ensure_dir(path.parent)
+    path.write_text(json.dumps(state, indent=2, default=str))
+    logger.info(f"Saved artifact: {path}")
+    return path
 
 
 def load_state() -> dict | None:
     """Load current orchestrator state, or None if no run in progress."""
-    state_path = config.artifacts_dir / "state.json"
-    if not state_path.exists():
+    path = state_path()
+    if not path.exists():
         return None
-    return json.loads(state_path.read_text())
+    return json.loads(path.read_text())
 
 
 def init_state(run_id: str) -> dict:

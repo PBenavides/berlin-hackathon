@@ -31,6 +31,8 @@ export function Sidebar() {
   const [openProps, setOpenProps] = useState<Record<string, boolean>>({ p1: true });
   const [properties, setProperties] = useState<Property[]>([]);
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -200,8 +202,11 @@ export function Sidebar() {
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="flex items-center gap-2 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
           title="Toggle theme"
+          suppressHydrationWarning
         >
-          {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          <span suppressHydrationWarning className="inline-flex h-3.5 w-3.5 items-center justify-center">
+            {mounted ? (theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />) : null}
+          </span>
           {!collapsed && <span className="text-[11px]">Toggle theme</span>}
         </button>
 

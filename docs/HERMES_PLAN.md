@@ -46,7 +46,7 @@ We add a Hermes-based AI concierge to Buena ContextOps without changing the exis
 | FR-8 | Hermes skills know how to: read latest context, list policies, list/get tickets, get proposals, create a ticket — using the built-in HTTP tool against `BUENA_BACKEND_URL`. |
 | FR-9 | Each Hermes profile has `BUENA_PROPERTY_ID` and `BUENA_BACKEND_URL` baked into its `.env` so the agent always operates on a single property. |
 | FR-10 | Profile provisioning is a one-shot bash script: `hermes/scripts/provision_profile.sh <property_id> <property_name> <slug>`. |
-| FR-11 | Hermes uses Gemini Flash (`google/gemini-2.5-flash`) via OpenRouter as the default model in the profile template. |
+| FR-11 | Hermes uses Gemini Flash (`google/gemini-3.1-flash-lite-preview`) via OpenRouter as the default model in the profile template. |
 | FR-12 | A separate runbook document, `docs/HERMES_TESTING.md`, walks through end-to-end testing including the image flow. |
 
 ---

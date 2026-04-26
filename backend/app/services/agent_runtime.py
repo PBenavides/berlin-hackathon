@@ -31,7 +31,8 @@ from app.models.tickets import Ticket
 
 _MODEL = "google/gemini-2.5-flash"
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-MAX_TURNS = 6
+# Override via env: HERMES_MAX_TURNS=20
+MAX_TURNS = int(os.environ.get("HERMES_MAX_TURNS", "50"))
 
 
 # ---------------------------------------------------------------------------
