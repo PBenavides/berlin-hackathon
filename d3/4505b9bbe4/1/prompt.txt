@@ -1,0 +1,1 @@
+I want you to run the current frontend and backend, take screenshots of the views we have and replace the screenshots we previously took. Use playwright for it.
