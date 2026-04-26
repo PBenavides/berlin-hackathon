@@ -202,7 +202,7 @@ export function ActionCard({ action, onConfirmed, onRejected, className }: Actio
     if (!proposal?.confirmEndpoint) return;
     setConfirming(true);
     try {
-      await confirmAction(proposal);
+      await confirmAction(proposal as { confirmEndpoint: string; confirmMethod?: string | null; confirmBody?: Record<string, unknown> | null });
       setLocalStatus("confirmed");
       pushToast({ title: "Action confirmed", variant: "success" });
       onConfirmed?.(action.id);

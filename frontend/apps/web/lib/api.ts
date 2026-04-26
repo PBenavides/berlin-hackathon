@@ -1,5 +1,6 @@
 import type {
-  AgentAction, Building, Layer, Owner, Property, PropertyContext, Ticket, Unit, Vendor,
+  AgentAction, AgentActivityEntry, Building, Layer, Owner, Property, PropertyContext,
+  QueueStatus, Ticket, Unit, Vendor,
 } from "./types";
 
 const BASE =
@@ -316,6 +317,91 @@ export const dev = {
     ),
 };
 
+// ---------------------------------------------------------------------------
+// Sprint 3: Auto-Solve Queue
+// ---------------------------------------------------------------------------
+
+export interface QueueFeedHandlers {
+  onActivity?: (entry: AgentActivityEntry) => void;
+  onQueueStatus?: (status: QueueStatus) => void;
+  onQueueStopped?: () => void;
+  signal?: AbortSignal;
+}
+
+export const agentQueue = {
+  start: () =>
+    request<QueueStatus & { started: boolean }>("/api/agent-queue/start", { method: "POST" }),
+
+  stop: () =>
+    request<QueueStatus & { stopped: boolean }>("/api/agent-queue/stop", { method: "POST" }),
+
+  status: () =>
+    request<QueueStatus>("/api/agent-queue/status"),
+
+  recentFeed: (limit = 50) =>
+    request<AgentActivityEntry[]>("/api/agent-queue/feed/recent", { query: { limit } }),
+
+  /**
+   * Connect to the SSE activity feed stream.
+   * Resolves when the stream ends or the signal is aborted.
+   */
+  streamFeed: async (handlers: QueueFeedHandlers): Promise<void> => {
+    const url = buildUrl("/api/agent-queue/feed/stream");
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { "Accept": "text/event-stream" },
+      signal: handlers.signal,
+    });
+
+    if (!res.ok || !res.body) return;
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let sep: number;
+        while ((sep = buffer.indexOf("\n\n")) !== -1) {
+          const frame = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          _parseQueueFeedFrame(frame, handlers);
+        }
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      throw err;
+    }
+  },
+};
+
+function _parseQueueFeedFrame(frame: string, handlers: QueueFeedHandlers): void {
+  let event = "message";
+  const dataLines: string[] = [];
+  for (const line of frame.split("\n")) {
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+  }
+  if (dataLines.length === 0) return;
+  let parsed: AgentActivityEntry;
+  try { parsed = JSON.parse(dataLines.join("\n")); } catch { return; }
+
+  if (event === "queue_status") {
+    handlers.onQueueStatus?.(parsed.status ?? (parsed as unknown as QueueStatus));
+  } else if (event === "queue_stopped") {
+    handlers.onQueueStatus?.(parsed.status ?? (parsed as unknown as QueueStatus));
+    handlers.onQueueStopped?.();
+  } else {
+    handlers.onActivity?.(parsed);
+    // Bubble status updates embedded in activity events
+    if (parsed.status) handlers.onQueueStatus?.(parsed.status);
+  }
+}
+
 export interface ChatScope {
   layer: Layer;
   id: string;
@@ -461,4 +547,5 @@ export const api = {
   extract,
   dev,
   agentRun,
+  agentQueue,
 };

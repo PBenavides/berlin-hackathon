@@ -8,11 +8,12 @@ import { cn } from "@repo/ui/lib/utils";
 import {
   ChevronDown, ChevronRight, LayoutDashboard, AlertTriangle, Building2,
   Users, Wrench, FileText, MessageSquareText, Sparkles, Home,
-  PanelLeftClose, PanelLeftOpen, Sun, Moon, RotateCcw, Loader2,
+  PanelLeftClose, PanelLeftOpen, Sun, Moon, RotateCcw, Loader2, Zap,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { subscribe } from "@/lib/bus";
 import { useToastSafe } from "@/components/toaster";
+import { useAutoSolve } from "@/lib/auto-solve-context";
 import type { Property } from "@/lib/types";
 
 const PROP_TABS = [
@@ -40,6 +41,10 @@ export function Sidebar() {
   const [resetting, setResetting] = useState(false);
   const toast = useToastSafe();
 
+  // Auto-Solve toggle (Sprint 3)
+  const { autoSolve, queueStatus, isToggling, enable, disable } = useAutoSolve();
+  const [showAutoSolveConfirm, setShowAutoSolveConfirm] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     const refresh = () =>
@@ -55,6 +60,45 @@ export function Sidebar() {
 
   const activePropId = pathname.match(/^\/property\/([^/]+)/)?.[1] ?? null;
   const activeProp = activePropId ? properties.find((p) => p.id === activePropId) ?? null : null;
+
+  async function handleAutoSolveToggle() {
+    if (autoSolve) {
+      try {
+        await disable();
+        toast.push({
+          title: "Auto-Solve stopped",
+          description: "The agent will finish the current ticket and then stop.",
+          variant: "default",
+        });
+      } catch (err) {
+        toast.push({
+          title: "Failed to stop",
+          description: err instanceof Error ? err.message : "Unknown error",
+          variant: "destructive",
+        });
+      }
+    } else {
+      setShowAutoSolveConfirm(true);
+    }
+  }
+
+  async function handleAutoSolveConfirm() {
+    setShowAutoSolveConfirm(false);
+    try {
+      await enable();
+      toast.push({
+        title: "Auto-Solve activated",
+        description: "Hermes is now processing tickets autonomously.",
+        variant: "success",
+      });
+    } catch (err) {
+      toast.push({
+        title: "Failed to start",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  }
 
   async function handleReset() {
     setShowResetConfirm(false);
@@ -260,6 +304,34 @@ export function Sidebar() {
             {!collapsed && <span className="text-[11px]">Toggle theme</span>}
           </button>
 
+          {/* Auto-Solve Toggle (Sprint 3) */}
+          <button
+            onClick={handleAutoSolveToggle}
+            disabled={isToggling}
+            className={cn(
+              "flex items-center gap-2 rounded-md p-1.5 transition-colors",
+              autoSolve
+                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              isToggling && "opacity-60 cursor-not-allowed",
+              collapsed && "justify-center"
+            )}
+            title={autoSolve ? "Auto-Solve ON — click to stop" : "Enable Agent Auto-Solve"}
+          >
+            {isToggling ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Zap className={cn("h-3.5 w-3.5 shrink-0", autoSolve && "animate-pulse")} />
+            )}
+            {!collapsed && (
+              <span className="text-[11px] font-medium">
+                {autoSolve
+                  ? `Auto-Solve ON${queueStatus.remainingCount > 0 ? ` (${queueStatus.remainingCount} left)` : ""}`
+                  : "Agent Auto-Solve"}
+              </span>
+            )}
+          </button>
+
           {/* Reset Demo button */}
           <button
             onClick={() => setShowResetConfirm(true)}
@@ -304,6 +376,61 @@ export function Sidebar() {
           )}
         </div>
       </aside>
+
+      {/* Auto-Solve Confirmation Dialog */}
+      {showAutoSolveConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="auto-solve-dialog-title"
+          onClick={() => setShowAutoSolveConfirm(false)}
+          onKeyDown={(e) => { if (e.key === "Escape") setShowAutoSolveConfirm(false); }}
+          tabIndex={-1}
+        >
+          <div
+            className="mx-4 w-full max-w-sm rounded-xl border bg-background p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-1 flex items-center gap-2">
+              <Zap className="h-5 w-5 text-emerald-500" />
+              <h2 id="auto-solve-dialog-title" className="text-base font-semibold">Activate Agent Auto-Solve?</h2>
+            </div>
+            <p className="mb-2 text-sm text-muted-foreground">
+              Hermes will autonomously process <strong>all open tickets</strong> one by one, in priority order.
+            </p>
+            <ul className="mb-5 space-y-1 text-sm text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                Write actions (emails, responses, reports) auto-confirm after a brief delay
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                Human escalations are <strong>not</strong> auto-confirmed — they stay pending
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+                You can stop the agent at any time — the current ticket will finish
+              </li>
+            </ul>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowAutoSolveConfirm(false)}
+                className="rounded-md px-4 py-2 text-sm font-medium hover:bg-accent"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAutoSolveConfirm}
+                className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                Activate Auto-Solve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reset Confirmation Dialog */}
       {showResetConfirm && (

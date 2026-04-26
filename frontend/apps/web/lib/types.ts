@@ -251,6 +251,47 @@ export interface PipelineStage {
   description: string;
 }
 
+// ---------------------------------------------------------------------------
+// Sprint 3: Auto-Solve Queue types
+// ---------------------------------------------------------------------------
+
+export interface QueueStatus {
+  isRunning: boolean;
+  currentTicketId: string | null;
+  currentTicketNum: string | null;
+  remainingCount: number;
+  processedCount: number;
+  failedCount: number;
+}
+
+export type ActivitySeverity = "info" | "success" | "warning" | "error";
+export type ActivityEventType =
+  | "queue_started"
+  | "queue_stopped"
+  | "queue_exhausted"
+  | "queue_status"
+  | "ticket_started"
+  | "ticket_completed"
+  | "ticket_skipped"
+  | "ticket_error"
+  | "action_read"
+  | "action_proposed"
+  | "action_confirmed"
+  | "action_escalated";
+
+export interface AgentActivityEntry {
+  id: string | null;
+  ticketId: string | null;
+  ticketNum: string | null;
+  eventType: ActivityEventType;
+  actionType: string | null;
+  description: string;
+  severity: ActivitySeverity;
+  createdAt: string | null;
+  /** Only present on queue_status events */
+  status?: QueueStatus;
+}
+
 export interface ContextLayer {
   raw: string;
 }
