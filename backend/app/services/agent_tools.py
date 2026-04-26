@@ -29,6 +29,18 @@ from app.models.vendor_jobs import VendorJob
 from app.services.audit_service import create_audit_entry
 from app.services.context_layer_service import parse_layers
 
+# Channel mapping from ticket source to communication channel
+_SOURCE_TO_CHANNEL = {
+    "voice": "sms",
+    "email": "email_reply",
+    "portal": "portal_message",
+    "slack": "slack_message",
+    "manual": "email_reply",
+    "api": "email_reply",
+    "letter": "email_reply",
+    "simulated": "email_reply",
+}
+
 
 # ---------------------------------------------------------------------------
 # Tool descriptor
@@ -308,6 +320,138 @@ def _propose_context_edit(db: Session, args: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _propose_send_vendor_email(db: Session, args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Propose sending an email to a vendor about a ticket.
+    The email is NOT sent — it is displayed as a proposed action for operator review.
+    """
+    tid = args.get("ticketId", "")
+    vendor_name = args.get("vendorName", "Vendor")
+    recipient = args.get("recipient", "")
+    subject = args.get("subject", "")
+    body = args.get("body", "")
+
+    return {
+        "tool": "send_vendor_email",
+        "args": args,
+        "confirmEndpoint": None,   # display-only: no actual email sending
+        "confirmMethod": None,
+        "confirmBody": None,
+        "label": f"Send email to {vendor_name} ({recipient})",
+        "email": {
+            "to": recipient,
+            "vendorName": vendor_name,
+            "subject": subject,
+            "body": body,
+            "ticketId": tid,
+        },
+    }
+
+
+def _propose_respond_to_tenant(db: Session, args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Propose a response to a tenant inquiry.
+    The channel is matched to the ticket's source channel.
+    """
+    tid = args.get("ticketId", "")
+    tenant_name = args.get("tenantName", "Tenant")
+    channel = args.get("channel", "email_reply")
+    body = args.get("body", "")
+
+    # Derive a friendly channel label
+    channel_labels = {
+        "email_reply": "Email reply",
+        "sms": "SMS",
+        "portal_message": "Portal message",
+        "slack_message": "Slack message",
+    }
+    channel_label = channel_labels.get(channel, channel)
+
+    return {
+        "tool": "respond_to_tenant",
+        "args": args,
+        "confirmEndpoint": None,   # display-only
+        "confirmMethod": None,
+        "confirmBody": None,
+        "label": f"Respond to {tenant_name} via {channel_label}",
+        "response": {
+            "tenantName": tenant_name,
+            "channel": channel,
+            "channelLabel": channel_label,
+            "body": body,
+            "ticketId": tid,
+        },
+    }
+
+
+def _propose_send_owner_report(db: Session, args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Propose sending a financial report/summary to the property owner.
+    Respects the owner's preferred communication channel and format.
+    """
+    tid = args.get("ticketId", "")
+    owner_name = args.get("ownerName", "Owner")
+    recipient = args.get("recipient", "")
+    channel = args.get("channel", "email")
+    fmt = args.get("format", "plain_email")
+    content = args.get("content", "")
+
+    format_labels = {
+        "pdf_email": "PDF via email",
+        "plain_email": "Plain-text email",
+        "email": "Email",
+    }
+    fmt_label = format_labels.get(fmt, fmt)
+
+    return {
+        "tool": "send_owner_report",
+        "args": args,
+        "confirmEndpoint": None,   # display-only
+        "confirmMethod": None,
+        "confirmBody": None,
+        "label": f"Send financial report to {owner_name} ({fmt_label})",
+        "report": {
+            "ownerName": owner_name,
+            "recipient": recipient,
+            "channel": channel,
+            "format": fmt,
+            "formatLabel": fmt_label,
+            "content": content,
+            "ticketId": tid,
+        },
+    }
+
+
+def _propose_escalate_to_human(db: Session, args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Propose escalating a ticket to a human operator.
+    Sets the confirm endpoint so the operator can confirm and actually escalate.
+    """
+    tid = args.get("ticketId", "")
+    reason = args.get("reason", "")
+    triggering_policy = args.get("triggeringPolicy", "")
+    recommendation = args.get("recommendation", "")
+
+    return {
+        "tool": "escalate_to_human",
+        "args": args,
+        "confirmEndpoint": f"/api/tickets/{tid}/escalate",
+        "confirmMethod": "POST",
+        "confirmBody": {
+            "reason": reason,
+            "triggeringPolicy": triggering_policy,
+            "recommendation": recommendation,
+        },
+        "label": f"Escalate ticket {tid} to human operator",
+        "escalation": {
+            "reason": reason,
+            "triggeringPolicy": triggering_policy,
+            "recommendation": recommendation,
+            "ticketId": tid,
+        },
+    }
+
+
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
@@ -479,6 +623,113 @@ REGISTRY: List[Tool] = [
         },
         is_write=True,
         executor=_propose_context_edit,
+    ),
+    # ---------- Sprint 2 WRITE tools ----------
+    Tool(
+        name="send_vendor_email",
+        description=(
+            "Propose drafting and sending an email to a vendor regarding a ticket. "
+            "The email references the ticket details and the vendor's contact info from context. "
+            "The email is NOT sent automatically — it is displayed as a proposed action for the operator. "
+            "First use get_vendor to retrieve the vendor's email address. "
+            "Write a professional German or English email as appropriate."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "ticketId": {"type": "string", "description": "ID of the ticket this email is for"},
+                "vendorId": {"type": "string", "description": "ID of the vendor to email"},
+                "vendorName": {"type": "string", "description": "Display name of the vendor"},
+                "recipient": {"type": "string", "description": "Vendor email address"},
+                "subject": {"type": "string", "description": "Email subject line"},
+                "body": {"type": "string", "description": "Full email body text"},
+            },
+            "required": ["ticketId", "vendorId", "vendorName", "recipient", "subject", "body"],
+        },
+        is_write=True,
+        executor=_propose_send_vendor_email,
+    ),
+    Tool(
+        name="respond_to_tenant",
+        description=(
+            "Propose a response to a tenant's inquiry or message. "
+            "The response channel must match the ticket's source: "
+            "voice→sms, email→email_reply, portal→portal_message. "
+            "The response should be accurate using property context (FAQ, rules, policies). "
+            "Write in the same language as the tenant's message (usually German, Sie-form)."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "ticketId": {"type": "string", "description": "ID of the ticket being responded to"},
+                "tenantName": {"type": "string", "description": "Name of the tenant"},
+                "channel": {
+                    "type": "string",
+                    "enum": ["email_reply", "sms", "portal_message", "slack_message"],
+                    "description": "Communication channel matching the ticket source",
+                },
+                "body": {"type": "string", "description": "Full response text to the tenant"},
+            },
+            "required": ["ticketId", "tenantName", "channel", "body"],
+        },
+        is_write=True,
+        executor=_propose_respond_to_tenant,
+    ),
+    Tool(
+        name="send_owner_report",
+        description=(
+            "Propose sending a financial report or summary to the property owner. "
+            "Use when the ticket involves cost reporting, invoice forwarding, arrears notification, "
+            "or monthly summaries. Compile data from vendor jobs, unit rents, and ticket history. "
+            "Respect the owner's communication preferences from the owner layer of property context "
+            "(channel, format, language). The report is NOT sent automatically — it is proposed."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "ticketId": {"type": "string", "description": "ID of the related ticket"},
+                "ownerName": {"type": "string", "description": "Owner display name"},
+                "recipient": {"type": "string", "description": "Owner email address"},
+                "channel": {
+                    "type": "string",
+                    "enum": ["email", "portal_message"],
+                    "description": "Communication channel (from owner preferences)",
+                },
+                "format": {
+                    "type": "string",
+                    "enum": ["pdf_email", "plain_email"],
+                    "description": "Report format (from owner preferences)",
+                },
+                "content": {"type": "string", "description": "Full report content / financial summary"},
+            },
+            "required": ["ticketId", "ownerName", "recipient", "channel", "format", "content"],
+        },
+        is_write=True,
+        executor=_propose_send_owner_report,
+    ),
+    Tool(
+        name="escalate_to_human",
+        description=(
+            "Propose escalating a ticket to a human operator when the agent determines it "
+            "cannot or should not resolve it autonomously. Use this when the ticket involves: "
+            "legal matters (Abmahnung, Kündigung), rent arrears above policy thresholds, "
+            "costs above the property's approval threshold, safety concerns, formal notices, "
+            "or any situation explicitly listed in the property's escalation rules. "
+            "Include the specific reason, which policy triggered escalation, "
+            "and a clear recommendation for the human operator."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "ticketId": {"type": "string", "description": "ID of the ticket to escalate"},
+                "reason": {"type": "string", "description": "Clear explanation of why this must be escalated"},
+                "triggeringPolicy": {"type": "string", "description": "The specific rule/policy that requires escalation"},
+                "recommendation": {"type": "string", "description": "Recommended next step for the human operator"},
+            },
+            "required": ["ticketId", "reason", "triggeringPolicy", "recommendation"],
+        },
+        is_write=True,
+        executor=_propose_escalate_to_human,
     ),
 ]
 
