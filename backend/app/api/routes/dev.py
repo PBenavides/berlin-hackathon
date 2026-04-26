@@ -7,7 +7,7 @@ from typing import List
 from app.database import get_db
 from app.models import (
     Property, ContextVersion, ContextChunk, PropertyPolicy, ContextSource,
-    Ticket, AgentProposal, AuditLog, OwnerMessage, Attachment,
+    Ticket, AgentProposal, AuditLog, OwnerMessage, Attachment, AgentAction,
 )
 from app.models.properties import Property as PropertyModel
 from app.models.owners import Owner
@@ -46,6 +46,7 @@ def reset_database(db: Session = Depends(get_db)):
     """
     # Delete in reverse FK dependency order
     db.query(AuditLog).delete()
+    db.query(AgentAction).delete()   # Sprint 2: agent action streaming records
     db.query(Attachment).delete()
     db.query(OwnerMessage).delete()
     db.query(VendorJob).delete()

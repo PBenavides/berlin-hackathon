@@ -21,6 +21,7 @@ from app.models.call_sessions import CallSession
 from app.models.vendor_jobs import VendorJob
 from app.models.extractions import Extraction
 from app.models.property_ticket_counters import PropertyTicketCounter
+from app.models.agent_actions import AgentAction
 
 __all__ = [
     "Property",
@@ -45,4 +46,5 @@ __all__ = [
     "VendorJob",
     "Extraction",
     "PropertyTicketCounter",
+    "AgentAction",
 ]

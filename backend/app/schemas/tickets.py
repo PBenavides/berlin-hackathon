@@ -38,6 +38,9 @@ class TicketOut(CamelModel):
     risk: Optional[str] = None
     excerpt: Optional[str] = None
     confidence: Optional[float] = None
+    # Sprint 2: escalation fields
+    escalation_reason: Optional[str] = None
+    escalated_at: Optional[datetime] = None
     created_at: datetime
 
 
