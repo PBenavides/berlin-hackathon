@@ -37,7 +37,7 @@ import { api } from "@/lib/api";
 import { useAutoSolve } from "@/lib/auto-solve-context";
 import { useToastSafe } from "@/components/toaster";
 import type { DemoSpeed } from "@/lib/types";
-import { DEMO_SPEED_CONFIGS } from "@/lib/types";
+import { DEMO_SPEED_CONFIGS } from "@/lib/demo-constants";
 
 // ---------------------------------------------------------------------------
 // Speed selector button

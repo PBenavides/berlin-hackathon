@@ -284,11 +284,8 @@ export interface DemoSpeedConfig {
   interTicketMs: number;
 }
 
-export const DEMO_SPEED_CONFIGS: Record<DemoSpeed, DemoSpeedConfig> = {
-  slow:   { label: "Slow",   description: "8–10s per ticket · walkthrough",  interTicketMs: 9000 },
-  normal: { label: "Normal", description: "3–5s per ticket · standard demo", interTicketMs: 4000 },
-  fast:   { label: "Fast",   description: "1–2s per ticket · quick showcase", interTicketMs: 1500 },
-};
+// DEMO_SPEED_CONFIGS runtime constant has been moved to lib/demo-constants.ts
+// to keep this file as a pure type/interface module.
 
 // ---------------------------------------------------------------------------
 // Sprint 4: Agent Queue Summary (s4-f1)
