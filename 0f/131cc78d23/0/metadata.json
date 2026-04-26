@@ -1,0 +1,48 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "0f131cc78d23",
+  "session_id": "9264a611-b00f-412e-bde5-000c93a7dd80",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T02:09:26.223223Z",
+  "branch": "ai/sprint-2-agent-action-types-streaming-actions",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ai_builder/artifacts/instances/default/.lock",
+    ".ai_builder/artifacts/instances/default/events.jsonl",
+    ".ai_builder/artifacts/instances/default/state.json",
+    "after-cancel.png",
+    "after-reset-confirm.png",
+    "buildings-page.png",
+    "chat-page.png",
+    "escalations-page.png",
+    "light-theme.png",
+    "overview-page.png",
+    "owners-page.png",
+    "reset-dialog.png",
+    "sidebar-collapsed.png",
+    "t7843-ticket.png",
+    "vendors-page.png"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "80d245dc647a",
+  "token_usage": {
+    "input_tokens": 74,
+    "cache_creation_tokens": 137223,
+    "cache_read_tokens": 7503745,
+    "output_tokens": 53328,
+    "api_call_count": 70
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T02:09:26.193835Z",
+    "agent_lines": 63,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 63,
+    "total_lines_changed": 63,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "0f131cc78d23",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-2-agent-action-types-streaming-actions",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ai_builder/artifacts/instances/default/.lock",
+    ".ai_builder/artifacts/instances/default/events.jsonl",
+    ".ai_builder/artifacts/instances/default/state.json",
+    "after-cancel.png",
+    "after-reset-confirm.png",
+    "buildings-page.png",
+    "chat-page.png",
+    "escalations-page.png",
+    "light-theme.png",
+    "overview-page.png",
+    "owners-page.png",
+    "reset-dialog.png",
+    "sidebar-collapsed.png",
+    "t7843-ticket.png",
+    "vendors-page.png"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0f/131cc78d23/0/metadata.json",
+      "transcript": "/0f/131cc78d23/0/full.jsonl",
+      "content_hash": "/0f/131cc78d23/0/content_hash.txt",
+      "prompt": "/0f/131cc78d23/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 74,
+    "cache_creation_tokens": 137223,
+    "cache_read_tokens": 7503745,
+    "output_tokens": 53328,
+    "api_call_count": 70
+  }
+}
