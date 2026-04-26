@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "6e22539c712c",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-1-demo-ticket-catalog-reset-infrastructure",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ai_builder/artifacts/instances/default/.lock",
+    ".ai_builder/artifacts/instances/default/events.jsonl",
+    ".ai_builder/artifacts/instances/default/state.json",
+    ".ai_builder/artifacts/qa_reports/.gitkeep",
+    ".ai_builder/artifacts/reviews/.gitkeep",
+    ".ai_builder/artifacts/specs/.gitkeep",
+    ".ai_builder/artifacts/sprint_contracts/.gitkeep",
+    "hermes/upstream/.env.example"
+  ],
+  "sessions": [
+    {
+      "metadata": "/6e/22539c712c/0/metadata.json",
+      "transcript": "/6e/22539c712c/0/full.jsonl",
+      "content_hash": "/6e/22539c712c/0/content_hash.txt",
+      "prompt": "/6e/22539c712c/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 39,
+    "cache_creation_tokens": 83718,
+    "cache_read_tokens": 2202340,
+    "output_tokens": 29022,
+    "api_call_count": 35
+  }
+}

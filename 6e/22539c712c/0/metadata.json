@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "6e22539c712c",
+  "session_id": "d9e5e20d-4a3b-4f03-8726-3f06ed58d2ba",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T01:34:54.58176Z",
+  "branch": "ai/sprint-1-demo-ticket-catalog-reset-infrastructure",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ai_builder/artifacts/instances/default/.lock",
+    ".ai_builder/artifacts/instances/default/events.jsonl",
+    ".ai_builder/artifacts/instances/default/state.json",
+    ".ai_builder/artifacts/qa_reports/.gitkeep",
+    ".ai_builder/artifacts/reviews/.gitkeep",
+    ".ai_builder/artifacts/specs/.gitkeep",
+    ".ai_builder/artifacts/sprint_contracts/.gitkeep",
+    "hermes/upstream/.env.example"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "88d3e8370651",
+  "token_usage": {
+    "input_tokens": 39,
+    "cache_creation_tokens": 83718,
+    "cache_read_tokens": 2202340,
+    "output_tokens": 29022,
+    "api_call_count": 35
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T01:34:54.561026Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 24,
+    "total_committed": 24,
+    "total_lines_changed": 24,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
