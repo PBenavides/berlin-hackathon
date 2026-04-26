@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "cf0ea9c7a148",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-4-polish-transitions-end-to-end-demo-flow",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "frontend/apps/web/lib/types.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/cf/0ea9c7a148/0/metadata.json",
+      "transcript": "/cf/0ea9c7a148/0/full.jsonl",
+      "content_hash": "/cf/0ea9c7a148/0/content_hash.txt",
+      "prompt": "/cf/0ea9c7a148/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 125,
+    "cache_creation_tokens": 457336,
+    "cache_read_tokens": 10978015,
+    "output_tokens": 67844,
+    "api_call_count": 114
+  }
+}
