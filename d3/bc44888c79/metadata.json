@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "d3bc44888c79",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "frontendhandoff/apps/web/app/building/[id]/page.tsx",
+    "frontendhandoff/apps/web/app/layout.tsx",
+    "frontendhandoff/apps/web/app/overview/loading.tsx",
+    "frontendhandoff/apps/web/app/overview/page.tsx",
+    "frontendhandoff/apps/web/app/owner/[id]/page.tsx",
+    "frontendhandoff/apps/web/app/property/[id]/calls/page.tsx",
+    "frontendhandoff/apps/web/app/property/[id]/context/loading.tsx",
+    "frontendhandoff/apps/web/app/property/[id]/context/page.tsx",
+    "frontendhandoff/apps/web/app/property/[id]/layout.tsx",
+    "frontendhandoff/apps/web/app/property/[id]/page.tsx",
+    "frontendhandoff/apps/web/app/property/[id]/policies/page.tsx",
+    "frontendhandoff/apps/web/app/property/[id]/tickets/loading.tsx",
+    "frontendhandoff/apps/web/app/property/[id]/tickets/page.tsx",
+    "frontendhandoff/apps/web/app/property/[id]/units/loading.tsx",
+    "frontendhandoff/apps/web/app/property/[id]/units/page.tsx",
+    "frontendhandoff/apps/web/app/ticket/[id]/loading.tsx",
+    "frontendhandoff/apps/web/app/ticket/[id]/page.tsx",
+    "frontendhandoff/apps/web/app/vendor/[id]/page.tsx",
+    "frontendhandoff/apps/web/components/sidebar.tsx",
+    "frontendhandoff/pnpm-lock.yaml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/d3/bc44888c79/0/metadata.json",
+      "transcript": "/d3/bc44888c79/0/full.jsonl",
+      "content_hash": "/d3/bc44888c79/0/content_hash.txt",
+      "prompt": "/d3/bc44888c79/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 177,
+    "cache_creation_tokens": 648599,
+    "cache_read_tokens": 12808615,
+    "output_tokens": 88537,
+    "api_call_count": 107
+  }
+}
