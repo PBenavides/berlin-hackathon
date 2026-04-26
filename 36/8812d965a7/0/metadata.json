@@ -1,0 +1,20 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "368812d965a7",
+  "session_id": "fafe0cbf-f575-49f4-a745-f7844156062c",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T08:11:04.229729Z",
+  "branch": "ai/sprint-3-auto-solve-toggle-background-agent-loop",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "3f4a6e9b036e",
+  "token_usage": {
+    "input_tokens": 130,
+    "cache_creation_tokens": 91924,
+    "cache_read_tokens": 4109864,
+    "output_tokens": 34100,
+    "api_call_count": 54
+  }
+}
