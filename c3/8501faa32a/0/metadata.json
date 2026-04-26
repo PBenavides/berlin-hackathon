@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "c38501faa32a",
+  "session_id": "d9e5e20d-4a3b-4f03-8726-3f06ed58d2ba",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T01:38:37.688239Z",
+  "branch": "ai/sprint-1-demo-ticket-catalog-reset-infrastructure",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "9201bbf9cbfe",
+  "token_usage": {
+    "input_tokens": 57,
+    "cache_creation_tokens": 301714,
+    "cache_read_tokens": 3527419,
+    "output_tokens": 38663,
+    "api_call_count": 49
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 417,
+      "user_lines_removed": 2,
+      "agent_lines_added": 24,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".ai_builder/artifacts/instances/default/events.jsonl": 1,
+        ".ai_builder/artifacts/instances/default/state.json": 16,
+        "hermes/upstream/.env.example": 400
+      },
+      "user_removed_per_file": {
+        ".ai_builder/artifacts/instances/default/state.json": 2
+      }
+    }
+  ]
+}
