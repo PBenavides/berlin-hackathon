@@ -1,0 +1,92 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "525d6b6af3f8",
+  "session_id": "8daff6f7-515d-4857-9a3e-6971b2cefbac",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T11:46:34.707537Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "backend/app/api/routes/agent_run.py",
+    "backend/app/config.py",
+    "backend/app/schemas/agent_actions.py",
+    "backend/app/services/agent_queue_service.py",
+    "backend/app/services/agent_runtime.py",
+    "backend/app/services/agent_tools.py",
+    "frontend/apps/web/app/ticket/[id]/page.tsx",
+    "frontend/apps/web/components/action-card.tsx",
+    "frontend/apps/web/components/activity-feed.tsx",
+    "frontend/apps/web/lib/api.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "e7581ed566a9",
+  "token_usage": {
+    "input_tokens": 43,
+    "cache_creation_tokens": 63060,
+    "cache_read_tokens": 933758,
+    "output_tokens": 4893,
+    "api_call_count": 23
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T11:46:34.703989Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 32,
+    "total_committed": 0,
+    "total_lines_changed": 32,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1552,
+      "user_lines_removed": 32,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "backend/app/api/routes/agent_run.py": 40,
+        "backend/app/config.py": 12,
+        "backend/app/schemas/agent_actions.py": 1,
+        "backend/app/scripts/run_e2e_demo.py": 245,
+        "backend/app/services/agent_queue_service.py": 6,
+        "backend/app/services/agent_runtime.py": 92,
+        "backend/app/services/agent_tools.py": 141,
+        "backend/app/services/email_action.py": 282,
+        "backend/app/services/mailosaur_client.py": 180,
+        "backend/app/services/tavily_client.py": 73,
+        "frontend/apps/web/app/ticket/[id]/page.tsx": 5,
+        "frontend/apps/web/components/action-card.tsx": 60,
+        "frontend/apps/web/components/activity-feed.tsx": 9,
+        "frontend/apps/web/lib/api.ts": 6,
+        "hermes/upstream/.env.example": 400
+      },
+      "user_removed_per_file": {
+        "backend/app/api/routes/agent_run.py": 1,
+        "backend/app/services/agent_queue_service.py": 2,
+        "backend/app/services/agent_runtime.py": 15,
+        "backend/app/services/agent_tools.py": 3,
+        "frontend/apps/web/app/ticket/[id]/page.tsx": 1,
+        "frontend/apps/web/components/action-card.tsx": 2,
+        "frontend/apps/web/components/activity-feed.tsx": 6,
+        "frontend/apps/web/lib/api.ts": 2
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 400,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1152,
+      "agent_lines_removed": 32,
+      "user_added_per_file": {
+        "hermes/upstream/.env.example": 400
+      }
+    }
+  ]
+}
