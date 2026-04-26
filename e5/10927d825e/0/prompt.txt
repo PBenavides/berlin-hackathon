@@ -345,3 +345,141 @@ Now switch to reviewer mode. Go through the self-critic checklist for every file
 
 Read each file you changed and review against the checklist in your system prompt.
 Return ONLY the review JSON. No other text.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "medium",
+    "category": "project_specific",
+    "file": "frontend/apps/web/components/demo-control-bar.tsx",
+    "line_range": "153-172",
+    "description": "handleReset does not reset the demo speed to 'normal' before navigating away. sessionStorage key 'buena:demoSpeed' persists across the hard navigation to /overview, so the next session starts at whatever speed the presenter last chose. The acceptance criteria for s4-f5 explicitly states 'The default speed is Normal after each reset'.",
+    "suggested_fix": "Before `window.location.href = '/overview'`, call `setSpeed('normal')` (which writes 'normal' to sessionStorage) or directly call `sessionStorage.setItem('buena:demoSpeed', 'normal')` so the next mount reads the correct default.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "project_specific",
+    "file": "frontend/apps/web/components/sidebar.tsx",
+    "line_range": "103-127",
+    "description": "The sidebar handleReset has the same missing speed-reset issue as the DemoControlBar. Both reset paths exist and both leave 'buena:demoSpeed' set in sessionStorage. After a reset triggered from the sidebar, the speed remains at the presenter's last choice.",
+    "suggested_fix": "Add `sessionStorage.removeItem('buena:demoSpeed')` (or `sessionStorage.setItem('buena:demoSpeed', 'normal')`) inside handleReset before `window.location.href = '/overview'`.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "pattern",
+    "file": "frontend/apps/web/lib/auto-solve-context.tsx",
+    "line_range": "139-152",
+    "description": "setSummary and setShowSummary are called as side-effects inside a setEscalatedTickets functional updater. React's batching and concurrent mode can cause unexpected ordering when other state setters are invoked inside a state updater. The pattern works today but is fragile: if React defers or replays the updater, setSummary will be called multiple times.",
+    "suggested_fix": "Capture the escalated tickets in a ref (useRef) or restructure: in onQueueExhausted, call setEscalatedTickets to read the current value via a ref, then call setSummary and setShowSummary as separate top-level state updates. The cleanest fix is: `const escalatedTicketsRef = useRef<EscalatedTicketRef[]>([]); ... setSummary({ ...incomingSummary, escalatedTickets: escalatedTicketsRef.current }); setShowSummary(true);`",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "error_handling",
+    "file": "backend/app/services/agent_queue_service.py",
+    "line_range": "236-265",
+    "description": "The `_auto_confirm` function accepts a `db: Session` parameter that is never used (the function makes HTTP calls, not DB calls). The call site `_auto_confirm(SessionLocal(), ...)` opens a session that is never closed \u2014 it leaks until garbage collected. This is pre-existing from Sprint 3 but was not corrected in Sprint 4.",
+    "suggested_fix": "Remove the unused `db: Session` parameter from `_auto_confirm` and update all call sites to not pass a session. The session lifecycle is irrelevant here since the function only calls httpx.post.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "pattern",
+    "file": "frontend/apps/web/lib/types.ts",
+    "line_range": "275-290",
+    "description": "DEMO_SPEED_CONFIGS is a runtime constant (with values) exported from types.ts. TypeScript types files should contain only type definitions. While this works, it creates an import dependency on the types file for runtime data, which is inconsistent with the project pattern where types.ts is a pure type definitions file.",
+    "suggested_fix": "Move DEMO_SPEED_CONFIGS to a constants file (e.g., lib/demo-constants.ts) and import it separately in the components that need it. Keep only the DemoSpeed type and DemoSpeedConfig interface in types.ts.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "medium",
+    "category": "project_specific",
+    "file": "frontend/apps/web/components/demo-control-bar.tsx",
+    "line_range": "153-172",
+    "description": "handleReset does not reset the demo speed to 'normal' before navigating away. sessionStorage key 'buena:demoSpeed' persists across the hard navigation to /overview, so the next session starts at whatever speed the presenter last chose. The acceptance criteria for s4-f5 explicitly states 'The default speed is Normal after each reset'.",
+    "suggested_fix": "Before `window.location.href = '/overview'`, call `setSpeed('normal')` (which writes 'normal' to sessionStorage) or directly call `sessionStorage.setItem('buena:demoSpeed', 'normal')` so the next mount reads the correct default.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "project_specific",
+    "file": "frontend/apps/web/components/sidebar.tsx",
+    "line_range": "103-127",
+    "description": "The sidebar handleReset has the same missing speed-reset issue as the DemoControlBar. Both reset paths exist and both leave 'buena:demoSpeed' set in sessionStorage. After a reset triggered from the sidebar, the speed remains at the presenter's last choice.",
+    "suggested_fix": "Add `sessionStorage.removeItem('buena:demoSpeed')` (or `sessionStorage.setItem('buena:demoSpeed', 'normal')`) inside handleReset before `window.location.href = '/overview'`.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "pattern",
+    "file": "frontend/apps/web/lib/auto-solve-context.tsx",
+    "line_range": "139-152",
+    "description": "setSummary and setShowSummary are called as side-effects inside a setEscalatedTickets functional updater. React's batching and concurrent mode can cause unexpected ordering when other state setters are invoked inside a state updater. The pattern works today but is fragile: if React defers or replays the updater, setSummary will be called multiple times.",
+    "suggested_fix": "Capture the escalated tickets in a ref (useRef) or restructure: in onQueueExhausted, call setEscalatedTickets to read the current value via a ref, then call setSummary and setShowSummary as separate top-level state updates. The cleanest fix is: `const escalatedTicketsRef = useRef<EscalatedTicketRef[]>([]); ... setSummary({ ...incomingSummary, escalatedTickets: escalatedTicketsRef.current }); setShowSummary(true);`",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "error_handling",
+    "file": "backend/app/services/agent_queue_service.py",
+    "line_range": "236-265",
+    "description": "The `_auto_confirm` function accepts a `db: Session` parameter that is never used (the function makes HTTP calls, not DB calls). The call site `_auto_confirm(SessionLocal(), ...)` opens a session that is never closed \u2014 it leaks until garbage collected. This is pre-existing from Sprint 3 but was not corrected in Sprint 4.",
+    "suggested_fix": "Remove the unused `db: Session` parameter from `_auto_confirm` and update all call sites to not pass a session. The session lifecycle is irrelevant here since the function only calls httpx.post.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "pattern",
+    "file": "frontend/apps/web/lib/types.ts",
+    "line_range": "275-290",
+    "description": "DEMO_SPEED_CONFIGS is a runtime constant (with values) exported from types.ts. TypeScript types files should contain only type definitions. While this works, it creates an import dependency on the types file for runtime data, which is inconsistent with the project pattern where types.ts is a pure type definitions file.",
+    "suggested_fix": "Move DEMO_SPEED_CONFIGS to a constants file (e.g., lib/demo-constants.ts) and import it separately in the components that need it. Keep only the DemoSpeed type and DemoSpeedConfig interface in types.ts.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
