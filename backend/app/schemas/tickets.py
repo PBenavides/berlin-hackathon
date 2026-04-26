@@ -87,7 +87,7 @@ class MemoryProposalOut(CamelModel):
 
 
 class TicketDetail(TicketOut):
-    """Single-ticket detail with all nested children, per frontendhandoff/API.md."""
+    """Single-ticket detail with all nested children, per frontend/API.md."""
     proposal: Optional[ProposalForTicket] = None
     call_session: Optional[CallSessionOut] = None
     email_body: Optional[str] = None

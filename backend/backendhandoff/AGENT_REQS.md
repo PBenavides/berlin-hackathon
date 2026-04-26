@@ -1,5 +1,7 @@
 # Hermes Agent — Requirements & Tool Spec
 
+> **Historical document.** References to `frontendhandoff/` now point to the renamed `frontend/` (consolidated 2026-04-26).
+
 > Companion to `frontendhandoff/API.md` (the wire contract) and
 > `backendhandoff/OVERNIGHT_RUN.md` (the sprint plan). This file defines
 > what the agent BEHIND `/api/chat`, `/api/tickets/:id` proposals, and

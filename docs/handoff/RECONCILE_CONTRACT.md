@@ -1,5 +1,7 @@
 # RECONCILE_CONTRACT — Backend ↔ frontendhandoff (canonical)
 
+> **Historical document.** References to `frontendhandoff/` now point to the renamed `frontend/` (consolidated 2026-04-26).
+
 > **Source of truth:** `frontendhandoff/API.md` on `main` (committed in `98e32d0` /
 > `f2d891b`). This document maps that contract onto the existing FastAPI backend
 > at `backend/`, and lists exactly what to recycle, extend, or build new.

@@ -44,7 +44,7 @@ uvicorn app.main:app --reload --port 8000
 
 **Frontend** (pnpm monorepo — `apps/web` is the Next.js app, `packages/ui` holds shared primitives):
 ```bash
-cd frontendhandoff
+cd frontend
 pnpm install
 pnpm dev   # runs `pnpm --filter web dev` on port 3000
 ```
@@ -74,7 +74,7 @@ hackathon2026/
 │   │       ├── audit_service.py     # Immutable audit trail
 │   │       └── slack_service.py     # Slack notifications
 │   └── alembic/              # DB migrations
-└── frontendhandoff/             # pnpm workspace (canonical UI)
+└── frontend/                    # pnpm workspace (canonical UI)
     ├── apps/web/                # Next.js 15 app (port 3000)
     │   ├── app/                 # routes: overview, property/[id], ticket/[id],
     │   │                        # building/[id], owner/[id], vendor/[id],

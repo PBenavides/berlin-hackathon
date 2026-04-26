@@ -1,5 +1,7 @@
 # Overnight Run — Frontend
 
+> **Historical document.** References to `frontendhandoff/` now point to the renamed `frontend/` (consolidated 2026-04-26).
+
 > **Reading order:** `frontendhandoff/API.md` is the contract.
 > `frontendhandoff/RECONCILE_CONTRACT.md` shows what we're keeping, extending,
 > and dropping vs. older drafts. This file is the *execution* view: how to spend
