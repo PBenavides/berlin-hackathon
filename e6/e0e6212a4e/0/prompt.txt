@@ -1,0 +1,146 @@
+## Task
+Implement Sprint 4: Polish, Transitions & End-to-End Demo Flow
+
+## Branch
+Create and switch to branch: `ai/sprint-4-polish-transitions-end-to-end-demo-flow`
+Run: `git checkout -b ai/sprint-4-polish-transitions-end-to-end-demo-flow` (or `git checkout ai/sprint-4-polish-transitions-end-to-end-demo-flow` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 4,
+  "name": "Polish, Transitions & End-to-End Demo Flow",
+  "goal": "Refine the visual experience, add micro-interactions, and ensure the full two-button demo loop is bulletproof and impressive.",
+  "features": [
+    {
+      "id": "s4-f1",
+      "name": "Agent Progress Summary Panel",
+      "description": "After the agent finishes processing all tickets (or when toggled off), show a summary panel that recaps what was accomplished: how many tickets resolved, how many vendor emails sent, how many tenant responses drafted, how many owner reports generated, how many escalated to humans, and total processing time. This gives the demo a satisfying conclusion and talking points.",
+      "acceptance_criteria": [
+        "A summary panel appears when the agent finishes processing all available tickets",
+        "The panel shows counts for each action type performed",
+        "It shows total processing time and tickets per minute",
+        "Escalated tickets are called out separately with their reasons",
+        "The panel is dismissible and can be re-accessed from the activity feed"
+      ],
+      "touches": [
+        "frontend summary component",
+        "agent queue processor stats"
+      ],
+      "risk_notes": null
+    },
+    {
+      "id": "s4-f2",
+      "name": "Smooth Ticket Status Transitions",
+      "description": "Add polished animations and transitions throughout the demo flow. Ticket cards in the pipeline view should slide between columns. Action cards should fade and expand in. The toggle button should have a satisfying on/off animation. Status badges should transition colors smoothly. The reset should have a clean wipe animation before the fresh state loads.",
+      "acceptance_criteria": [
+        "Ticket cards animate smoothly between pipeline columns (slide + fade)",
+        "Action cards in the ticket detail animate in with a staggered reveal",
+        "The toggle button has a clear on/off animation with color transition",
+        "The reset triggers a brief transition animation before the fresh state appears",
+        "Animations are performant and don't cause layout shifts or jank",
+        "All animations can be completed within demo pacing (not too slow, not too fast)"
+      ],
+      "touches": [
+        "frontend components",
+        "CSS/animation system"
+      ],
+      "risk_notes": null
+    },
+    {
+      "id": "s4-f3",
+      "name": "Demo Control Bar",
+      "description": "Consolidate the toggle button, reset button, demo mode indicator, and agent status into a unified 'Demo Control Bar' fixed at the top or bottom of the screen. This bar shows: (1) Demo Mode label, (2) Agent toggle with ON/OFF state, (3) Agent status (idle / processing ticket GAR-XXX / finished), (4) Progress indicator (3/10 tickets processed), (5) Reset button. This gives the presenter a single glanceable control surface.",
+      "acceptance_criteria": [
+        "A fixed control bar is visible on all pages without obstructing content",
+        "The bar contains all demo controls: toggle, reset, status, progress",
+        "Agent status updates in real-time (shows which ticket is being processed)",
+        "Progress shows tickets processed vs. total in queue",
+        "The bar is visually polished and appropriate for a demo/presentation context",
+        "The bar collapses or minimizes when not in active demo mode"
+      ],
+      "touches": [
+        "frontend layout",
+        "demo state management"
+      ],
+      "risk_notes": "Fixed positioning must not conflict with existing sidebar navigation or page content."
+    },
+    {
+      "id": "s4-f4",
+      "name": "End-to-End Demo Script Validation",
+      "description": "Validate and harden the complete demo flow by ensuring every path works reliably. The flow is: (1) Start with reset state, (2) Show overview with pending tickets, (3) Click into a ticket to show detail, (4) Return to overview, (5) Toggle agent ON, (6) Watch tickets stream through pipeline on overview, (7) Click into a ticket mid-processing to see action stream, (8) Note the escalated ticket remaining, (9) Agent finishes \u2014 summary appears, (10) Toggle OFF, (11) Reset \u2014 back to start. Handle edge cases: rapid toggle on/off, reset while agent is running, navigating away during processing.",
+      "acceptance_criteria": [
+        "The full 11-step demo flow completes without errors 10 times in a row",
+        "Resetting while the agent is running stops the agent and resets cleanly",
+        "Rapid toggle on/off does not cause race conditions or duplicate processing",
+        "All pages remain responsive during agent background processing",
+        "No console errors or unhandled promise rejections during the flow",
+        "The demo flow completes in under 3 minutes from toggle-on to summary"
+      ],
+      "touches": [
+        "all components",
+        "error handling",
+        "state management"
+      ],
+      "risk_notes": "This is an integration validation feature \u2014 issues found here may require fixes across all previous sprints."
+    },
+    {
+      "id": "s4-f5",
+      "name": "Demo Speed Controls",
+      "description": "Add a speed control to the demo control bar that lets the presenter adjust how fast the agent works through tickets. Options: 'Slow' (8-10s per ticket, good for walkthrough), 'Normal' (3-5s per ticket, standard demo), 'Fast' (1-2s per ticket, for quick showcase). This allows the presenter to adapt the demo speed to the audience and available time.",
+      "acceptance_criteria": [
+        "A speed selector is available in the demo control bar (3 presets or a slider)",
+        "Changing speed affects the delay between ticket processing and action auto-confirm timing",
+        "Speed can be changed while the agent is running without disrupting current processing",
+        "The default speed is 'Normal' after each reset"
+      ],
+      "touches": [
+        "demo control bar",
+        "agent queue processor timing"
+      ],
+      "risk_notes": "Fast mode may cause visual updates to overlap \u2014 ensure the UI can handle rapid state changes."
+    }
+  ],
+  "success_criteria": [
+    "The complete demo loop (reset \u2192 toggle \u2192 watch \u2192 summary \u2192 reset) runs flawlessly",
+    "The demo control bar provides a single, professional control surface for the presenter",
+    "The visual experience is polished with smooth animations and clear status communication",
+    "The demo can be paced to different audience needs using speed controls",
+    "The platform leaves a strong impression of autonomous agent capability with appropriate human oversight"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "The existing Hermes agent uses Google Gemini 2.5 Flash via OpenRouter \u2014 all new agent actions must work through this same LLM gateway",
+  "Write tools follow the proposal-envelope pattern \u2014 they propose actions for human confirmation, never execute directly",
+  "The SSE streaming infrastructure already exists in the chat engine \u2014 reuse it for action streaming rather than building a parallel system",
+  "The seed service must remain idempotent \u2014 safe to run multiple times without duplicating data",
+  "The frontend is a Next.js 15 app in a pnpm monorepo with shadcn/ui components \u2014 all new UI must use this stack",
+  "The backend uses SQLAlchemy with Alembic migrations and PostgreSQL \u2014 new models require proper migrations",
+  "All API responses must follow the existing standardized format with camelCase serialization",
+  "The existing /dev/reset endpoint drops all tables \u2014 it must be extended to handle any new models/tables",
+  "Context files use a 4-layer markdown format (vendor/owner/building/property) \u2014 additions must respect this structure",
+  "The agent has a 50-turn budget per invocation (HERMES_MAX_TURNS) \u2014 batch processing must manage this per-ticket"
+]
+
+## Out of Scope
+[
+  "Actually sending real emails, SMS, or messages to external systems \u2014 all actions are simulated/displayed in the UI",
+  "Multi-user authentication or role-based access \u2014 this is a single-presenter demo environment",
+  "Production deployment or scaling \u2014 this runs locally or on a single demo instance",
+  "Modifying the core Hermes agent LLM or switching providers",
+  "Mobile responsiveness \u2014 the demo targets a laptop/projector presentation setup",
+  "Internationalization beyond the existing German ticket content",
+  "Integration with real Slack, email, or SMS providers",
+  "Persistent demo state across server restarts \u2014 reset is expected after restart"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 4 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-031913" in the contract.
+Set branch to "ai/sprint-4-polish-transitions-end-to-end-demo-flow" in the contract.
