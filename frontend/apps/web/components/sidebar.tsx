@@ -103,6 +103,10 @@ export function Sidebar() {
   async function handleReset() {
     setShowResetConfirm(false);
     setResetting(true);
+    // s4-f4: Stop agent before resetting if it's running
+    if (autoSolve) {
+      try { await disable(); } catch { /* ignore — reset will clear state anyway */ }
+    }
     try {
       await api.dev.reset();
       toast.push({
@@ -453,10 +457,15 @@ export function Sidebar() {
               <RotateCcw className="h-5 w-5 text-destructive" />
               <h2 id="reset-dialog-title" className="text-base font-semibold">Demo zurücksetzen?</h2>
             </div>
-            <p className="mb-5 text-sm text-muted-foreground">
+            <p className="mb-4 text-sm text-muted-foreground">
               Alle Tickets, Vorschläge, Kontextänderungen und Protokolle werden gelöscht und
               durch den Demo-Ausgangszustand ersetzt. <strong>Diese Aktion kann nicht rückgängig gemacht werden.</strong>
             </p>
+            {autoSolve && (
+              <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                ⚠ Der Agent wird vor dem Zurücksetzen gestoppt.
+              </div>
+            )}
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowResetConfirm(false)}

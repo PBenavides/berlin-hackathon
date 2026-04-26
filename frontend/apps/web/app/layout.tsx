@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/toaster";
 import { AutoSolveProvider } from "@/lib/auto-solve-context";
 import { ActivityFeed } from "@/components/activity-feed";
+import { DemoControlBar } from "@/components/demo-control-bar";
+import { AgentSummaryPanel } from "@/components/agent-summary-panel";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-inter" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
@@ -28,6 +30,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
               {/* Sprint 3: Global agent activity feed panel */}
               <ActivityFeed />
+              {/* Sprint 4: Demo control bar (s4-f3 + s4-f5) */}
+              <DemoControlBar />
+              {/* Sprint 4: Agent summary panel (s4-f1) */}
+              <AgentSummaryPanel />
             </Toaster>
           </AutoSolveProvider>
         </ThemeProvider>
