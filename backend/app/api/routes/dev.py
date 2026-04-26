@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models import (
     Property, ContextVersion, ContextChunk, PropertyPolicy, ContextSource,
     Ticket, AgentProposal, AuditLog, OwnerMessage, Attachment, AgentAction,
+    AgentActivityEntry,
 )
 from app.models.properties import Property as PropertyModel
 from app.models.owners import Owner
@@ -44,7 +45,12 @@ def reset_database(db: Session = Depends(get_db)):
     WARNING: Destructive operation — for dev/demo use only.
     Idempotent: calling reset twice produces the same state.
     """
+    # Sprint 3: stop the auto-solve queue before resetting
+    from app.services import agent_queue_service
+    agent_queue_service.stop_queue()
+
     # Delete in reverse FK dependency order
+    db.query(AgentActivityEntry).delete()  # Sprint 3: activity feed
     db.query(AuditLog).delete()
     db.query(AgentAction).delete()   # Sprint 2: agent action streaming records
     db.query(Attachment).delete()

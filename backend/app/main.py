@@ -26,6 +26,7 @@ from app.api.routes import (
     chat,
     extract,
     agent_run,
+    agent_queue,
 )
 from app.config import get_settings
 from app.exceptions import StateConflictError, state_conflict_handler, _CODE_MAP
@@ -117,6 +118,8 @@ _routers = [
     (extract.router, "extract"),
     # Sprint 2: agent action streaming + ticket escalation
     (agent_run.router, "agent-run"),
+    # Sprint 3: autonomous queue + activity feed
+    (agent_queue.router, "agent-queue"),
 ]
 
 for _router, _tag in _routers:
