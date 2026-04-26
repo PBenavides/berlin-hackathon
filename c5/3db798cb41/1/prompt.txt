@@ -1,0 +1,1 @@
+lets then add and commit, are we in the branch that contains all the latest changes? or are the changes spread around the branches?
