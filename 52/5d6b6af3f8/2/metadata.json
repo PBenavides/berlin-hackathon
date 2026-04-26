@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "525d6b6af3f8",
+  "session_id": "e355e00b-f99c-4288-94fd-8915eab483a0",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T11:46:35.371741Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/app/services/agent_queue_service.py",
+    "frontend/apps/web/app/ticket/[id]/page.tsx",
+    "frontend/apps/web/lib/api.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "ce78b6cf3db5",
+  "token_usage": {
+    "input_tokens": 139,
+    "cache_creation_tokens": 535307,
+    "cache_read_tokens": 11585835,
+    "output_tokens": 76969,
+    "api_call_count": 126
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T11:46:35.31355Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 1095,
+    "human_modified": 5,
+    "human_removed": 0,
+    "total_committed": 1095,
+    "total_lines_changed": 1126,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}

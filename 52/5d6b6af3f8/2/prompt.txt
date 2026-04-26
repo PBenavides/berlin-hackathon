@@ -1,0 +1,835 @@
+## Self-Review Time
+
+You just implemented Sprint 4: Polish, Transitions & End-to-End Demo Flow.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-031913",
+  "sprint_number": 4,
+  "branch": "ai/sprint-4-polish-transitions-end-to-end-demo-flow",
+  "features_implemented": [
+    {
+      "id": "s4-f1",
+      "name": "Agent Progress Summary Panel",
+      "files_changed": [
+        "backend/app/services/agent_queue_service.py",
+        "backend/app/api/routes/agent_queue.py",
+        "frontend/apps/web/lib/types.ts",
+        "frontend/apps/web/lib/api.ts",
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/agent-summary-panel.tsx",
+        "frontend/apps/web/components/activity-feed.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Start the backend: cd hackathon2026/backend && uvicorn app.main:app --reload",
+        "Start the frontend: cd hackathon2026/frontend && pnpm dev",
+        "Navigate to /overview and click the Demo Control Bar toggle (bottom center) to start Auto-Solve",
+        "Wait for all tickets to process \u2014 the queue_exhausted event fires",
+        "A modal summary panel appears automatically showing: tickets processed, vendor emails, tenant responses, owner reports, escalations, confirmed actions, processing time, and tickets/min",
+        "Escalated tickets are listed with reasons and links to their detail pages",
+        "Dismiss the panel with X or 'Continue' button",
+        "Re-open from the 'Summary' button in the Demo Control Bar or the activity feed header"
+      ],
+      "known_limitations": [
+        "Summary is reset when the demo is reset or the tab is closed (sessionStorage)",
+        "Escalated ticket list is built from SSE events \u2014 if the SSE stream was disconnected, some may be missing"
+      ]
+    },
+    {
+      "id": "s4-f2",
+      "name": "Smooth Ticket Status Transitions",
+      "files_changed": [
+        "frontend/apps/web/app/globals.css",
+        "frontend/apps/web/app/overview/overview-client.tsx",
+        "frontend/apps/web/app/ticket/[id]/page.tsx",
+        "frontend/apps/web/components/activity-feed.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Navigate to /overview \u2014 ticket cards in the pipeline animate in with a slide-from-left effect",
+        "Enable Auto-Solve \u2014 watch tickets move between pipeline columns with smooth transitions",
+        "Navigate to any ticket detail page \u2014 action cards stagger-fade in (40ms delay between each)",
+        "Activity feed entries animate in with a subtle fade from bottom",
+        "All animations complete within 300ms (performant, non-distracting)",
+        "The Demo Control Bar slides up on initial render with animate-slide-up"
+      ],
+      "known_limitations": [
+        "Column-to-column card movement is via re-render (card leaves one column, appears in another) \u2014 true FLIP animation would require a shared layout library",
+        "Animations are CSS-only and respect prefers-reduced-motion when browsers implement it"
+      ]
+    },
+    {
+      "id": "s4-f3",
+      "name": "Demo Control Bar",
+      "files_changed": [
+        "frontend/apps/web/components/demo-control-bar.tsx",
+        "frontend/apps/web/app/layout.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Open any page \u2014 a floating control bar appears at the bottom-center of the screen",
+        "Bar shows: Demo badge, ON/OFF toggle, agent status label, progress (X/Y tickets), speed selector (Slow/Normal/Fast), Summary button (after run), Reset button, Collapse chevron",
+        "Click the toggle to activate Auto-Solve \u2014 bar turns green, status shows current ticket num",
+        "Progress bar fills as tickets complete",
+        "Click any speed button to change speed (takes effect on next ticket)",
+        "Collapse the bar by clicking the chevron \u2014 a compact pill remains with the current status",
+        "Reset button shows warning if agent is running",
+        "Bar does not overlap the sidebar (positioned center, constrained by left margin)"
+      ],
+      "known_limitations": [
+        "Control bar does not auto-position to avoid the right-side activity feed panel; at very small laptop widths they could visually overlap",
+        "Sidebar still shows secondary toggle/reset buttons \u2014 both sets are wired to the same context"
+      ]
+    },
+    {
+      "id": "s4-f4",
+      "name": "End-to-End Demo Script Validation",
+      "files_changed": [
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/sidebar.tsx",
+        "frontend/apps/web/components/demo-control-bar.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: Visit /overview \u2014 see pending tickets in pipeline",
+        "Step 2: Click a ticket to see its detail, then go back",
+        "Step 3: Click Demo Control Bar toggle \u2192 Activate Auto-Solve",
+        "Step 4: Watch tickets move through pipeline; click a ticket mid-processing to see action stream",
+        "Step 5: Note any escalated ticket remaining in the pipeline",
+        "Step 6: Wait for agent to finish \u2014 summary panel appears automatically",
+        "Step 7: Dismiss summary, toggle OFF (or let it auto-stop)",
+        "Step 8: Click Reset \u2014 agent is stopped first, then data resets, redirects to /overview",
+        "Rapid toggle test: Click ON/OFF quickly 5 times \u2014 only one request fires per 500ms debounce",
+        "Reset while running: Start agent, immediately click Reset \u2014 agent stops cleanly before reset"
+      ],
+      "known_limitations": [
+        "The demo targets the happy path \u2014 highly concurrent server restarts or network errors may require a manual page refresh"
+      ]
+    },
+    {
+      "id": "s4-f5",
+      "name": "Demo Speed Controls",
+      "files_changed": [
+        "backend/app/services/agent_queue_service.py",
+        "backend/app/api/routes/agent_queue.py",
+        "frontend/apps/web/lib/types.ts",
+        "frontend/apps/web/lib/api.ts",
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/demo-control-bar.tsx"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/agent-queue/start",
+          "body": {
+            "speed": "slow|normal|fast"
+          }
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "In Demo Control Bar, select 'Slow' before activating Auto-Solve",
+        "Activate \u2014 tickets process every ~9s with 2.5s auto-confirm delay (good for walkthrough narration)",
+        "Switch to 'Normal' (default): ~4s inter-ticket, 1.5s auto-confirm",
+        "Switch to 'Fast': ~1.5s inter-ticket, 0.5s auto-confirm (rapid showcase mode)",
+        "Speed can be changed via the three buttons in the control bar while agent is running \u2014 takes effect on the next inter-ticket delay",
+        "After reset, speed defaults to 'Normal' (sessionStorage key is preserved across navigation but reset with new session)"
+      ],
+      "known_limitations": [
+        "Speed change while running takes effect on the NEXT inter-ticket pause, not immediately on the current auto-confirm",
+        "Fast mode may cause activity feed to receive many updates in quick succession \u2014 the feed handles this via the existing 50-entry cap"
+      ]
+    }
+  ],
+  "migrations_applied": [],
+  "how_to_verify": {
+    "start_command": "cd hackathon2026/backend && uvicorn app.main:app --reload --port 8000 & cd hackathon2026/frontend && pnpm dev",
+    "base_url": "http://localhost:3000",
+    "auth": {
+      "description": "No authentication required \u2014 single-presenter demo environment. Navigate directly to http://localhost:3000/overview."
+    }
+  },
+  "regression_checks": [
+    "Auto-Solve toggle in sidebar still works at /overview",
+    "Activity Feed at bottom-right still shows live stream during auto-solve",
+    "Ticket detail at /ticket/[id] still shows agent action cards and Run Hermes button",
+    "Reset button in sidebar still resets demo and redirects to /overview",
+    "Single ticket agent run via 'Run Hermes' button unaffected by queue changes",
+    "GET /api/agent-queue/status still returns correct queue state",
+    "SSE feed at /api/agent-queue/feed/stream still streams activity events",
+    "Property context, vendors, owners, buildings pages all unaffected"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 4: Polish, Transitions & End-to-End Demo Flow.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-031913",
+  "sprint_number": 4,
+  "branch": "ai/sprint-4-polish-transitions-end-to-end-demo-flow",
+  "features_implemented": [
+    {
+      "id": "s4-f1",
+      "name": "Agent Progress Summary Panel",
+      "files_changed": [
+        "backend/app/services/agent_queue_service.py",
+        "backend/app/api/routes/agent_queue.py",
+        "frontend/apps/web/lib/types.ts",
+        "frontend/apps/web/lib/api.ts",
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/agent-summary-panel.tsx",
+        "frontend/apps/web/components/activity-feed.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Start the backend: cd hackathon2026/backend && uvicorn app.main:app --reload",
+        "Start the frontend: cd hackathon2026/frontend && pnpm dev",
+        "Navigate to /overview and click the Demo Control Bar toggle (bottom center) to start Auto-Solve",
+        "Wait for all tickets to process \u2014 the queue_exhausted event fires",
+        "A modal summary panel appears automatically showing: tickets processed, vendor emails, tenant responses, owner reports, escalations, confirmed actions, processing time, and tickets/min",
+        "Escalated tickets are listed with reasons and links to their detail pages",
+        "Dismiss the panel with X or 'Continue' button",
+        "Re-open from the 'Summary' button in the Demo Control Bar or the activity feed header"
+      ],
+      "known_limitations": [
+        "Summary is reset when the demo is reset or the tab is closed (sessionStorage)",
+        "Escalated ticket list is built from SSE events \u2014 if the SSE stream was disconnected, some may be missing"
+      ]
+    },
+    {
+      "id": "s4-f2",
+      "name": "Smooth Ticket Status Transitions",
+      "files_changed": [
+        "frontend/apps/web/app/globals.css",
+        "frontend/apps/web/app/overview/overview-client.tsx",
+        "frontend/apps/web/app/ticket/[id]/page.tsx",
+        "frontend/apps/web/components/activity-feed.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Navigate to /overview \u2014 ticket cards in the pipeline animate in with a slide-from-left effect",
+        "Enable Auto-Solve \u2014 watch tickets move between pipeline columns with smooth transitions",
+        "Navigate to any ticket detail page \u2014 action cards stagger-fade in (40ms delay between each)",
+        "Activity feed entries animate in with a subtle fade from bottom",
+        "All animations complete within 300ms (performant, non-distracting)",
+        "The Demo Control Bar slides up on initial render with animate-slide-up"
+      ],
+      "known_limitations": [
+        "Column-to-column card movement is via re-render (card leaves one column, appears in another) \u2014 true FLIP animation would require a shared layout library",
+        "Animations are CSS-only and respect prefers-reduced-motion when browsers implement it"
+      ]
+    },
+    {
+      "id": "s4-f3",
+      "name": "Demo Control Bar",
+      "files_changed": [
+        "frontend/apps/web/components/demo-control-bar.tsx",
+        "frontend/apps/web/app/layout.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Open any page \u2014 a floating control bar appears at the bottom-center of the screen",
+        "Bar shows: Demo badge, ON/OFF toggle, agent status label, progress (X/Y tickets), speed selector (Slow/Normal/Fast), Summary button (after run), Reset button, Collapse chevron",
+        "Click the toggle to activate Auto-Solve \u2014 bar turns green, status shows current ticket num",
+        "Progress bar fills as tickets complete",
+        "Click any speed button to change speed (takes effect on next ticket)",
+        "Collapse the bar by clicking the chevron \u2014 a compact pill remains with the current status",
+        "Reset button shows warning if agent is running",
+        "Bar does not overlap the sidebar (positioned center, constrained by left margin)"
+      ],
+      "known_limitations": [
+        "Control bar does not auto-position to avoid the right-side activity feed panel; at very small laptop widths they could visually overlap",
+        "Sidebar still shows secondary toggle/reset buttons \u2014 both sets are wired to the same context"
+      ]
+    },
+    {
+      "id": "s4-f4",
+      "name": "End-to-End Demo Script Validation",
+      "files_changed": [
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/sidebar.tsx",
+        "frontend/apps/web/components/demo-control-bar.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: Visit /overview \u2014 see pending tickets in pipeline",
+        "Step 2: Click a ticket to see its detail, then go back",
+        "Step 3: Click Demo Control Bar toggle \u2192 Activate Auto-Solve",
+        "Step 4: Watch tickets move through pipeline; click a ticket mid-processing to see action stream",
+        "Step 5: Note any escalated ticket remaining in the pipeline",
+        "Step 6: Wait for agent to finish \u2014 summary panel appears automatically",
+        "Step 7: Dismiss summary, toggle OFF (or let it auto-stop)",
+        "Step 8: Click Reset \u2014 agent is stopped first, then data resets, redirects to /overview",
+        "Rapid toggle test: Click ON/OFF quickly 5 times \u2014 only one request fires per 500ms debounce",
+        "Reset while running: Start agent, immediately click Reset \u2014 agent stops cleanly before reset"
+      ],
+      "known_limitations": [
+        "The demo targets the happy path \u2014 highly concurrent server restarts or network errors may require a manual page refresh"
+      ]
+    },
+    {
+      "id": "s4-f5",
+      "name": "Demo Speed Controls",
+      "files_changed": [
+        "backend/app/services/agent_queue_service.py",
+        "backend/app/api/routes/agent_queue.py",
+        "frontend/apps/web/lib/types.ts",
+        "frontend/apps/web/lib/api.ts",
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/demo-control-bar.tsx"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/agent-queue/start",
+          "body": {
+            "speed": "slow|normal|fast"
+          }
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "In Demo Control Bar, select 'Slow' before activating Auto-Solve",
+        "Activate \u2014 tickets process every ~9s with 2.5s auto-confirm delay (good for walkthrough narration)",
+        "Switch to 'Normal' (default): ~4s inter-ticket, 1.5s auto-confirm",
+        "Switch to 'Fast': ~1.5s inter-ticket, 0.5s auto-confirm (rapid showcase mode)",
+        "Speed can be changed via the three buttons in the control bar while agent is running \u2014 takes effect on the next inter-ticket delay",
+        "After reset, speed defaults to 'Normal' (sessionStorage key is preserved across navigation but reset with new session)"
+      ],
+      "known_limitations": [
+        "Speed change while running takes effect on the NEXT inter-ticket pause, not immediately on the current auto-confirm",
+        "Fast mode may cause activity feed to receive many updates in quick succession \u2014 the feed handles this via the existing 50-entry cap"
+      ]
+    }
+  ],
+  "migrations_applied": [],
+  "how_to_verify": {
+    "start_command": "cd hackathon2026/backend && uvicorn app.main:app --reload --port 8000 & cd hackathon2026/frontend && pnpm dev",
+    "base_url": "http://localhost:3000",
+    "auth": {
+      "description": "No authentication required \u2014 single-presenter demo environment. Navigate directly to http://localhost:3000/overview."
+    }
+  },
+  "regression_checks": [
+    "Auto-Solve toggle in sidebar still works at /overview",
+    "Activity Feed at bottom-right still shows live stream during auto-solve",
+    "Ticket detail at /ticket/[id] still shows agent action cards and Run Hermes button",
+    "Reset button in sidebar still resets demo and redirects to /overview",
+    "Single ticket agent run via 'Run Hermes' button unaffected by queue changes",
+    "GET /api/agent-queue/status still returns correct queue state",
+    "SSE feed at /api/agent-queue/feed/stream still streams activity events",
+    "Property context, vendors, owners, buildings pages all unaffected"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "medium",
+    "category": "project_specific",
+    "file": "frontend/apps/web/components/demo-control-bar.tsx",
+    "line_range": "153-172",
+    "description": "handleReset does not reset the demo speed to 'normal' before navigating away. sessionStorage key 'buena:demoSpeed' persists across the hard navigation to /overview, so the next session starts at whatever speed the presenter last chose. The acceptance criteria for s4-f5 explicitly states 'The default speed is Normal after each reset'.",
+    "suggested_fix": "Before `window.location.href = '/overview'`, call `setSpeed('normal')` (which writes 'normal' to sessionStorage) or directly call `sessionStorage.setItem('buena:demoSpeed', 'normal')` so the next mount reads the correct default.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "project_specific",
+    "file": "frontend/apps/web/components/sidebar.tsx",
+    "line_range": "103-127",
+    "description": "The sidebar handleReset has the same missing speed-reset issue as the DemoControlBar. Both reset paths exist and both leave 'buena:demoSpeed' set in sessionStorage. After a reset triggered from the sidebar, the speed remains at the presenter's last choice.",
+    "suggested_fix": "Add `sessionStorage.removeItem('buena:demoSpeed')` (or `sessionStorage.setItem('buena:demoSpeed', 'normal')`) inside handleReset before `window.location.href = '/overview'`.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "pattern",
+    "file": "frontend/apps/web/lib/auto-solve-context.tsx",
+    "line_range": "139-152",
+    "description": "setSummary and setShowSummary are called as side-effects inside a setEscalatedTickets functional updater. React's batching and concurrent mode can cause unexpected ordering when other state setters are invoked inside a state updater. The pattern works today but is fragile: if React defers or replays the updater, setSummary will be called multiple times.",
+    "suggested_fix": "Capture the escalated tickets in a ref (useRef) or restructure: in onQueueExhausted, call setEscalatedTickets to read the current value via a ref, then call setSummary and setShowSummary as separate top-level state updates. The cleanest fix is: `const escalatedTicketsRef = useRef<EscalatedTicketRef[]>([]); ... setSummary({ ...incomingSummary, escalatedTickets: escalatedTicketsRef.current }); setShowSummary(true);`",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "error_handling",
+    "file": "backend/app/services/agent_queue_service.py",
+    "line_range": "236-265",
+    "description": "The `_auto_confirm` function accepts a `db: Session` parameter that is never used (the function makes HTTP calls, not DB calls). The call site `_auto_confirm(SessionLocal(), ...)` opens a session that is never closed \u2014 it leaks until garbage collected. This is pre-existing from Sprint 3 but was not corrected in Sprint 4.",
+    "suggested_fix": "Remove the unused `db: Session` parameter from `_auto_confirm` and update all call sites to not pass a session. The session lifecycle is irrelevant here since the function only calls httpx.post.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "pattern",
+    "file": "frontend/apps/web/lib/types.ts",
+    "line_range": "275-290",
+    "description": "DEMO_SPEED_CONFIGS is a runtime constant (with values) exported from types.ts. TypeScript types files should contain only type definitions. While this works, it creates an import dependency on the types file for runtime data, which is inconsistent with the project pattern where types.ts is a pure type definitions file.",
+    "suggested_fix": "Move DEMO_SPEED_CONFIGS to a constants file (e.g., lib/demo-constants.ts) and import it separately in the components that need it. Keep only the DemoSpeed type and DemoSpeedConfig interface in types.ts.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "medium",
+    "category": "project_specific",
+    "file": "frontend/apps/web/components/demo-control-bar.tsx",
+    "line_range": "153-172",
+    "description": "handleReset does not reset the demo speed to 'normal' before navigating away. sessionStorage key 'buena:demoSpeed' persists across the hard navigation to /overview, so the next session starts at whatever speed the presenter last chose. The acceptance criteria for s4-f5 explicitly states 'The default speed is Normal after each reset'.",
+    "suggested_fix": "Before `window.location.href = '/overview'`, call `setSpeed('normal')` (which writes 'normal' to sessionStorage) or directly call `sessionStorage.setItem('buena:demoSpeed', 'normal')` so the next mount reads the correct default.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "project_specific",
+    "file": "frontend/apps/web/components/sidebar.tsx",
+    "line_range": "103-127",
+    "description": "The sidebar handleReset has the same missing speed-reset issue as the DemoControlBar. Both reset paths exist and both leave 'buena:demoSpeed' set in sessionStorage. After a reset triggered from the sidebar, the speed remains at the presenter's last choice.",
+    "suggested_fix": "Add `sessionStorage.removeItem('buena:demoSpeed')` (or `sessionStorage.setItem('buena:demoSpeed', 'normal')`) inside handleReset before `window.location.href = '/overview'`.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "pattern",
+    "file": "frontend/apps/web/lib/auto-solve-context.tsx",
+    "line_range": "139-152",
+    "description": "setSummary and setShowSummary are called as side-effects inside a setEscalatedTickets functional updater. React's batching and concurrent mode can cause unexpected ordering when other state setters are invoked inside a state updater. The pattern works today but is fragile: if React defers or replays the updater, setSummary will be called multiple times.",
+    "suggested_fix": "Capture the escalated tickets in a ref (useRef) or restructure: in onQueueExhausted, call setEscalatedTickets to read the current value via a ref, then call setSummary and setShowSummary as separate top-level state updates. The cleanest fix is: `const escalatedTicketsRef = useRef<EscalatedTicketRef[]>([]); ... setSummary({ ...incomingSummary, escalatedTickets: escalatedTicketsRef.current }); setShowSummary(true);`",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "error_handling",
+    "file": "backend/app/services/agent_queue_service.py",
+    "line_range": "236-265",
+    "description": "The `_auto_confirm` function accepts a `db: Session` parameter that is never used (the function makes HTTP calls, not DB calls). The call site `_auto_confirm(SessionLocal(), ...)` opens a session that is never closed \u2014 it leaks until garbage collected. This is pre-existing from Sprint 3 but was not corrected in Sprint 4.",
+    "suggested_fix": "Remove the unused `db: Session` parameter from `_auto_confirm` and update all call sites to not pass a session. The session lifecycle is irrelevant here since the function only calls httpx.post.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "pattern",
+    "file": "frontend/apps/web/lib/types.ts",
+    "line_range": "275-290",
+    "description": "DEMO_SPEED_CONFIGS is a runtime constant (with values) exported from types.ts. TypeScript types files should contain only type definitions. While this works, it creates an import dependency on the types file for runtime data, which is inconsistent with the project pattern where types.ts is a pure type definitions file.",
+    "suggested_fix": "Move DEMO_SPEED_CONFIGS to a constants file (e.g., lib/demo-constants.ts) and import it separately in the components that need it. Keep only the DemoSpeed type and DemoSpeedConfig interface in types.ts.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 4: Polish, Transitions & End-to-End Demo Flow.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-031913",
+  "sprint_number": 4,
+  "branch": "ai/sprint-4-polish-transitions-end-to-end-demo-flow",
+  "features_implemented": [
+    {
+      "id": "s4-f1",
+      "name": "Agent Progress Summary Panel",
+      "files_changed": [
+        "backend/app/services/agent_queue_service.py",
+        "backend/app/api/routes/agent_queue.py",
+        "frontend/apps/web/lib/types.ts",
+        "frontend/apps/web/lib/api.ts",
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/agent-summary-panel.tsx",
+        "frontend/apps/web/components/activity-feed.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Start the backend: cd hackathon2026/backend && uvicorn app.main:app --reload",
+        "Start the frontend: cd hackathon2026/frontend && pnpm dev",
+        "Navigate to /overview and click the Demo Control Bar toggle (bottom center) to start Auto-Solve",
+        "Wait for all tickets to process \u2014 the queue_exhausted event fires",
+        "A modal summary panel appears automatically showing: tickets processed, vendor emails, tenant responses, owner reports, escalations, confirmed actions, processing time, and tickets/min",
+        "Escalated tickets are listed with reasons and links to their detail pages",
+        "Dismiss the panel with X or 'Continue' button",
+        "Re-open from the 'Summary' button in the Demo Control Bar or the activity feed header"
+      ],
+      "known_limitations": [
+        "Summary is reset when the demo is reset or the tab is closed (sessionStorage)",
+        "Escalated ticket list is built from SSE events \u2014 if the SSE stream was disconnected, some may be missing"
+      ]
+    },
+    {
+      "id": "s4-f2",
+      "name": "Smooth Ticket Status Transitions",
+      "files_changed": [
+        "frontend/apps/web/app/globals.css",
+        "frontend/apps/web/app/overview/overview-client.tsx",
+        "frontend/apps/web/app/ticket/[id]/page.tsx",
+        "frontend/apps/web/components/activity-feed.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Navigate to /overview \u2014 ticket cards in the pipeline animate in with a slide-from-left effect",
+        "Enable Auto-Solve \u2014 watch tickets move between pipeline columns with smooth transitions",
+        "Navigate to any ticket detail page \u2014 action cards stagger-fade in (40ms delay between each)",
+        "Activity feed entries animate in with a subtle fade from bottom",
+        "All animations complete within 300ms (performant, non-distracting)",
+        "The Demo Control Bar slides up on initial render with animate-slide-up"
+      ],
+      "known_limitations": [
+        "Column-to-column card movement is via re-render (card leaves one column, appears in another) \u2014 true FLIP animation would require a shared layout library",
+        "Animations are CSS-only and respect prefers-reduced-motion when browsers implement it"
+      ]
+    },
+    {
+      "id": "s4-f3",
+      "name": "Demo Control Bar",
+      "files_changed": [
+        "frontend/apps/web/components/demo-control-bar.tsx",
+        "frontend/apps/web/app/layout.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Open any page \u2014 a floating control bar appears at the bottom-center of the screen",
+        "Bar shows: Demo badge, ON/OFF toggle, agent status label, progress (X/Y tickets), speed selector (Slow/Normal/Fast), Summary button (after run), Reset button, Collapse chevron",
+        "Click the toggle to activate Auto-Solve \u2014 bar turns green, status shows current ticket num",
+        "Progress bar fills as tickets complete",
+        "Click any speed button to change speed (takes effect on next ticket)",
+        "Collapse the bar by clicking the chevron \u2014 a compact pill remains with the current status",
+        "Reset button shows warning if agent is running",
+        "Bar does not overlap the sidebar (positioned center, constrained by left margin)"
+      ],
+      "known_limitations": [
+        "Control bar does not auto-position to avoid the right-side activity feed panel; at very small laptop widths they could visually overlap",
+        "Sidebar still shows secondary toggle/reset buttons \u2014 both sets are wired to the same context"
+      ]
+    },
+    {
+      "id": "s4-f4",
+      "name": "End-to-End Demo Script Validation",
+      "files_changed": [
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/sidebar.tsx",
+        "frontend/apps/web/components/demo-control-bar.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: Visit /overview \u2014 see pending tickets in pipeline",
+        "Step 2: Click a ticket to see its detail, then go back",
+        "Step 3: Click Demo Control Bar toggle \u2192 Activate Auto-Solve",
+        "Step 4: Watch tickets move through pipeline; click a ticket mid-processing to see action stream",
+        "Step 5: Note any escalated ticket remaining in the pipeline",
+        "Step 6: Wait for agent to finish \u2014 summary panel appears automatically",
+        "Step 7: Dismiss summary, toggle OFF (or let it auto-stop)",
+        "Step 8: Click Reset \u2014 agent is stopped first, then data resets, redirects to /overview",
+        "Rapid toggle test: Click ON/OFF quickly 5 times \u2014 only one request fires per 500ms debounce",
+        "Reset while running: Start agent, immediately click Reset \u2014 agent stops cleanly before reset"
+      ],
+      "known_limitations": [
+        "The demo targets the happy path \u2014 highly concurrent server restarts or network errors may require a manual page refresh"
+      ]
+    },
+    {
+      "id": "s4-f5",
+      "name": "Demo Speed Controls",
+      "files_changed": [
+        "backend/app/services/agent_queue_service.py",
+        "backend/app/api/routes/agent_queue.py",
+        "frontend/apps/web/lib/types.ts",
+        "frontend/apps/web/lib/api.ts",
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/demo-control-bar.tsx"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/agent-queue/start",
+          "body": {
+            "speed": "slow|normal|fast"
+          }
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "In Demo Control Bar, select 'Slow' before activating Auto-Solve",
+        "Activate \u2014 tickets process every ~9s with 2.5s auto-confirm delay (good for walkthrough narration)",
+        "Switch to 'Normal' (default): ~4s inter-ticket, 1.5s auto-confirm",
+        "Switch to 'Fast': ~1.5s inter-ticket, 0.5s auto-confirm (rapid showcase mode)",
+        "Speed can be changed via the three buttons in the control bar while agent is running \u2014 takes effect on the next inter-ticket delay",
+        "After reset, speed defaults to 'Normal' (sessionStorage key is preserved across navigation but reset with new session)"
+      ],
+      "known_limitations": [
+        "Speed change while running takes effect on the NEXT inter-ticket pause, not immediately on the current auto-confirm",
+        "Fast mode may cause activity feed to receive many updates in quick succession \u2014 the feed handles this via the existing 50-entry cap"
+      ]
+    }
+  ],
+  "migrations_applied": [],
+  "how_to_verify": {
+    "start_command": "cd hackathon2026/backend && uvicorn app.main:app --reload --port 8000 & cd hackathon2026/frontend && pnpm dev",
+    "base_url": "http://localhost:3000",
+    "auth": {
+      "description": "No authentication required \u2014 single-presenter demo environment. Navigate directly to http://localhost:3000/overview."
+    }
+  },
+  "regression_checks": [
+    "Auto-Solve toggle in sidebar still works at /overview",
+    "Activity Feed at bottom-right still shows live stream during auto-solve",
+    "Ticket detail at /ticket/[id] still shows agent action cards and Run Hermes button",
+    "Reset button in sidebar still resets demo and redirects to /overview",
+    "Single ticket agent run via 'Run Hermes' button unaffected by queue changes",
+    "GET /api/agent-queue/status still returns correct queue state",
+    "SSE feed at /api/agent-queue/feed/stream still streams activity events",
+    "Property context, vendors, owners, buildings pages all unaffected"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 4: Polish, Transitions & End-to-End Demo Flow.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-031913",
+  "sprint_number": 4,
+  "branch": "ai/sprint-4-polish-transitions-end-to-end-demo-flow",
+  "features_implemented": [
+    {
+      "id": "s4-f1",
+      "name": "Agent Progress Summary Panel",
+      "files_changed": [
+        "backend/app/services/agent_queue_service.py",
+        "backend/app/api/routes/agent_queue.py",
+        "frontend/apps/web/lib/types.ts",
+        "frontend/apps/web/lib/api.ts",
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/agent-summary-panel.tsx",
+        "frontend/apps/web/components/activity-feed.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Start the backend: cd hackathon2026/backend && uvicorn app.main:app --reload",
+        "Start the frontend: cd hackathon2026/frontend && pnpm dev",
+        "Navigate to /overview and click the Demo Control Bar toggle (bottom center) to start Auto-Solve",
+        "Wait for all tickets to process \u2014 the queue_exhausted event fires",
+        "A modal summary panel appears automatically showing: tickets processed, vendor emails, tenant responses, owner reports, escalations, confirmed actions, processing time, and tickets/min",
+        "Escalated tickets are listed with reasons and links to their detail pages",
+        "Dismiss the panel with X or 'Continue' button",
+        "Re-open from the 'Summary' button in the Demo Control Bar or the activity feed header"
+      ],
+      "known_limitations": [
+        "Summary is reset when the demo is reset or the tab is closed (sessionStorage)",
+        "Escalated ticket list is built from SSE events \u2014 if the SSE stream was disconnected, some may be missing"
+      ]
+    },
+    {
+      "id": "s4-f2",
+      "name": "Smooth Ticket Status Transitions",
+      "files_changed": [
+        "frontend/apps/web/app/globals.css",
+        "frontend/apps/web/app/overview/overview-client.tsx",
+        "frontend/apps/web/app/ticket/[id]/page.tsx",
+        "frontend/apps/web/components/activity-feed.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Navigate to /overview \u2014 ticket cards in the pipeline animate in with a slide-from-left effect",
+        "Enable Auto-Solve \u2014 watch tickets move between pipeline columns with smooth transitions",
+        "Navigate to any ticket detail page \u2014 action cards stagger-fade in (40ms delay between each)",
+        "Activity feed entries animate in with a subtle fade from bottom",
+        "All animations complete within 300ms (performant, non-distracting)",
+        "The Demo Control Bar slides up on initial render with animate-slide-up"
+      ],
+      "known_limitations": [
+        "Column-to-column card movement is via re-render (card leaves one column, appears in another) \u2014 true FLIP animation would require a shared layout library",
+        "Animations are CSS-only and respect prefers-reduced-motion when browsers implement it"
+      ]
+    },
+    {
+      "id": "s4-f3",
+      "name": "Demo Control Bar",
+      "files_changed": [
+        "frontend/apps/web/components/demo-control-bar.tsx",
+        "frontend/apps/web/app/layout.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Open any page \u2014 a floating control bar appears at the bottom-center of the screen",
+        "Bar shows: Demo badge, ON/OFF toggle, agent status label, progress (X/Y tickets), speed selector (Slow/Normal/Fast), Summary button (after run), Reset button, Collapse chevron",
+        "Click the toggle to activate Auto-Solve \u2014 bar turns green, status shows current ticket num",
+        "Progress bar fills as tickets complete",
+        "Click any speed button to change speed (takes effect on next ticket)",
+        "Collapse the bar by clicking the chevron \u2014 a compact pill remains with the current status",
+        "Reset button shows warning if agent is running",
+        "Bar does not overlap the sidebar (positioned center, constrained by left margin)"
+      ],
+      "known_limitations": [
+        "Control bar does not auto-position to avoid the right-side activity feed panel; at very small laptop widths they could visually overlap",
+        "Sidebar still shows secondary toggle/reset buttons \u2014 both sets are wired to the same context"
+      ]
+    },
+    {
+      "id": "s4-f4",
+      "name": "End-to-End Demo Script Validation",
+      "files_changed": [
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/sidebar.tsx",
+        "frontend/apps/web/components/demo-control-bar.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: Visit /overview \u2014 see pending tickets in pipeline",
+        "Step 2: Click a ticket to see its detail, then go back",
+        "Step 3: Click Demo Control Bar toggle \u2192 Activate Auto-Solve",
+        "Step 4: Watch tickets move through pipeline; click a ticket mid-processing to see action stream",
+        "Step 5: Note any escalated ticket remaining in the pipeline",
+        "Step 6: Wait for agent to finish \u2014 summary panel appears automatically",
+        "Step 7: Dismiss summary, toggle OFF (or let it auto-stop)",
+        "Step 8: Click Reset \u2014 agent is stopped first, then data resets, redirects to /overview",
+        "Rapid toggle test: Click ON/OFF quickly 5 times \u2014 only one request fires per 500ms debounce",
+        "Reset while running: Start agent, immediately click Reset \u2014 agent stops cleanly before reset"
+      ],
+      "known_limitations": [
+        "The demo targets the happy path \u2014 highly concurrent server restarts or network errors may require a manual page refresh"
+      ]
+    },
+    {
+      "id": "s4-f5",
+      "name": "Demo Speed Controls",
+      "files_changed": [
+        "backend/app/services/agent_queue_service.py",
+        "backend/app/api/routes/agent_queue.py",
+        "frontend/apps/web/lib/types.ts",
+        "frontend/apps/web/lib/api.ts",
+        "frontend/apps/web/lib/auto-solve-context.tsx",
+        "frontend/apps/web/components/demo-control-bar.tsx"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/agent-queue/start",
+          "body": {
+            "speed": "slow|normal|fast"
+          }
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "In Demo Control Bar, select 'Slow' before activating Auto-Solve",
+        "Activate \u2014 tickets process every ~9s with 2.5s auto-confirm delay (good for walkthrough narration)",
+        "Switch to 'Normal' (default): ~4s inter-ticket, 1.5s auto-confirm",
+        "Switch to 'Fast': ~1.5s inter-ticket, 0.5s auto-confirm (rapid showcase mode)",
+        "Speed can be changed via the three buttons in the control bar while agent is running \u2014 takes effect on the next inter-ticket delay",
+        "After reset, speed defaults to 'Normal' (sessionStorage key is preserved across navigation but reset with new session)"
+      ],
+      "known_limitations": [
+        "Speed change while running takes effect on the NEXT inter-ticket pause, not immediately on the current auto-confirm",
+        "Fast mode may cause activity feed to receive many updates in quick succession \u2014 the feed handles this via the existing 50-entry cap"
+      ]
+    }
+  ],
+  "migrations_applied": [],
+  "how_to_verify": {
+    "start_command": "cd hackathon2026/backend && uvicorn app.main:app --reload --port 8000 & cd hackathon2026/frontend && pnpm dev",
+    "base_url": "http://localhost:3000",
+    "auth": {
+      "description": "No authentication required \u2014 single-presenter demo environment. Navigate directly to http://localhost:3000/overview."
+    }
+  },
+  "regression_checks": [
+    "Auto-Solve toggle in sidebar still works at /overview",
+    "Activity Feed at bottom-right still shows live stream during auto-solve",
+    "Ticket detail at /ticket/[id] still shows agent action cards and Run Hermes button",
+    "Reset button in sidebar still resets demo and redirects to /overview",
+    "Single ticket agent run via 'Run Hermes' button unaffected by queue changes",
+    "GET /api/agent-queue/status still returns correct queue state",
+    "SSE feed at /api/agent-queue/feed/stream still streams activity events",
+    "Property context, vendors, owners, buildings pages all unaffected"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
