@@ -29,6 +29,7 @@ import {
   TicketCheck,
   Loader2,
   Zap,
+  BarChart3,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAutoSolve } from "@/lib/auto-solve-context";
@@ -119,7 +120,7 @@ export function ActivityFeed() {
   const [entries, setEntries] = useState<AgentActivityEntry[]>([]);
   const [unread, setUnread] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { autoSolve, queueStatus } = useAutoSolve();
+  const { autoSolve, queueStatus, summary, openSummary } = useAutoSolve();
 
   // Load initial recent entries
   useEffect(() => {
@@ -202,6 +203,17 @@ export function ActivityFeed() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* Summary re-open button (s4-f1) */}
+          {summary && collapsed && (
+            <button
+              onClick={(e) => { e.stopPropagation(); openSummary(); }}
+              title="View session summary"
+              className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-600 hover:bg-emerald-500/30 transition-colors dark:text-emerald-400"
+            >
+              <BarChart3 className="h-2.5 w-2.5" />
+              Summary
+            </button>
+          )}
           {unread > 0 && collapsed && (
             <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">
               {unread > 99 ? "99+" : unread}
@@ -230,7 +242,9 @@ export function ActivityFeed() {
             </div>
           ) : (
             entries.map((e, i) => (
-              <FeedEntry key={e.id ?? `e-${i}`} entry={e} />
+              <div key={e.id ?? `e-${i}`} className="feed-entry-appear" style={{ animationDelay: `${Math.min(i * 20, 200)}ms` }}>
+                <FeedEntry entry={e} />
+              </div>
             ))
           )}
         </div>

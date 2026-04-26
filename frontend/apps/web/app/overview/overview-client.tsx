@@ -157,7 +157,7 @@ export function OverviewClient({
                   </div>
                   <p className="mb-3 text-[11px] leading-snug text-muted-foreground">{stage.description}</p>
                   <div className="space-y-2">
-                    {stageTickets.map((t) => {
+                    {stageTickets.map((t, idx) => {
                       const prop = properties.find((p) => p.id === t.propertyId);
                       const isProcessing = t.id === currentlyProcessing;
                       return (
@@ -165,9 +165,10 @@ export function OverviewClient({
                           key={t.id}
                           href={`/ticket/${t.id}`}
                           className={cn(
-                            "block rounded border bg-card p-2 transition-all duration-200 hover:border-foreground/40",
+                            "pipeline-card pipeline-card-enter block rounded border bg-card p-2 hover:border-foreground/40",
                             isProcessing && "ring-2 ring-emerald-500 ring-offset-1 animate-pulse border-emerald-500/50"
                           )}
+                          style={{ animationDelay: `${idx * 30}ms` }}
                         >
                           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                             <span className="font-mono">{t.num}</span>

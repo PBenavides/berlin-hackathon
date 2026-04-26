@@ -440,11 +440,12 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                   </p>
                 </div>
               ) : (
-                <div className="max-h-[600px] overflow-auto p-4 space-y-2">
-                  {actions.map((action) => (
+                <div className="max-h-[600px] overflow-auto p-4 space-y-2 stagger-children">
+                  {actions.map((action, idx) => (
                     <div
                       key={action.id}
-                      className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+                      className="animate-stagger-fade-in"
+                      style={{ animationDelay: `${Math.min(idx * 50, 400)}ms` }}
                     >
                       <ActionCard
                         action={action}
