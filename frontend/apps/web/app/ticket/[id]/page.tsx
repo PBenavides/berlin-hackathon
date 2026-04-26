@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
@@ -9,15 +9,17 @@ import { Button } from "@repo/ui/components/button";
 import { Badge } from "@repo/ui/components/badge";
 import { Separator } from "@repo/ui/components/separator";
 import { RiskBadge, StatusBadge } from "@/components/badges";
+import { ActionCard } from "@/components/action-card";
 import { useToast } from "@/components/toaster";
-import { api, ApiError, friendlyApiError } from "@/lib/api";
+import { api, agentRun, ApiError, friendlyApiError } from "@/lib/api";
 import { emit } from "@/lib/bus";
-import type { Property, Ticket, Vendor } from "@/lib/types";
+import type { AgentAction, Property, Ticket, Vendor } from "@/lib/types";
 import { formatEur, timeAgo } from "@/lib/utils";
 import { cn } from "@repo/ui/lib/utils";
 import {
   Phone, Mail, ChevronDown, ChevronRight, Check, Sparkles,
   CheckCircle2, Clock, MessageSquare, Wrench, FileEdit, Loader2,
+  Play, AlertTriangle, Bot,
 } from "lucide-react";
 
 type Mutation = "approve" | "reject" | "saveMemory" | "skipMemory";
@@ -35,6 +37,91 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [reasoningOpen, setReasoningOpen] = useState(false);
+
+  // -----------------------------------------------------------------------
+  // Sprint 2: Streaming action cards state
+  // -----------------------------------------------------------------------
+  const [actions, setActions] = useState<AgentAction[]>([]);
+  const [agentRunning, setAgentRunning] = useState(false);
+  const [agentDone, setAgentDone] = useState(false);
+  const [agentText, setAgentText] = useState("");
+  const abortRef = useRef<AbortController | null>(null);
+  const actionsEndRef = useRef<HTMLDivElement>(null);
+
+  // Load any existing actions for this ticket (from previous runs)
+  useEffect(() => {
+    let cancelled = false;
+    api.tickets.actions(id).then((existing) => {
+      if (!cancelled && existing.length > 0) {
+        setActions(existing);
+      }
+    }).catch(() => {/* ignore — actions table may be empty */});
+    return () => { cancelled = true; };
+  }, [id]);
+
+  // Auto-scroll to bottom of actions stream
+  useEffect(() => {
+    actionsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [actions.length]);
+
+  function upsertAction(incoming: AgentAction) {
+    setActions((prev) => {
+      const idx = prev.findIndex((a) => a.id === incoming.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = incoming;
+        return updated;
+      }
+      return [...prev, incoming];
+    });
+  }
+
+  async function startAgentRun() {
+    if (agentRunning) return;
+    setAgentRunning(true);
+    setAgentDone(false);
+    setAgentText("");
+
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    try {
+      await agentRun.stream(
+        id,
+        {
+          onActionCard: upsertAction,
+          onDelta: (text) => setAgentText((s) => s + text),
+          onDone: (payload) => {
+            setAgentDone(true);
+            setAgentRunning(false);
+            // Refetch ticket in case escalation changed the risk level
+            refetchTicket();
+          },
+          onError: (err) => {
+            pushToast({
+              title: "Agent run failed",
+              description: err instanceof Error ? err.message : String(err),
+              variant: "destructive",
+            });
+            setAgentRunning(false);
+          },
+          signal: ctrl.signal,
+        }
+      );
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setAgentRunning(false);
+    }
+  }
+
+  function stopAgentRun() {
+    abortRef.current?.abort();
+    setAgentRunning(false);
+  }
+
+  // -----------------------------------------------------------------------
+  // Ticket loading
+  // -----------------------------------------------------------------------
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +248,9 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     t.memoryProposal.status === "pending" &&
     !!t.vendorJob?.completedAt;
 
+  // Sprint 2: is this ticket escalated?
+  const isEscalated = !!t.escalatedAt || t.risk === "high";
+
   return (
     <div>
       <PageHeader
@@ -171,6 +261,11 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
           <div className="flex items-center gap-2">
             <StatusBadge status={t.status} />
             <RiskBadge risk={t.risk} />
+            {t.escalatedAt && (
+              <Badge variant="destructive" className="text-xs">
+                <AlertTriangle className="mr-1 h-3 w-3" /> Escalated
+              </Badge>
+            )}
             <span className="font-mono text-xs text-muted-foreground">{t.num}</span>
           </div>
         }
@@ -290,6 +385,105 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ================================================================
+              Sprint 2: AGENT ACTION STREAM
+              Shows a live stream of what Hermes is doing / has proposed.
+              ================================================================ */}
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b px-5 py-3">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm font-semibold">Hermes agent actions</span>
+                  {agentRunning && (
+                    <Badge variant="muted" className="animate-pulse text-xs">
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      running…
+                    </Badge>
+                  )}
+                  {agentDone && !agentRunning && actions.length > 0 && (
+                    <Badge variant="success" className="text-xs">
+                      <CheckCircle2 className="mr-1 h-3 w-3" />
+                      complete
+                    </Badge>
+                  )}
+                </div>
+                {agentRunning ? (
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={stopAgentRun}>
+                    Stop
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1"
+                    onClick={startAgentRun}
+                    disabled={agentRunning}
+                  >
+                    <Play className="h-3 w-3" />
+                    {actions.length > 0 ? "Re-run Hermes" : "Run Hermes"}
+                  </Button>
+                )}
+              </div>
+
+              {/* Action cards stream */}
+              {actions.length === 0 && !agentRunning ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  <Bot className="mx-auto mb-2 h-6 w-6 opacity-30" />
+                  <p>Click <strong>Run Hermes</strong> to have the agent analyse this ticket</p>
+                  <p className="mt-1 text-xs">
+                    The agent will read property context, check policies, and propose appropriate actions.
+                  </p>
+                </div>
+              ) : (
+                <div className="max-h-[600px] overflow-auto p-4 space-y-2">
+                  {actions.map((action) => (
+                    <div
+                      key={action.id}
+                      className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+                    >
+                      <ActionCard
+                        action={action}
+                        onConfirmed={() => refetchTicket()}
+                      />
+                    </div>
+                  ))}
+
+                  {/* Agent reasoning text (streaming) */}
+                  {agentText && (
+                    <Card className="border-muted/50 bg-muted/20">
+                      <CardContent className="p-3 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                        <span className="font-semibold text-foreground">Hermes: </span>
+                        {agentText}
+                        {agentRunning && <span className="inline-block h-3 w-0.5 animate-pulse bg-foreground ml-0.5" />}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <div ref={actionsEndRef} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ================================================================
+              Escalation notice (Sprint 2)
+              ================================================================ */}
+          {t.escalatedAt && (
+            <Card className="border-destructive/40 bg-destructive/5">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
+                  <div>
+                    <div className="text-sm font-semibold text-destructive">Escalated to human operator</div>
+                    <div className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{t.escalationReason}</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -438,6 +632,8 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                 {isApproved && <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3 w-3 text-emerald-700" /><span>Operator approved</span></li>}
                 {t.vendorJob?.completedAt && <li className="flex gap-2"><Wrench className="mt-0.5 h-3 w-3 text-emerald-700" /><span>Vendor reported completion</span></li>}
                 {memorySaved && <li className="flex gap-2"><Sparkles className="mt-0.5 h-3 w-3 text-emerald-700" /><span>Memory committed to v{t.memoryProposal?.targetVersion}</span></li>}
+                {t.escalatedAt && <li className="flex gap-2"><AlertTriangle className="mt-0.5 h-3 w-3 text-destructive" /><span>Escalated to human</span></li>}
+                {actions.length > 0 && <li className="flex gap-2"><Bot className="mt-0.5 h-3 w-3 text-blue-400" /><span>{actions.length} agent action{actions.length !== 1 ? "s" : ""} recorded</span></li>}
               </ul>
             </CardContent>
           </Card>
@@ -453,6 +649,35 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                   <div><span className="text-muted-foreground">SLA: </span>{vendor.slaHours}h</div>
                   <div><span className="text-muted-foreground">Phone: </span>{vendor.phone}</div>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sprint 2: Agent actions summary in sidebar */}
+          {actions.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Agent summary
+                </div>
+                <ul className="space-y-1 text-xs">
+                  {actions.filter((a) => a.status === "proposed").length > 0 && (
+                    <li className="flex gap-2 text-amber-600">
+                      <span>⊙</span>
+                      <span>{actions.filter((a) => a.status === "proposed").length} proposal(s) awaiting review</span>
+                    </li>
+                  )}
+                  {actions.filter((a) => a.actionType === "escalate_to_human").length > 0 && (
+                    <li className="flex gap-2 text-destructive">
+                      <AlertTriangle className="h-3 w-3 mt-0.5" />
+                      <span>Escalation proposed</span>
+                    </li>
+                  )}
+                  <li className="flex gap-2 text-muted-foreground">
+                    <span>↳</span>
+                    <span>{actions.filter((a) => a.actionType === "read").length} context lookups</span>
+                  </li>
+                </ul>
               </CardContent>
             </Card>
           )}

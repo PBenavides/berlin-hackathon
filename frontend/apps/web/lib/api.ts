@@ -1,5 +1,5 @@
 import type {
-  Building, Layer, Owner, Property, PropertyContext, Ticket, Unit, Vendor,
+  AgentAction, Building, Layer, Owner, Property, PropertyContext, Ticket, Unit, Vendor,
 } from "./types";
 
 const BASE =
@@ -142,7 +142,112 @@ export const tickets = {
       `/api/tickets/${encodeURIComponent(id)}/memory/skip`,
       { method: "POST", body: {} }
     ),
+  // Sprint 2: escalation confirmation
+  escalate: (
+    id: string,
+    body: { reason: string; triggeringPolicy?: string; recommendation?: string }
+  ) =>
+    request<{ status: "escalated"; ticketId: string; escalationReason: string }>(
+      `/api/tickets/${encodeURIComponent(id)}/escalate`,
+      { method: "POST", body }
+    ),
+  // Sprint 2: agent action history
+  actions: (id: string, runId?: string) =>
+    request<AgentAction[]>(
+      `/api/tickets/${encodeURIComponent(id)}/actions`,
+      { query: runId ? { runId } : undefined }
+    ),
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 2: Agent-run SSE streaming
+// ---------------------------------------------------------------------------
+
+export interface AgentRunHandlers {
+  onActionCard?: (action: AgentAction) => void;
+  onActionProposal?: (proposal: Record<string, unknown>) => void;
+  onDelta?: (text: string) => void;
+  onDone?: (payload: { runId: string; ticketId: string; turns: number }) => void;
+  onError?: (err: unknown) => void;
+  signal?: AbortSignal;
+}
+
+export const agentRun = {
+  /**
+   * POST /api/tickets/{id}/agent-run → text/event-stream
+   * Streams action_card + delta + done events while persisting actions to DB.
+   */
+  stream: async (
+    ticketId: string,
+    handlers: AgentRunHandlers,
+    promptHint?: string
+  ): Promise<void> => {
+    const url = buildUrl(`/api/tickets/${encodeURIComponent(ticketId)}/agent-run`);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
+      body: JSON.stringify(promptHint ? { promptHint } : {}),
+      signal: handlers.signal,
+    });
+
+    if (!res.ok || !res.body) {
+      const env: ApiErrorEnvelope = {
+        error: `Agent run failed (${res.status})`,
+        code: "HTTP_ERROR",
+        status: res.status,
+      };
+      try {
+        const parsed = await res.json();
+        if (parsed && typeof parsed === "object" && "error" in parsed) {
+          Object.assign(env, parsed);
+        }
+      } catch { /* ignore */ }
+      throw new ApiError(env, `/api/tickets/${ticketId}/agent-run`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let sep: number;
+        while ((sep = buffer.indexOf("\n\n")) !== -1) {
+          const frame = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          parseAgentRunFrame(frame, handlers);
+        }
+      }
+      if (buffer.trim().length > 0) parseAgentRunFrame(buffer, handlers);
+    } catch (err) {
+      handlers.onError?.(err);
+      throw err;
+    }
+  },
+};
+
+function parseAgentRunFrame(frame: string, handlers: AgentRunHandlers): void {
+  let event = "message";
+  const dataLines: string[] = [];
+  for (const line of frame.split("\n")) {
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+  }
+  if (dataLines.length === 0) return;
+  const raw = dataLines.join("\n");
+  let parsed: any;
+  try { parsed = JSON.parse(raw); } catch { parsed = {}; }
+
+  if (event === "action_card") handlers.onActionCard?.(parsed as AgentAction);
+  else if (event === "action_proposal") handlers.onActionProposal?.(parsed);
+  else if (event === "delta") handlers.onDelta?.(parsed.text ?? "");
+  else if (event === "done") handlers.onDone?.(parsed);
+  else if (event === "error") handlers.onError?.(parsed);
+}
 
 export const properties = {
   list: () => request<Property[]>("/api/properties"),
@@ -339,4 +444,5 @@ export const api = {
   chat,
   extract,
   dev,
+  agentRun,
 };
