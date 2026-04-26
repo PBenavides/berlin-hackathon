@@ -1,7 +1,7 @@
 {
-  "pid": 42604,
+  "pid": 38965,
   "instance": "default",
-  "started_at": "2026-04-26T03:19:13.444136",
-  "target_branch": "feat/last-feature-demo",
+  "started_at": "2026-04-26T09:43:49.819111",
+  "target_branch": "ai/sprint-2-agent-action-types-streaming-actions",
   "work_dir": "/Users/pablobenavides/Desktop/P/Project2026/hackathon2026"
 }

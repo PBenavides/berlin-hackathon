@@ -5,77 +5,19 @@
   "retry_count": 1,
   "history": [
     {
-      "stage": "planning",
-      "timestamp": "2026-04-26T03:25:05.733485",
-      "duration_s": 352.2
-    },
-    {
       "stage": "generating",
-      "timestamp": "2026-04-26T03:35:38.074243",
-      "sprint": 1,
-      "retry": 0,
-      "duration_s": 632.3
-    },
-    {
-      "stage": "self_critique",
-      "timestamp": "2026-04-26T03:37:32.770030",
-      "sprint": 1,
-      "verdict": "self_correcting",
-      "duration_s": 114.6
-    },
-    {
-      "stage": "self_fix",
-      "timestamp": "2026-04-26T03:40:21.560509",
-      "sprint": 1,
-      "duration_s": 89.7,
-      "post_fix_verdict": "self_correcting"
-    },
-    {
-      "stage": "evaluating",
-      "timestamp": "2026-04-26T03:52:29.840907",
-      "sprint": 1,
-      "attempt": 1,
-      "score": 7.8,
-      "verdict": "pass",
-      "duration_s": 728.3
-    },
-    {
-      "stage": "merged",
-      "timestamp": "2026-04-26T03:52:29.948921",
-      "sprint": 1,
-      "score": 7.8
-    },
-    {
-      "stage": "generating",
-      "timestamp": "2026-04-26T04:10:21.233671",
+      "timestamp": "2026-04-26T09:49:05.511620",
       "sprint": 2,
       "retry": 0,
-      "duration_s": 1071.3
+      "duration_s": 315.7
     },
     {
-      "stage": "self_critique",
-      "timestamp": "2026-04-26T04:13:53.885645",
+      "stage": "generation_empty",
+      "timestamp": "2026-04-26T09:49:05.557161",
       "sprint": 2,
-      "verdict": "self_correcting",
-      "duration_s": 212.6
-    },
-    {
-      "stage": "self_fix",
-      "timestamp": "2026-04-26T04:23:32.530268",
-      "sprint": 2,
-      "duration_s": 242.6,
-      "post_fix_verdict": "self_correcting"
-    },
-    {
-      "stage": "evaluating",
-      "timestamp": "2026-04-26T04:42:36.660942",
-      "sprint": 2,
-      "attempt": 1,
-      "score": 5.4,
-      "verdict": "fail",
-      "duration_s": 1144.1
+      "retry": 0
     }
   ],
-  "created_at": "2026-04-26T03:19:13.481637",
-  "last_updated": "2026-04-26T04:42:36.675703"
+  "created_at": "2026-04-26T09:43:49.844026",
+  "last_updated": "2026-04-26T09:49:05.557592"
 }
