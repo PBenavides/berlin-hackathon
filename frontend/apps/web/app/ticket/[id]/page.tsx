@@ -91,9 +91,8 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         {
           onActionCard: upsertAction,
           onDelta: (text) => setAgentText((s) => s + text),
-          onDone: (payload) => {
+          onDone: () => {
             setAgentDone(true);
-            setAgentRunning(false);
             // Refetch ticket in case escalation changed the risk level
             refetchTicket();
           },
@@ -103,13 +102,13 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
               description: err instanceof Error ? err.message : String(err),
               variant: "destructive",
             });
-            setAgentRunning(false);
           },
           signal: ctrl.signal,
         }
       );
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
+    } finally {
       setAgentRunning(false);
     }
   }
