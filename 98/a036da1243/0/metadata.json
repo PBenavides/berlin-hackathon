@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "98a036da1243",
+  "session_id": "9264a611-b00f-412e-bde5-000c93a7dd80",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T02:04:01.19673Z",
+  "branch": "ai/sprint-2-agent-action-types-streaming-actions",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/alembic/versions/0006_agent_actions_escalation.py",
+    "backend/app/models/__init__.py",
+    "backend/app/models/agent_actions.py",
+    "backend/app/models/tickets.py",
+    "backend/app/schemas/agent_actions.py",
+    "backend/app/schemas/tickets.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "80d245dc647a",
+  "token_usage": {
+    "input_tokens": 46,
+    "cache_creation_tokens": 111637,
+    "cache_read_tokens": 3671245,
+    "output_tokens": 31525,
+    "api_call_count": 42
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T02:04:01.171712Z",
+    "agent_lines": 190,
+    "agent_removed": 0,
+    "human_added": 393,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 583,
+    "total_lines_changed": 584,
+    "agent_percentage": 32.534246575342465,
+    "metric_version": 2
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "98a036da1243",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-2-agent-action-types-streaming-actions",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/alembic/versions/0006_agent_actions_escalation.py",
+    "backend/app/models/__init__.py",
+    "backend/app/models/agent_actions.py",
+    "backend/app/models/tickets.py",
+    "backend/app/schemas/agent_actions.py",
+    "backend/app/schemas/tickets.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/98/a036da1243/0/metadata.json",
+      "transcript": "/98/a036da1243/0/full.jsonl",
+      "content_hash": "/98/a036da1243/0/content_hash.txt",
+      "prompt": "/98/a036da1243/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 46,
+    "cache_creation_tokens": 111637,
+    "cache_read_tokens": 3671245,
+    "output_tokens": 31525,
+    "api_call_count": 42
+  }
+}
