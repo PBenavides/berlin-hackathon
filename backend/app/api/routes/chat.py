@@ -1,26 +1,25 @@
 """
 POST /api/chat — Hermes streaming chat endpoint.
 
-Returns text/event-stream:
-  event: delta
-  data: {"text": "..."}
-  ...
-  event: done
-  data: {"messageId": "msg-...", "appliedTo": []}
+text/event-stream with these event types:
+  event: delta            — text token chunk
+  event: tool_call        — agent invoked a read tool
+  event: tool_result      — read tool returned
+  event: action_proposal  — agent suggests a write the operator must confirm
+  event: done             — final message id + scope-touch list + turn count
 
 Body: {message, propertyId?, scope?: {layer, id}}
 """
 import json
 import time
-import uuid
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database import get_db, SessionLocal
+from app.database import SessionLocal
 from app.services import chat_engine
 
 router = APIRouter()
@@ -38,33 +37,27 @@ class ChatRequest(BaseModel):
 
 
 def _sse(event: str, data: Dict[str, Any]) -> bytes:
-    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False, default=str)}\n\n".encode("utf-8")
 
 
 @router.post("/chat")
 def chat(payload: ChatRequest):
-    """Stream a Hermes reply as SSE deltas + a final 'done' event."""
-    message_id = f"msg-{uuid.uuid4().hex[:10]}"
-
+    """Stream a Hermes reply: tokens + tool events + final 'done'."""
     def generator():
-        # Open a per-stream DB session so the connection isn't held by the
-        # outer request lifecycle (which closes after the function returns).
         db: Session = SessionLocal()
         try:
             scope_dict = payload.scope.model_dump() if payload.scope else None
             last_keepalive = time.time()
-            for chunk in chat_engine.stream_reply(
+            for event_name, data in chat_engine.stream_events(
                 db,
                 message=payload.message,
                 property_id=payload.property_id,
                 scope=scope_dict,
             ):
-                yield _sse("delta", {"text": chunk})
-                # 15s keep-alive comment — browsers timeout silent SSE at ~30s
+                yield _sse(event_name, data)
                 if time.time() - last_keepalive > 15:
                     yield b": keepalive\n\n"
                     last_keepalive = time.time()
-            yield _sse("done", {"messageId": message_id, "appliedTo": []})
         except Exception as e:
             yield _sse("error", {"message": f"{type(e).__name__}: {e}"})
         finally:
