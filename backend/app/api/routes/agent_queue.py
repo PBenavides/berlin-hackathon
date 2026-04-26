@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -28,7 +28,7 @@ router = APIRouter()
 
 
 class StartQueueRequest(BaseModel):
-    speed: str = "normal"  # "slow" | "normal" | "fast"
+    speed: Literal["slow", "normal", "fast"] = "normal"
 
 
 # ---------------------------------------------------------------------------
@@ -63,6 +63,8 @@ def start_queue(body: Optional[StartQueueRequest] = None):
     """Activate autonomous ticket resolution. Accepts optional speed preset."""
     speed = (body.speed if body else None) or "normal"
     result = agent_queue_service.start_queue(speed=speed)
+    if result.get("started") is False:
+        raise HTTPException(status_code=409, detail="Queue already running")
     return result
 
 

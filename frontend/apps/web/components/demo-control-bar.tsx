@@ -317,16 +317,18 @@ export function DemoControlBar() {
 
         <div className="h-4 w-px bg-border shrink-0" />
 
-        {/* Speed selector (s4-f5) */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Speed selector (s4-f5) — locked while running; backend speed is set at start */}
+        <div
+          className="flex items-center gap-1 shrink-0"
+          title={autoSolve ? "Speed is locked while the agent is running" : undefined}
+        >
           {(["slow", "normal", "fast"] as DemoSpeed[]).map((s) => (
             <SpeedButton
               key={s}
               value={s}
               current={speed}
               onChange={setSpeed}
-              // Allow changing speed while running — takes effect on next ticket
-              disabled={false}
+              disabled={autoSolve}
             />
           ))}
         </div>

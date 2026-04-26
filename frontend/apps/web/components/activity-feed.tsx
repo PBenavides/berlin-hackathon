@@ -120,7 +120,14 @@ export function ActivityFeed() {
   const [entries, setEntries] = useState<AgentActivityEntry[]>([]);
   const [unread, setUnread] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const collapsedRef = useRef(collapsed);
   const { autoSolve, queueStatus, summary, openSummary } = useAutoSolve();
+
+  // Keep collapsedRef in sync so the SSE handler can read latest value without
+  // tearing down/reconnecting the stream when the user toggles the panel.
+  useEffect(() => {
+    collapsedRef.current = collapsed;
+  }, [collapsed]);
 
   // Load initial recent entries
   useEffect(() => {
@@ -130,7 +137,8 @@ export function ActivityFeed() {
     }).catch(() => {});
   }, []);
 
-  // Connect to SSE feed for live updates
+  // Connect to SSE feed for live updates (one connection for the lifetime of
+  // the component; collapsed state is read via ref to avoid reconnects)
   useEffect(() => {
     let cancelled = false;
     const ctrl = new AbortController();
@@ -147,7 +155,7 @@ export function ActivityFeed() {
               const next = [...prev, entry].slice(-MAX_ENTRIES);
               return next;
             });
-            if (collapsed) {
+            if (collapsedRef.current) {
               setUnread((n) => n + 1);
             }
           },
@@ -158,7 +166,7 @@ export function ActivityFeed() {
     };
     connect();
     return () => { cancelled = true; ctrl.abort(); };
-  }, [collapsed]);
+  }, []);
 
   // Auto-scroll to bottom when new entries arrive and feed is open
   useEffect(() => {
