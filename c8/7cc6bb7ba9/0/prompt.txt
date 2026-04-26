@@ -387,3 +387,141 @@ Now switch to reviewer mode. Go through the self-critic checklist for every file
 
 Read each file you changed and review against the checklist in your system prompt.
 Return ONLY the review JSON. No other text.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "high",
+    "category": "error_handling",
+    "file": "frontend/apps/web/app/ticket/[id]/page.tsx",
+    "line_range": "89-109",
+    "description": "startAgentRun() has no `finally` block. If the SSE stream closes without emitting a `done` event (e.g., server error before the final yield, or network drop), agentRunning stays true forever \u2014 the 'running\u2026' badge never clears and the Run button remains disabled. The AbortError path is fine because stopAgentRun() sets agentRunning=false before the abort fires, but normal stream-close-without-done is unhandled.",
+    "suggested_fix": "Wrap the await in a try/finally and move setAgentRunning(false) into the finally block. Remove the duplicate setAgentRunning(false) calls from onDone, onError, and the catch block.\n\nasync function startAgentRun() {\n  if (agentRunning) return;\n  setAgentRunning(true);\n  setAgentDone(false);\n  setAgentText(\"\");\n  const ctrl = new AbortController();\n  abortRef.current = ctrl;\n  try {\n    await agentRun.stream(id, {\n      onActionCard: upsertAction,\n      onDelta: (text) => setAgentText((s) => s + text),\n      onDone: (payload) => { setAgentDone(true); refetchTicket(); },\n      onError: (err) => { pushToast({ title: \"Agent run failed\", description: err instanceof Error ? err.message : String(err), variant: \"destructive\" }); },\n      signal: ctrl.signal,\n    });\n  } catch (err) {\n    if (!(err instanceof Error && err.name === \"AbortError\")) {\n      pushToast({ title: \"Agent run failed\", description: String(err), variant: \"destructive\" });\n    }\n  } finally {\n    setAgentRunning(false);\n  }\n}",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "pattern",
+    "file": "frontend/apps/web/components/action-card.tsx",
+    "line_range": "95-115",
+    "description": "handleConfirm() duplicates the BASE URL logic from api.ts (hardcodes the `typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'` pattern) and uses raw fetch() instead of the project's request<T>() utility. This means (1) the backend URL is defined in two places \u2014 a change to NEXT_PUBLIC_BACKEND_URL in api.ts won't automatically apply here, and (2) error responses are not parsed into the project's standard ApiError envelope, so the friendly error message system is bypassed.",
+    "suggested_fix": "Export `buildUrl` from api.ts, or better: add a generic `confirmAction(endpoint: string, method: string, body: unknown)` helper in api.ts that wraps request<T>(), and import it in action-card.tsx. Shortest fix: import the BASE constant by extracting it to a shared lib/config.ts file and importing it in both api.ts and action-card.tsx.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "error_handling",
+    "file": "frontend/apps/web/components/action-card.tsx",
+    "line_range": "95-120",
+    "description": "handleConfirm() uses ad-hoc error parsing: `res.json().catch(() => ({ error: res.statusText }))`. This does not use the project's standardized ApiErrorEnvelope `{error, code, status}` shape from api.ts, so the friendly error messages from friendlyApiError() are never surfaced. A 409 CONFLICT response from the escalate endpoint (e.g., ticket already resolved) will show a raw error string instead of the user-friendly message.",
+    "suggested_fix": "Replace the raw fetch with a call to the typed API method when possible. For the generic case, at minimum parse the response using the same envelope shape as api.ts: try { const parsed = await res.json(); if ('error' in parsed) throw new ApiError(parsed, endpoint); } catch { ... }. Import ApiError from @/lib/api.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "project_specific",
+    "file": "backend/app/api/routes/agent_run.py",
+    "line_range": "158-167",
+    "description": "When an AgentAction is first created with db.add(action); db.flush(), the created_at field is None in Python because it is populated by a server_default=sa.func.now() which only resolves on the database side. The first SSE action_card event emitted (status='thinking') will have createdAt: null. The UI handles this gracefully (no crash), but the timestamp is missing on the live 'thinking' card. It only populates after agent_runtime's db.commit() triggers SQLAlchemy expiry and a lazy reload.",
+    "suggested_fix": "After db.flush(), explicitly set a Python-side fallback: `from datetime import datetime, timezone; action.created_at = action.created_at or datetime.now(timezone.utc)`. This ensures the first SSE emit has a real timestamp without requiring an extra DB roundtrip.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "error_handling",
+    "file": "backend/app/api/routes/agent_run.py",
+    "line_range": "119-133",
+    "description": "POST /api/tickets/{id}/agent-run always returns 200 OK even if the ticket does not exist. The not-found check happens inside the generator and emits an SSE `error` event. All other ticket endpoints in tickets.py return a proper 404 JSON response via _get_ticket_or_404(). While this is consistent with chat.py behavior, it breaks the contract a client would expect for an unknown ticket ID.",
+    "suggested_fix": "Add a pre-flight ticket existence check before starting the StreamingResponse: query the ticket outside the generator using a short-lived DB session, raise HTTPException(404) if not found. This matches the pattern of every other ticket route in the codebase.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "high",
+    "category": "error_handling",
+    "file": "frontend/apps/web/app/ticket/[id]/page.tsx",
+    "line_range": "89-109",
+    "description": "startAgentRun() has no `finally` block. If the SSE stream closes without emitting a `done` event (e.g., server error before the final yield, or network drop), agentRunning stays true forever \u2014 the 'running\u2026' badge never clears and the Run button remains disabled. The AbortError path is fine because stopAgentRun() sets agentRunning=false before the abort fires, but normal stream-close-without-done is unhandled.",
+    "suggested_fix": "Wrap the await in a try/finally and move setAgentRunning(false) into the finally block. Remove the duplicate setAgentRunning(false) calls from onDone, onError, and the catch block.\n\nasync function startAgentRun() {\n  if (agentRunning) return;\n  setAgentRunning(true);\n  setAgentDone(false);\n  setAgentText(\"\");\n  const ctrl = new AbortController();\n  abortRef.current = ctrl;\n  try {\n    await agentRun.stream(id, {\n      onActionCard: upsertAction,\n      onDelta: (text) => setAgentText((s) => s + text),\n      onDone: (payload) => { setAgentDone(true); refetchTicket(); },\n      onError: (err) => { pushToast({ title: \"Agent run failed\", description: err instanceof Error ? err.message : String(err), variant: \"destructive\" }); },\n      signal: ctrl.signal,\n    });\n  } catch (err) {\n    if (!(err instanceof Error && err.name === \"AbortError\")) {\n      pushToast({ title: \"Agent run failed\", description: String(err), variant: \"destructive\" });\n    }\n  } finally {\n    setAgentRunning(false);\n  }\n}",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "pattern",
+    "file": "frontend/apps/web/components/action-card.tsx",
+    "line_range": "95-115",
+    "description": "handleConfirm() duplicates the BASE URL logic from api.ts (hardcodes the `typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'` pattern) and uses raw fetch() instead of the project's request<T>() utility. This means (1) the backend URL is defined in two places \u2014 a change to NEXT_PUBLIC_BACKEND_URL in api.ts won't automatically apply here, and (2) error responses are not parsed into the project's standard ApiError envelope, so the friendly error message system is bypassed.",
+    "suggested_fix": "Export `buildUrl` from api.ts, or better: add a generic `confirmAction(endpoint: string, method: string, body: unknown)` helper in api.ts that wraps request<T>(), and import it in action-card.tsx. Shortest fix: import the BASE constant by extracting it to a shared lib/config.ts file and importing it in both api.ts and action-card.tsx.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "error_handling",
+    "file": "frontend/apps/web/components/action-card.tsx",
+    "line_range": "95-120",
+    "description": "handleConfirm() uses ad-hoc error parsing: `res.json().catch(() => ({ error: res.statusText }))`. This does not use the project's standardized ApiErrorEnvelope `{error, code, status}` shape from api.ts, so the friendly error messages from friendlyApiError() are never surfaced. A 409 CONFLICT response from the escalate endpoint (e.g., ticket already resolved) will show a raw error string instead of the user-friendly message.",
+    "suggested_fix": "Replace the raw fetch with a call to the typed API method when possible. For the generic case, at minimum parse the response using the same envelope shape as api.ts: try { const parsed = await res.json(); if ('error' in parsed) throw new ApiError(parsed, endpoint); } catch { ... }. Import ApiError from @/lib/api.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "project_specific",
+    "file": "backend/app/api/routes/agent_run.py",
+    "line_range": "158-167",
+    "description": "When an AgentAction is first created with db.add(action); db.flush(), the created_at field is None in Python because it is populated by a server_default=sa.func.now() which only resolves on the database side. The first SSE action_card event emitted (status='thinking') will have createdAt: null. The UI handles this gracefully (no crash), but the timestamp is missing on the live 'thinking' card. It only populates after agent_runtime's db.commit() triggers SQLAlchemy expiry and a lazy reload.",
+    "suggested_fix": "After db.flush(), explicitly set a Python-side fallback: `from datetime import datetime, timezone; action.created_at = action.created_at or datetime.now(timezone.utc)`. This ensures the first SSE emit has a real timestamp without requiring an extra DB roundtrip.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "error_handling",
+    "file": "backend/app/api/routes/agent_run.py",
+    "line_range": "119-133",
+    "description": "POST /api/tickets/{id}/agent-run always returns 200 OK even if the ticket does not exist. The not-found check happens inside the generator and emits an SSE `error` event. All other ticket endpoints in tickets.py return a proper 404 JSON response via _get_ticket_or_404(). While this is consistent with chat.py behavior, it breaks the contract a client would expect for an unknown ticket ID.",
+    "suggested_fix": "Add a pre-flight ticket existence check before starting the StreamingResponse: query the ticket outside the generator using a short-lived DB session, raise HTTPException(404) if not found. This matches the pattern of every other ticket route in the codebase.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
