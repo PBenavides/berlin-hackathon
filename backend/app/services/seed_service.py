@@ -1093,6 +1093,66 @@ def seed_database(db: Session) -> dict:
     )
     db.add(vj1)
 
+    # ------------------------------------------------------------------
+    # Agent proposal for t-7832 (pr-7832)
+    # Bug-001 fix: t-7832 is "completed" and appears on the overview's
+    # "Memory writes pending" panel. Without a proposal + final_context_update_md,
+    # the ticket detail page shows no save/skip controls. This seeds a complete
+    # proposal so the operator can make the memory decision from the ticket detail.
+    # ------------------------------------------------------------------
+    pr2 = AgentProposal(
+        id="pr-7832",
+        ticket_id="t-7832",
+        context_version_id=cv1.id,
+        proposed_external_action={
+            "type": "dispatch_vendor",
+            "vendor": "Bekey Service",
+            "vendorId": "v2",
+            "trade": "Access & Intercom",
+            "target": "Unit E1 intercom call module",
+            "estimateEur": 90,
+            "etaHours": 48,
+        },
+        context_delta={
+            "suggested_context_update": (
+                "Unit E1 intercom call module replaced 2026-04-23 by Bekey Service (€90). "
+                "Bekey digital intercom system fully operational."
+            )
+        },
+        reasoning=(
+            "Café Krone (Unit E1) reported intercom call module failure. "
+            "Bekey Service is the preferred vendor for Access & Intercom (SLA 48h, service@bekey.de). "
+            "Estimate of €90 is well below the €1,000 board approval threshold. "
+            "Policy P1 (approval_threshold €90 ≤ €1,000) passed. Bekey Service was dispatched."
+        ),
+        citations=[
+            {
+                "heading": "Vendor layer — Bekey Service",
+                "excerpt": "Bekey Service (Access/Intercom, SLA 48h) — preferred contact: Email with photo of faulty unit.",
+            },
+            {
+                "heading": "Owner layer",
+                "excerpt": "Repairs > €1,000 require board sign-off. €90 is within autonomous threshold.",
+            },
+        ],
+        policy_evaluation=[
+            {"code": "P1", "name": "approval_threshold (€90 ≤ €1,000)", "passed": True},
+        ],
+        risk_level="low",
+        confidence=0.91,
+        action_status="approved",
+        memory_status="pending",
+        final_context_update_md=(
+            "### Intercom repair — Unit E1 (2026-04-23)\n"
+            "- **Vendor**: Bekey Service (v2)\n"
+            "- **Issue**: Intercom call module failed — Café Krone tenants could not receive door calls\n"
+            "- **Resolution**: Call module replaced. Unit E1 intercom fully operational.\n"
+            "- **Cost**: €90 (within autonomous threshold, no board sign-off required)\n"
+            "- **SLA**: Met (48h — completed within schedule)"
+        ),
+    )
+    db.add(pr2)
+
     db.commit()
 
     return {

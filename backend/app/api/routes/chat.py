@@ -16,21 +16,31 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
+from app.schemas.base import CamelModel
 from app.services import chat_engine
 
 router = APIRouter()
 
 
-class ChatScope(BaseModel):
+class ChatScope(CamelModel):
+    """Scope to narrow the agent's context. Accepts camelCase from the frontend."""
     layer: Optional[str] = None
     id: Optional[str] = None
 
 
-class ChatRequest(BaseModel):
+class ChatRequest(CamelModel):
+    """
+    Chat request body. Inherits CamelModel so that the frontend's camelCase
+    field names (e.g. ``propertyId``) are correctly mapped to snake_case
+    Python fields (e.g. ``property_id``).
+
+    Bug-003 fix: previously used plain BaseModel which did not accept
+    ``propertyId`` → ``property_id`` aliasing, so the property scope was always
+    None and the agent responded as if no property was selected.
+    """
     message: str
     property_id: Optional[str] = None
     scope: Optional[ChatScope] = None
