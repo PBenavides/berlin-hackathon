@@ -262,6 +262,49 @@ export interface QueueStatus {
   remainingCount: number;
   processedCount: number;
   failedCount: number;
+  // Sprint 4 additions
+  speed?: DemoSpeed;
+  totalVendorEmails?: number;
+  totalTenantResponses?: number;
+  totalOwnerReports?: number;
+  totalEscalations?: number;
+  totalConfirmed?: number;
+  startTime?: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 4: Demo Speed Controls (s4-f5)
+// ---------------------------------------------------------------------------
+
+export type DemoSpeed = "slow" | "normal" | "fast";
+
+export interface DemoSpeedConfig {
+  label: string;
+  description: string;
+  interTicketMs: number;
+}
+
+export const DEMO_SPEED_CONFIGS: Record<DemoSpeed, DemoSpeedConfig> = {
+  slow:   { label: "Slow",   description: "8–10s per ticket · walkthrough",  interTicketMs: 9000 },
+  normal: { label: "Normal", description: "3–5s per ticket · standard demo", interTicketMs: 4000 },
+  fast:   { label: "Fast",   description: "1–2s per ticket · quick showcase", interTicketMs: 1500 },
+};
+
+// ---------------------------------------------------------------------------
+// Sprint 4: Agent Queue Summary (s4-f1)
+// ---------------------------------------------------------------------------
+
+export interface QueueSummary {
+  ticketsProcessed: number;
+  vendorEmails: number;
+  tenantResponses: number;
+  ownerReports: number;
+  escalations: number;
+  totalConfirmed: number;
+  processingTimeSeconds: number;
+  ticketsPerMinute: number;
+  /** Populated from action_escalated activity events */
+  escalatedTickets: Array<{ ticketNum: string; ticketId: string; reason: string }>;
 }
 
 export type ActivitySeverity = "info" | "success" | "warning" | "error";

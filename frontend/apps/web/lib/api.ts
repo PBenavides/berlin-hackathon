@@ -1,6 +1,6 @@
 import type {
   AgentAction, AgentActivityEntry, Building, Layer, Owner, Property, PropertyContext,
-  QueueStatus, Ticket, Unit, Vendor,
+  QueueStatus, Ticket, Unit, Vendor, DemoSpeed, QueueSummary,
 } from "./types";
 
 const BASE =
@@ -322,15 +322,21 @@ export const dev = {
 // ---------------------------------------------------------------------------
 
 export interface QueueFeedHandlers {
-  onActivity?: (entry: AgentActivityEntry) => void;
+  onActivity?: (entry: AgentActivityEntry & { summary?: QueueSummary }) => void;
   onQueueStatus?: (status: QueueStatus) => void;
   onQueueStopped?: () => void;
+  /** Called when queue_exhausted fires — receives summary data (s4-f1) */
+  onQueueExhausted?: (summary: QueueSummary) => void;
   signal?: AbortSignal;
 }
 
 export const agentQueue = {
-  start: () =>
-    request<QueueStatus & { started: boolean }>("/api/agent-queue/start", { method: "POST" }),
+  /** Start the queue. Accepts optional speed preset (s4-f5). */
+  start: (speed?: DemoSpeed) =>
+    request<QueueStatus & { started: boolean }>("/api/agent-queue/start", {
+      method: "POST",
+      body: { speed: speed ?? "normal" },
+    }),
 
   stop: () =>
     request<QueueStatus & { stopped: boolean }>("/api/agent-queue/stop", { method: "POST" }),
@@ -387,7 +393,7 @@ function _parseQueueFeedFrame(frame: string, handlers: QueueFeedHandlers): void 
     else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
   }
   if (dataLines.length === 0) return;
-  let parsed: AgentActivityEntry;
+  let parsed: AgentActivityEntry & { summary?: QueueSummary };
   try { parsed = JSON.parse(dataLines.join("\n")); } catch { return; }
 
   if (event === "queue_status") {
@@ -395,6 +401,11 @@ function _parseQueueFeedFrame(frame: string, handlers: QueueFeedHandlers): void 
   } else if (event === "queue_stopped") {
     handlers.onQueueStatus?.(parsed.status ?? (parsed as unknown as QueueStatus));
     handlers.onQueueStopped?.();
+  } else if (event === "queue_exhausted") {
+    // Update status + fire exhausted handler with summary (s4-f1)
+    if (parsed.status) handlers.onQueueStatus?.(parsed.status);
+    if (parsed.summary) handlers.onQueueExhausted?.(parsed.summary);
+    handlers.onActivity?.(parsed);
   } else {
     handlers.onActivity?.(parsed);
     // Bubble status updates embedded in activity events
