@@ -196,13 +196,16 @@ def run_agent_on_ticket(
             ticket_ref = ticket.num or ticket_id
 
             # Build a targeted prompt that guides the agent toward the right action type
+            # IMPORTANT: Lead with the internal ticket ID (not the display number) so the LLM
+            # uses it as the ticketId argument in all tool calls (bug-002 fix).
             user_message = (
-                f"Process ticket {ticket_ref}: \"{ticket.subject}\"\n\n"
+                f"Process internal ticket ID \"{ticket_id}\" (display ref: {ticket_ref}): \"{ticket.subject}\"\n\n"
                 f"Ticket body:\n{ticket.body[:600]}\n\n"
+                f"Internal ticket ID to use in all tool calls: {ticket_id}\n"
                 f"Property ID: {property_id} | Source channel: {ticket.source}\n\n"
                 f"Steps to follow:\n"
-                f"1. Call get_ticket({ticket_id!r}) to read full details\n"
-                f"2. Call get_property_context({property_id!r}) to load context\n"
+                f"1. Call get_ticket(\"{ticket_id}\") — use exactly this internal ID\n"
+                f"2. Call get_property_context(\"{property_id}\") to load context\n"
                 f"3. Based on the ticket type:\n"
                 f"   - Maintenance/repair → get_vendor + approve_ticket or send_vendor_email\n"
                 f"   - Tenant FAQ/inquiry → respond_to_tenant (channel={ticket.source!r}→"
@@ -275,9 +278,27 @@ def run_agent_on_ticket(
                         yield _sse("action_card", _action_to_dict(action))
 
                 elif event_name == "action_proposal":
-                    # Update action to "proposed" with full proposal payload
-                    call_id = data.get("id", "")
+                    # Update action to "proposed" with full proposal payload.
+                    # Bug-003 fix: Override confirmEndpoint with the real ticket_id so that
+                    # LLM-supplied ticketId (which may be the display number) doesn't cause 404s.
                     tool_name = data.get("tool", "")
+                    if tool_name == "escalate_to_human" and data.get("confirmEndpoint"):
+                        data["confirmEndpoint"] = f"/api/tickets/{ticket_id}/escalate"
+                        if data.get("confirmBody") is None:
+                            data["confirmBody"] = {}
+                    # Also fix ticketId in nested proposal objects for other write tools
+                    if tool_name in ("approve_ticket", "reject_ticket", "save_memory", "skip_memory"):
+                        if data.get("confirmEndpoint"):
+                            # Rebuild with the real ticket_id
+                            endpoint_map = {
+                                "approve_ticket": f"/api/tickets/{ticket_id}/approve",
+                                "reject_ticket": f"/api/tickets/{ticket_id}/reject",
+                                "save_memory": f"/api/tickets/{ticket_id}/memory/save",
+                                "skip_memory": f"/api/tickets/{ticket_id}/memory/skip",
+                            }
+                            data["confirmEndpoint"] = endpoint_map.get(tool_name, data["confirmEndpoint"])
+
+                    call_id = data.get("id", "")
 
                     if call_id in pending_actions:
                         action = pending_actions[call_id]

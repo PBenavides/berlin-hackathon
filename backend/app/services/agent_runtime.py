@@ -27,6 +27,7 @@ from app.services import agent_tools
 from app.services.context_layer_service import parse_layers
 from app.models.context_versions import ContextVersion
 from app.models.tickets import Ticket
+from app.config import get_settings
 
 
 _MODEL = "google/gemini-2.5-flash"
@@ -100,7 +101,12 @@ def _system_prompt(db: Session, property_id: Optional[str], scope: Optional[Dict
     scope_line = ""
     if scope:
         scope_line = f"\nCurrent operator scope: layer={scope.get('layer')}, id={scope.get('id')}\n"
-    return f"{base}\n\n{ctx_preview}\n# Open tickets:\n{open_tickets}{scope_line}"
+    property_id_line = (
+        f"\n\nIMPORTANT: When calling tools, always use the internal property ID '{property_id}' "
+        f"(not a derived slug). For example: list_tickets(propertyId='{property_id}'), "
+        f"get_property_context(propertyId='{property_id}')."
+    ) if property_id else ""
+    return f"{base}\n\n{ctx_preview}\n# Open tickets:\n{open_tickets}{scope_line}{property_id_line}"
 
 
 # ---------------------------------------------------------------------------
@@ -197,7 +203,8 @@ def stream_agent(
     Top-level generator. Yields (event_name, data) tuples.
     Caller (chat route) wraps each into SSE bytes.
     """
-    api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    settings = get_settings()
+    api_key = settings.openrouter_api_key or settings.openai_api_key or os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY")
     message_id = f"msg-{uuid.uuid4().hex[:10]}"
 
     if not api_key:

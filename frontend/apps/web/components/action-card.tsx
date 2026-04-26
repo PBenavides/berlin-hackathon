@@ -11,7 +11,7 @@
  *   rejected  → muted rejected badge
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@repo/ui/components/card";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
@@ -182,6 +182,15 @@ export function ActionCard({ action, onConfirmed, onRejected, className }: Actio
   const [rejecting, setRejecting] = useState(false);
   const [localStatus, setLocalStatus] = useState(action.status);
   const { push: pushToast } = useToast();
+
+  // Bug-004 fix: sync localStatus when the parent re-renders with an updated status
+  // (e.g., action_proposal SSE fires and parent updates action.status from "thinking" → "proposed")
+  useEffect(() => {
+    // Only sync upward transitions — don't overwrite user-confirmed/rejected state
+    if (localStatus !== "confirmed" && localStatus !== "rejected") {
+      setLocalStatus(action.status);
+    }
+  }, [action.status]);
 
   const proposal = action.payload?.proposal as ActionProposalEnvelope | undefined;
   const isProposed = localStatus === "proposed";
