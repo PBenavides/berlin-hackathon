@@ -2,7 +2,7 @@
   "run_id": "20260426-031913",
   "status": "generating",
   "current_sprint": 2,
-  "retry_count": 0,
+  "retry_count": 1,
   "history": [
     {
       "stage": "planning",
@@ -44,8 +44,38 @@
       "timestamp": "2026-04-26T03:52:29.948921",
       "sprint": 1,
       "score": 7.8
+    },
+    {
+      "stage": "generating",
+      "timestamp": "2026-04-26T04:10:21.233671",
+      "sprint": 2,
+      "retry": 0,
+      "duration_s": 1071.3
+    },
+    {
+      "stage": "self_critique",
+      "timestamp": "2026-04-26T04:13:53.885645",
+      "sprint": 2,
+      "verdict": "self_correcting",
+      "duration_s": 212.6
+    },
+    {
+      "stage": "self_fix",
+      "timestamp": "2026-04-26T04:23:32.530268",
+      "sprint": 2,
+      "duration_s": 242.6,
+      "post_fix_verdict": "self_correcting"
+    },
+    {
+      "stage": "evaluating",
+      "timestamp": "2026-04-26T04:42:36.660942",
+      "sprint": 2,
+      "attempt": 1,
+      "score": 5.4,
+      "verdict": "fail",
+      "duration_s": 1144.1
     }
   ],
   "created_at": "2026-04-26T03:19:13.481637",
-  "last_updated": "2026-04-26T03:52:29.949908"
+  "last_updated": "2026-04-26T04:42:36.675703"
 }
