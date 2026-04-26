@@ -96,6 +96,10 @@ export function AutoSolveProvider({ children }: { children: React.ReactNode }) {
   const [summary, setSummary] = useState<QueueSummary | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [escalatedTickets, setEscalatedTickets] = useState<EscalatedTicketRef[]>([]);
+  // Mirror escalated tickets in a ref so onQueueExhausted can read the current
+  // list synchronously without being nested inside a state updater (self-fix: avoid
+  // calling setSummary/setShowSummary as side-effects of setEscalatedTickets updater).
+  const escalatedTicketsRef = useRef<EscalatedTicketRef[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   // Debounce ref for rapid toggle protection (s4-f4)
   const lastToggleRef = useRef<number>(0);
@@ -138,16 +142,15 @@ export function AutoSolveProvider({ children }: { children: React.ReactNode }) {
           },
           onQueueExhausted: (incomingSummary) => {
             if (!cancelled) {
-              // Merge in escalated tickets accumulated from SSE events
-              setEscalatedTickets((prev) => {
-                const merged: QueueSummary = {
-                  ...incomingSummary,
-                  escalatedTickets: prev,
-                };
-                setSummary(merged);
-                setShowSummary(true);
-                return prev;
-              });
+              // Use ref to read current escalated tickets synchronously — avoids
+              // calling setSummary/setShowSummary as side-effects inside a state
+              // updater (self-fix: React concurrent-mode safe pattern).
+              const merged: QueueSummary = {
+                ...incomingSummary,
+                escalatedTickets: escalatedTicketsRef.current,
+              };
+              setSummary(merged);
+              setShowSummary(true);
               setAutoSolve(false);
             }
           },
@@ -162,7 +165,10 @@ export function AutoSolveProvider({ children }: { children: React.ReactNode }) {
               setEscalatedTickets((prev) => {
                 // Dedup by ticketId
                 if (prev.some((e) => e.ticketId === ticketId)) return prev;
-                return [...prev, { ticketNum, ticketId, reason }];
+                const next = [...prev, { ticketNum, ticketId, reason }];
+                // Keep ref in sync so onQueueExhausted can read it synchronously
+                escalatedTicketsRef.current = next;
+                return next;
               });
             }
           },
@@ -205,8 +211,9 @@ export function AutoSolveProvider({ children }: { children: React.ReactNode }) {
 
     setIsToggling(true);
     try {
-      // Reset escalated tickets for this new run
+      // Reset escalated tickets for this new run (state + ref)
       setEscalatedTickets([]);
+      escalatedTicketsRef.current = [];
       setSummary(null);
       const result = await api.agentQueue.start(speed);
       setQueueStatus(result);
