@@ -1,0 +1,623 @@
+## Task
+Implement Sprint 1: Demo Ticket Catalog & Reset Infrastructure
+
+## Branch
+Create and switch to branch: `ai/sprint-1-demo-ticket-catalog-reset-infrastructure`
+Run: `git checkout -b ai/sprint-1-demo-ticket-catalog-reset-infrastructure` (or `git checkout ai/sprint-1-demo-ticket-catalog-reset-infrastructure` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 1,
+  "name": "Demo Ticket Catalog & Reset Infrastructure",
+  "goal": "Create a rich, diverse set of pre-loaded demo tickets and a bulletproof one-click reset that restores the full demo state.",
+  "features": [
+    {
+      "id": "s1-f1",
+      "name": "Expanded Demo Ticket Suite",
+      "description": "Extend the seed data with 8\u201310 new tickets across three properties that represent the full spectrum of agent capabilities. Tickets should include: (1) Vendor coordination tickets \u2014 e.g., broken boiler needing HVAC dispatch, plumbing leak requiring emergency scheduling, intercom replacement quote request. (2) Tenant inquiry tickets \u2014 e.g., a tenant asking about recycling rules via email, a tenant calling about a lost package, a tenant messaging about guest parking policy. (3) Owner financial action tickets \u2014 e.g., monthly cost summary request from an owner, invoice forwarding after a completed job, rent arrears notification to an owner. Each ticket should arrive from a different source (phone, email, letter, portal) so the multi-channel nature is visible. All tickets start in 'new' or 'triaged' status so the agent has work to do.",
+      "acceptance_criteria": [
+        "At least 3 tickets require vendor email coordination as their resolution path",
+        "At least 3 tickets represent tenant questions from different channels (phone, email, portal)",
+        "At least 2 tickets require sending financial information to property owners",
+        "At least 1 ticket is designed to trigger a human escalation (e.g., legal concern, high-cost decision above threshold)",
+        "Each ticket has realistic German-language content (subject, excerpt, raised-by details) consistent with the existing seed style",
+        "All new tickets reference existing properties, units, tenants, and vendors from seed data"
+      ],
+      "touches": [
+        "seed service",
+        "ticket templates"
+      ],
+      "risk_notes": "Must not break the existing 3 demo tickets (t-7831, t-7832, t-7833) \u2014 extend, don't replace."
+    },
+    {
+      "id": "s1-f2",
+      "name": "Context Enrichment for Agent Decision-Making",
+      "description": "Enrich the property context files and policy rules so the Hermes agent has enough information to autonomously resolve each demo ticket type. Add vendor email addresses and communication preferences to the vendor layer. Add tenant communication preferences and FAQ answers to the property layer (e.g., recycling rules, parking policy, package handling). Add owner financial reporting preferences (format, frequency, preferred channel) to the owner layer. Add escalation rules that clearly define when the agent must defer to a human.",
+      "acceptance_criteria": [
+        "Vendor context includes email addresses and preferred communication method for each vendor",
+        "Property context includes answers to the common tenant questions seeded in the tickets",
+        "Owner context includes financial reporting preferences (at least email and format)",
+        "Escalation policies are explicit \u2014 at least one rule triggers human escalation for the demo",
+        "Context is seeded as part of the reset flow so it's always available"
+      ],
+      "touches": [
+        "seed service",
+        "context versions",
+        "property policies"
+      ],
+      "risk_notes": "Context changes affect the 4-layer markdown format \u2014 must maintain layer separation (vendor/owner/building/property)."
+    },
+    {
+      "id": "s1-f3",
+      "name": "One-Click Demo Reset Button",
+      "description": "Add a prominent 'Reset Demo' button to the UI that calls the existing /dev/reset endpoint and restores the entire platform to its initial demo state. After reset, all tickets return to their starting statuses, all proposals and vendor jobs are cleared, all context versions revert to seed state, and audit logs are wiped. The button should show a confirmation dialog, then a loading state while reset runs, and finally redirect to the overview page with a success toast.",
+      "acceptance_criteria": [
+        "A clearly visible 'Reset Demo' button exists in the UI (e.g., in the sidebar or top nav)",
+        "Clicking it shows a confirmation dialog warning that all progress will be lost",
+        "After confirmation, the full database is wiped and re-seeded with all demo data",
+        "The UI redirects to the overview page and shows a success notification",
+        "The reset completes in under 5 seconds",
+        "After reset, all new demo tickets appear in 'new' or 'triaged' status, ready for the agent"
+      ],
+      "touches": [
+        "frontend sidebar/nav",
+        "dev routes",
+        "seed service"
+      ],
+      "risk_notes": "The existing /dev/reset endpoint drops all tables \u2014 verify it handles the new seed data and any new models added in later sprints."
+    },
+    {
+      "id": "s1-f4",
+      "name": "Demo Mode Indicator",
+      "description": "Add a visual indicator in the UI that shows the platform is in 'demo mode' \u2014 a subtle banner or badge that communicates this is a showcase environment. This sets audience expectations and makes the two control buttons (toggle agent, reset) feel intentional rather than accidental.",
+      "acceptance_criteria": [
+        "A 'Demo Mode' badge or banner is visible on all pages",
+        "It does not interfere with normal platform usage or obstruct content",
+        "It visually groups with the toggle agent and reset buttons"
+      ],
+      "touches": [
+        "frontend layout/nav"
+      ],
+      "risk_notes": null
+    }
+  ],
+  "success_criteria": [
+    "After running reset, the overview page shows 8+ tickets in early pipeline stages (new/triaged)",
+    "Tickets span all three action categories: vendor coordination, tenant response, owner financials",
+    "The platform context contains enough information for the agent to resolve each ticket type",
+    "The reset button reliably returns the demo to a clean starting state every time"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "The existing Hermes agent uses Google Gemini 2.5 Flash via OpenRouter \u2014 all new agent actions must work through this same LLM gateway",
+  "Write tools follow the proposal-envelope pattern \u2014 they propose actions for human confirmation, never execute directly",
+  "The SSE streaming infrastructure already exists in the chat engine \u2014 reuse it for action streaming rather than building a parallel system",
+  "The seed service must remain idempotent \u2014 safe to run multiple times without duplicating data",
+  "The frontend is a Next.js 15 app in a pnpm monorepo with shadcn/ui components \u2014 all new UI must use this stack",
+  "The backend uses SQLAlchemy with Alembic migrations and PostgreSQL \u2014 new models require proper migrations",
+  "All API responses must follow the existing standardized format with camelCase serialization",
+  "The existing /dev/reset endpoint drops all tables \u2014 it must be extended to handle any new models/tables",
+  "Context files use a 4-layer markdown format (vendor/owner/building/property) \u2014 additions must respect this structure",
+  "The agent has a 50-turn budget per invocation (HERMES_MAX_TURNS) \u2014 batch processing must manage this per-ticket"
+]
+
+## Out of Scope
+[
+  "Actually sending real emails, SMS, or messages to external systems \u2014 all actions are simulated/displayed in the UI",
+  "Multi-user authentication or role-based access \u2014 this is a single-presenter demo environment",
+  "Production deployment or scaling \u2014 this runs locally or on a single demo instance",
+  "Modifying the core Hermes agent LLM or switching providers",
+  "Mobile responsiveness \u2014 the demo targets a laptop/projector presentation setup",
+  "Internationalization beyond the existing German ticket content",
+  "Integration with real Slack, email, or SMS providers",
+  "Persistent demo state across server restarts \u2014 reset is expected after restart"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 1 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-031913" in the contract.
+Set branch to "ai/sprint-1-demo-ticket-catalog-reset-infrastructure" in the contract.
+
+---
+
+## Task
+Implement Sprint 1: Demo Ticket Catalog & Reset Infrastructure
+
+## Branch
+Create and switch to branch: `ai/sprint-1-demo-ticket-catalog-reset-infrastructure`
+Run: `git checkout -b ai/sprint-1-demo-ticket-catalog-reset-infrastructure` (or `git checkout ai/sprint-1-demo-ticket-catalog-reset-infrastructure` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 1,
+  "name": "Demo Ticket Catalog & Reset Infrastructure",
+  "goal": "Create a rich, diverse set of pre-loaded demo tickets and a bulletproof one-click reset that restores the full demo state.",
+  "features": [
+    {
+      "id": "s1-f1",
+      "name": "Expanded Demo Ticket Suite",
+      "description": "Extend the seed data with 8\u201310 new tickets across three properties that represent the full spectrum of agent capabilities. Tickets should include: (1) Vendor coordination tickets \u2014 e.g., broken boiler needing HVAC dispatch, plumbing leak requiring emergency scheduling, intercom replacement quote request. (2) Tenant inquiry tickets \u2014 e.g., a tenant asking about recycling rules via email, a tenant calling about a lost package, a tenant messaging about guest parking policy. (3) Owner financial action tickets \u2014 e.g., monthly cost summary request from an owner, invoice forwarding after a completed job, rent arrears notification to an owner. Each ticket should arrive from a different source (phone, email, letter, portal) so the multi-channel nature is visible. All tickets start in 'new' or 'triaged' status so the agent has work to do.",
+      "acceptance_criteria": [
+        "At least 3 tickets require vendor email coordination as their resolution path",
+        "At least 3 tickets represent tenant questions from different channels (phone, email, portal)",
+        "At least 2 tickets require sending financial information to property owners",
+        "At least 1 ticket is designed to trigger a human escalation (e.g., legal concern, high-cost decision above threshold)",
+        "Each ticket has realistic German-language content (subject, excerpt, raised-by details) consistent with the existing seed style",
+        "All new tickets reference existing properties, units, tenants, and vendors from seed data"
+      ],
+      "touches": [
+        "seed service",
+        "ticket templates"
+      ],
+      "risk_notes": "Must not break the existing 3 demo tickets (t-7831, t-7832, t-7833) \u2014 extend, don't replace."
+    },
+    {
+      "id": "s1-f2",
+      "name": "Context Enrichment for Agent Decision-Making",
+      "description": "Enrich the property context files and policy rules so the Hermes agent has enough information to autonomously resolve each demo ticket type. Add vendor email addresses and communication preferences to the vendor layer. Add tenant communication preferences and FAQ answers to the property layer (e.g., recycling rules, parking policy, package handling). Add owner financial reporting preferences (format, frequency, preferred channel) to the owner layer. Add escalation rules that clearly define when the agent must defer to a human.",
+      "acceptance_criteria": [
+        "Vendor context includes email addresses and preferred communication method for each vendor",
+        "Property context includes answers to the common tenant questions seeded in the tickets",
+        "Owner context includes financial reporting preferences (at least email and format)",
+        "Escalation policies are explicit \u2014 at least one rule triggers human escalation for the demo",
+        "Context is seeded as part of the reset flow so it's always available"
+      ],
+      "touches": [
+        "seed service",
+        "context versions",
+        "property policies"
+      ],
+      "risk_notes": "Context changes affect the 4-layer markdown format \u2014 must maintain layer separation (vendor/owner/building/property)."
+    },
+    {
+      "id": "s1-f3",
+      "name": "One-Click Demo Reset Button",
+      "description": "Add a prominent 'Reset Demo' button to the UI that calls the existing /dev/reset endpoint and restores the entire platform to its initial demo state. After reset, all tickets return to their starting statuses, all proposals and vendor jobs are cleared, all context versions revert to seed state, and audit logs are wiped. The button should show a confirmation dialog, then a loading state while reset runs, and finally redirect to the overview page with a success toast.",
+      "acceptance_criteria": [
+        "A clearly visible 'Reset Demo' button exists in the UI (e.g., in the sidebar or top nav)",
+        "Clicking it shows a confirmation dialog warning that all progress will be lost",
+        "After confirmation, the full database is wiped and re-seeded with all demo data",
+        "The UI redirects to the overview page and shows a success notification",
+        "The reset completes in under 5 seconds",
+        "After reset, all new demo tickets appear in 'new' or 'triaged' status, ready for the agent"
+      ],
+      "touches": [
+        "frontend sidebar/nav",
+        "dev routes",
+        "seed service"
+      ],
+      "risk_notes": "The existing /dev/reset endpoint drops all tables \u2014 verify it handles the new seed data and any new models added in later sprints."
+    },
+    {
+      "id": "s1-f4",
+      "name": "Demo Mode Indicator",
+      "description": "Add a visual indicator in the UI that shows the platform is in 'demo mode' \u2014 a subtle banner or badge that communicates this is a showcase environment. This sets audience expectations and makes the two control buttons (toggle agent, reset) feel intentional rather than accidental.",
+      "acceptance_criteria": [
+        "A 'Demo Mode' badge or banner is visible on all pages",
+        "It does not interfere with normal platform usage or obstruct content",
+        "It visually groups with the toggle agent and reset buttons"
+      ],
+      "touches": [
+        "frontend layout/nav"
+      ],
+      "risk_notes": null
+    }
+  ],
+  "success_criteria": [
+    "After running reset, the overview page shows 8+ tickets in early pipeline stages (new/triaged)",
+    "Tickets span all three action categories: vendor coordination, tenant response, owner financials",
+    "The platform context contains enough information for the agent to resolve each ticket type",
+    "The reset button reliably returns the demo to a clean starting state every time"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "The existing Hermes agent uses Google Gemini 2.5 Flash via OpenRouter \u2014 all new agent actions must work through this same LLM gateway",
+  "Write tools follow the proposal-envelope pattern \u2014 they propose actions for human confirmation, never execute directly",
+  "The SSE streaming infrastructure already exists in the chat engine \u2014 reuse it for action streaming rather than building a parallel system",
+  "The seed service must remain idempotent \u2014 safe to run multiple times without duplicating data",
+  "The frontend is a Next.js 15 app in a pnpm monorepo with shadcn/ui components \u2014 all new UI must use this stack",
+  "The backend uses SQLAlchemy with Alembic migrations and PostgreSQL \u2014 new models require proper migrations",
+  "All API responses must follow the existing standardized format with camelCase serialization",
+  "The existing /dev/reset endpoint drops all tables \u2014 it must be extended to handle any new models/tables",
+  "Context files use a 4-layer markdown format (vendor/owner/building/property) \u2014 additions must respect this structure",
+  "The agent has a 50-turn budget per invocation (HERMES_MAX_TURNS) \u2014 batch processing must manage this per-ticket"
+]
+
+## Out of Scope
+[
+  "Actually sending real emails, SMS, or messages to external systems \u2014 all actions are simulated/displayed in the UI",
+  "Multi-user authentication or role-based access \u2014 this is a single-presenter demo environment",
+  "Production deployment or scaling \u2014 this runs locally or on a single demo instance",
+  "Modifying the core Hermes agent LLM or switching providers",
+  "Mobile responsiveness \u2014 the demo targets a laptop/projector presentation setup",
+  "Internationalization beyond the existing German ticket content",
+  "Integration with real Slack, email, or SMS providers",
+  "Persistent demo state across server restarts \u2014 reset is expected after restart"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 1 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-031913" in the contract.
+Set branch to "ai/sprint-1-demo-ticket-catalog-reset-infrastructure" in the contract.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 1: Demo Ticket Catalog & Reset Infrastructure.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-031913",
+  "sprint_number": 1,
+  "branch": "ai/sprint-1-demo-ticket-catalog-reset-infrastructure",
+  "features_implemented": [
+    {
+      "id": "s1-f1",
+      "name": "Expanded Demo Ticket Suite",
+      "files_changed": [
+        "backend/app/services/seed_service.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: POST /api/dev/reset to seed the database",
+        "Step 2: GET /api/tickets \u2014 verify 13 total tickets exist (t-7831 through t-7843)",
+        "Step 3: Confirm tickets span all three properties: p1 (GAR-118 to GAR-126), p2 (BRU-11, BRU-12), p3 (LIN-6, LIN-7)",
+        "Step 4: Verify vendor coordination tickets: t-7834 (boiler, voice), t-7835 (plumbing leak, voice), t-7836 (intercom quote, email)",
+        "Step 5: Verify tenant inquiry tickets: t-7837 (recycling, email), t-7838 (lost package, voice), t-7839 (guest parking, portal)",
+        "Step 6: Verify owner financial tickets: t-7840 (cost summary, email), t-7841 (invoice fwd, email), t-7842 (rent arrears, portal)",
+        "Step 7: Verify escalation trigger: t-7843 (legal Abmahnung, letter, status=triaged, risk=high)",
+        "Step 8: Confirm original 3 tickets (t-7831, t-7832, t-7833) are unchanged"
+      ],
+      "known_limitations": [
+        "New tickets in p2 and p3 do not have unit_id references since those units are not seeded \u2014 unit_id is null for those tickets",
+        "No agent proposals are pre-generated for the new tickets; they start in new/triaged for the agent to process"
+      ]
+    },
+    {
+      "id": "s1-f2",
+      "name": "Context Enrichment for Agent Decision-Making",
+      "files_changed": [
+        "backend/app/services/seed_service.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: POST /api/dev/reset",
+        "Step 2: GET /api/properties/p1/context \u2014 verify vendor layer includes email addresses and emergency contacts for Heinz GmbH, Bekey Service, Schmidt Sanit\u00e4r",
+        "Step 3: Verify p1 property layer includes Tenant FAQ section with recycling schedule, package handling procedures, and guest parking info",
+        "Step 4: Verify p1 owner layer includes financial reporting preferences (PDF, email address, format)",
+        "Step 5: Verify p1 context has explicit Escalation Rules section defining autonomous vs human-required actions",
+        "Step 6: GET /api/properties/p2/context and /api/properties/p3/context \u2014 verify same enrichments for p2 (Klaus Weber) and p3 (Ingrid Sommer)",
+        "Step 7: GET /api/properties/p2/policies and /api/properties/p3/policies \u2014 verify new escalation + approval policies were seeded"
+      ],
+      "known_limitations": [
+        "Context enrichment only affects the seeded state; manual edits made before reset will be wiped on next reset"
+      ]
+    },
+    {
+      "id": "s1-f3",
+      "name": "One-Click Demo Reset Button",
+      "files_changed": [
+        "frontend/apps/web/components/sidebar.tsx",
+        "frontend/apps/web/lib/api.ts"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: Start frontend (cd frontend && pnpm dev) and backend (cd backend && python run.py)",
+        "Step 2: Navigate to any page \u2014 verify 'Reset Demo' button appears in the sidebar footer with a RotateCcw icon",
+        "Step 3: Click 'Reset Demo' \u2014 verify a confirmation dialog appears with German copy warning about data loss",
+        "Step 4: Click 'Abbrechen' \u2014 verify dialog closes and no reset occurs",
+        "Step 5: Click 'Reset Demo' again, then 'Ja, zur\u00fccksetzen' \u2014 verify loading spinner appears on button",
+        "Step 6: After reset completes, verify: (a) redirected to /overview, (b) success toast appears, (c) all 13 tickets visible",
+        "Step 7: Collapse the sidebar \u2014 verify reset button still accessible as icon-only"
+      ],
+      "known_limitations": [
+        "After reset, Next.js router.refresh() is called but some cached TanStack Query data may require a full browser refresh to show all new tickets immediately"
+      ]
+    },
+    {
+      "id": "s1-f4",
+      "name": "Demo Mode Indicator",
+      "files_changed": [
+        "frontend/apps/web/components/sidebar.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: Load the app \u2014 verify an amber 'Demo Mode' banner appears just below the Buena logo in the sidebar header",
+        "Step 2: Verify the banner has a pulsing amber dot and 'DEMO MODE' text in small caps",
+        "Step 3: Collapse the sidebar \u2014 verify the amber dot persists as a small indicator",
+        "Step 4: Verify the banner does not obstruct any navigation items or content area"
+      ],
+      "known_limitations": []
+    }
+  ],
+  "migrations_applied": [],
+  "how_to_verify": {
+    "start_command": "cd backend && python run.py  |  cd frontend && pnpm dev",
+    "base_url": "http://localhost:3000",
+    "auth": {
+      "description": "No authentication required \u2014 single-user demo environment. Backend runs on http://localhost:8000."
+    }
+  },
+  "regression_checks": [
+    "Existing tickets t-7831 (proposed), t-7832 (completed), t-7833 (triaged) still exist after reset with unchanged IDs and content",
+    "Agent proposal pr-7831 for t-7831 is recreated correctly on reset",
+    "Call session cs-7831 for t-7831 is recreated correctly on reset",
+    "Vendor job vj-7832 for t-7832 is recreated correctly on reset",
+    "All 3 property context versions are accessible at /api/properties/{p1,p2,p3}/context",
+    "Vendor records v1\u2013v4 still exist with correct email addresses",
+    "Owner records o1 and o2 unchanged",
+    "Building records b1\u2013b3 unchanged",
+    "Units u-1a through u-e1 for p1 unchanged",
+    "POST /dev/simulate-ticket still works with existing templates (tpl-leak-3b, tpl-heating)",
+    "Sidebar navigation links (/overview, /escalations, /vendors, /owners, /buildings, /extract, /chat) all functional",
+    "Theme toggle in sidebar footer still works after adding reset button"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 1: Demo Ticket Catalog & Reset Infrastructure.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-031913",
+  "sprint_number": 1,
+  "branch": "ai/sprint-1-demo-ticket-catalog-reset-infrastructure",
+  "features_implemented": [
+    {
+      "id": "s1-f1",
+      "name": "Expanded Demo Ticket Suite",
+      "files_changed": [
+        "backend/app/services/seed_service.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: POST /api/dev/reset to seed the database",
+        "Step 2: GET /api/tickets \u2014 verify 13 total tickets exist (t-7831 through t-7843)",
+        "Step 3: Confirm tickets span all three properties: p1 (GAR-118 to GAR-126), p2 (BRU-11, BRU-12), p3 (LIN-6, LIN-7)",
+        "Step 4: Verify vendor coordination tickets: t-7834 (boiler, voice), t-7835 (plumbing leak, voice), t-7836 (intercom quote, email)",
+        "Step 5: Verify tenant inquiry tickets: t-7837 (recycling, email), t-7838 (lost package, voice), t-7839 (guest parking, portal)",
+        "Step 6: Verify owner financial tickets: t-7840 (cost summary, email), t-7841 (invoice fwd, email), t-7842 (rent arrears, portal)",
+        "Step 7: Verify escalation trigger: t-7843 (legal Abmahnung, letter, status=triaged, risk=high)",
+        "Step 8: Confirm original 3 tickets (t-7831, t-7832, t-7833) are unchanged"
+      ],
+      "known_limitations": [
+        "New tickets in p2 and p3 do not have unit_id references since those units are not seeded \u2014 unit_id is null for those tickets",
+        "No agent proposals are pre-generated for the new tickets; they start in new/triaged for the agent to process"
+      ]
+    },
+    {
+      "id": "s1-f2",
+      "name": "Context Enrichment for Agent Decision-Making",
+      "files_changed": [
+        "backend/app/services/seed_service.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: POST /api/dev/reset",
+        "Step 2: GET /api/properties/p1/context \u2014 verify vendor layer includes email addresses and emergency contacts for Heinz GmbH, Bekey Service, Schmidt Sanit\u00e4r",
+        "Step 3: Verify p1 property layer includes Tenant FAQ section with recycling schedule, package handling procedures, and guest parking info",
+        "Step 4: Verify p1 owner layer includes financial reporting preferences (PDF, email address, format)",
+        "Step 5: Verify p1 context has explicit Escalation Rules section defining autonomous vs human-required actions",
+        "Step 6: GET /api/properties/p2/context and /api/properties/p3/context \u2014 verify same enrichments for p2 (Klaus Weber) and p3 (Ingrid Sommer)",
+        "Step 7: GET /api/properties/p2/policies and /api/properties/p3/policies \u2014 verify new escalation + approval policies were seeded"
+      ],
+      "known_limitations": [
+        "Context enrichment only affects the seeded state; manual edits made before reset will be wiped on next reset"
+      ]
+    },
+    {
+      "id": "s1-f3",
+      "name": "One-Click Demo Reset Button",
+      "files_changed": [
+        "frontend/apps/web/components/sidebar.tsx",
+        "frontend/apps/web/lib/api.ts"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: Start frontend (cd frontend && pnpm dev) and backend (cd backend && python run.py)",
+        "Step 2: Navigate to any page \u2014 verify 'Reset Demo' button appears in the sidebar footer with a RotateCcw icon",
+        "Step 3: Click 'Reset Demo' \u2014 verify a confirmation dialog appears with German copy warning about data loss",
+        "Step 4: Click 'Abbrechen' \u2014 verify dialog closes and no reset occurs",
+        "Step 5: Click 'Reset Demo' again, then 'Ja, zur\u00fccksetzen' \u2014 verify loading spinner appears on button",
+        "Step 6: After reset completes, verify: (a) redirected to /overview, (b) success toast appears, (c) all 13 tickets visible",
+        "Step 7: Collapse the sidebar \u2014 verify reset button still accessible as icon-only"
+      ],
+      "known_limitations": [
+        "After reset, Next.js router.refresh() is called but some cached TanStack Query data may require a full browser refresh to show all new tickets immediately"
+      ]
+    },
+    {
+      "id": "s1-f4",
+      "name": "Demo Mode Indicator",
+      "files_changed": [
+        "frontend/apps/web/components/sidebar.tsx"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Step 1: Load the app \u2014 verify an amber 'Demo Mode' banner appears just below the Buena logo in the sidebar header",
+        "Step 2: Verify the banner has a pulsing amber dot and 'DEMO MODE' text in small caps",
+        "Step 3: Collapse the sidebar \u2014 verify the amber dot persists as a small indicator",
+        "Step 4: Verify the banner does not obstruct any navigation items or content area"
+      ],
+      "known_limitations": []
+    }
+  ],
+  "migrations_applied": [],
+  "how_to_verify": {
+    "start_command": "cd backend && python run.py  |  cd frontend && pnpm dev",
+    "base_url": "http://localhost:3000",
+    "auth": {
+      "description": "No authentication required \u2014 single-user demo environment. Backend runs on http://localhost:8000."
+    }
+  },
+  "regression_checks": [
+    "Existing tickets t-7831 (proposed), t-7832 (completed), t-7833 (triaged) still exist after reset with unchanged IDs and content",
+    "Agent proposal pr-7831 for t-7831 is recreated correctly on reset",
+    "Call session cs-7831 for t-7831 is recreated correctly on reset",
+    "Vendor job vj-7832 for t-7832 is recreated correctly on reset",
+    "All 3 property context versions are accessible at /api/properties/{p1,p2,p3}/context",
+    "Vendor records v1\u2013v4 still exist with correct email addresses",
+    "Owner records o1 and o2 unchanged",
+    "Building records b1\u2013b3 unchanged",
+    "Units u-1a through u-e1 for p1 unchanged",
+    "POST /dev/simulate-ticket still works with existing templates (tpl-leak-3b, tpl-heating)",
+    "Sidebar navigation links (/overview, /escalations, /vendors, /owners, /buildings, /extract, /chat) all functional",
+    "Theme toggle in sidebar footer still works after adding reset button"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "medium",
+    "category": "database",
+    "file": "backend/app/services/seed_service.py",
+    "line_range": "585-589",
+    "description": "Ticket counter last_num values overshoot the highest seeded ticket numbers. The original seed set last_num=120 matching exactly the last seeded GAR ticket (GAR-120). The new highest seeded tickets are GAR-126, BRU-12, and LIN-7, but the counters are set to last_num=130/15/10. This creates phantom gaps: GAR-127 through GAR-130 will never exist, and the next simulate-ticket call will produce GAR-131 instead of GAR-127. This breaks the established numbering convention and will confuse demo observers.",
+    "suggested_fix": "Change the counters to match the highest seeded numbers: PropertyTicketCounter(property_id='p1', prefix='GAR', last_num=126), PropertyTicketCounter(property_id='p2', prefix='BRU', last_num=12), PropertyTicketCounter(property_id='p3', prefix='LIN', last_num=7)",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "frontend",
+    "file": "frontend/apps/web/components/sidebar.tsx",
+    "line_range": "70-73",
+    "description": "router.push('/overview') followed immediately by router.refresh() is a race condition. router.refresh() invalidates the Next.js server-component cache for the current route (whichever page the user was on), not for /overview. The sidebar's properties list is fetched via a useEffect that only re-runs on bus events or mount \u2014 after reset it will show stale ticket counts until the user triggers a navigation or the sidebar re-mounts. The confirmation dialog also has no Escape key or backdrop-click handler to dismiss it.",
+    "suggested_fix": "Replace router.push('/overview'); router.refresh() with window.location.href = '/overview' for a full page reload that guarantees all client state (sidebar, cached queries) is wiped. Alternatively, dispatch a bus event after reset to trigger the sidebar refresh, then navigate.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "frontend",
+    "file": "frontend/apps/web/components/sidebar.tsx",
+    "line_range": "309-341",
+    "description": "The confirmation dialog modal has no Escape key handler and clicking the backdrop overlay does not close it. Standard UX convention (and accessibility expectation) is that both actions dismiss the dialog. Currently only the 'Abbrechen' button closes it.",
+    "suggested_fix": "Add an onKeyDown handler on the wrapping div that calls setShowResetConfirm(false) when e.key === 'Escape'. Add an onClick handler on the outer backdrop div that closes the dialog, and a stopPropagation on the inner dialog div to prevent click-through.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "integration",
+    "file": "backend/app/services/seed_service.py",
+    "line_range": "29",
+    "description": "ContextChunk is imported (line 29) but never used directly in seed_service.py \u2014 only create_context_chunks() from context_service is called. This was present in the original file and not introduced by this sprint, but it remains dead code.",
+    "suggested_fix": "Remove 'from app.models.context_chunks import ContextChunk' since it is unused.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "medium",
+    "category": "database",
+    "file": "backend/app/services/seed_service.py",
+    "line_range": "585-589",
+    "description": "Ticket counter last_num values overshoot the highest seeded ticket numbers. The original seed set last_num=120 matching exactly the last seeded GAR ticket (GAR-120). The new highest seeded tickets are GAR-126, BRU-12, and LIN-7, but the counters are set to last_num=130/15/10. This creates phantom gaps: GAR-127 through GAR-130 will never exist, and the next simulate-ticket call will produce GAR-131 instead of GAR-127. This breaks the established numbering convention and will confuse demo observers.",
+    "suggested_fix": "Change the counters to match the highest seeded numbers: PropertyTicketCounter(property_id='p1', prefix='GAR', last_num=126), PropertyTicketCounter(property_id='p2', prefix='BRU', last_num=12), PropertyTicketCounter(property_id='p3', prefix='LIN', last_num=7)",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "frontend",
+    "file": "frontend/apps/web/components/sidebar.tsx",
+    "line_range": "70-73",
+    "description": "router.push('/overview') followed immediately by router.refresh() is a race condition. router.refresh() invalidates the Next.js server-component cache for the current route (whichever page the user was on), not for /overview. The sidebar's properties list is fetched via a useEffect that only re-runs on bus events or mount \u2014 after reset it will show stale ticket counts until the user triggers a navigation or the sidebar re-mounts. The confirmation dialog also has no Escape key or backdrop-click handler to dismiss it.",
+    "suggested_fix": "Replace router.push('/overview'); router.refresh() with window.location.href = '/overview' for a full page reload that guarantees all client state (sidebar, cached queries) is wiped. Alternatively, dispatch a bus event after reset to trigger the sidebar refresh, then navigate.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "frontend",
+    "file": "frontend/apps/web/components/sidebar.tsx",
+    "line_range": "309-341",
+    "description": "The confirmation dialog modal has no Escape key handler and clicking the backdrop overlay does not close it. Standard UX convention (and accessibility expectation) is that both actions dismiss the dialog. Currently only the 'Abbrechen' button closes it.",
+    "suggested_fix": "Add an onKeyDown handler on the wrapping div that calls setShowResetConfirm(false) when e.key === 'Escape'. Add an onClick handler on the outer backdrop div that closes the dialog, and a stopPropagation on the inner dialog div to prevent click-through.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "integration",
+    "file": "backend/app/services/seed_service.py",
+    "line_range": "29",
+    "description": "ContextChunk is imported (line 29) but never used directly in seed_service.py \u2014 only create_context_chunks() from context_service is called. This was present in the original file and not introduced by this sprint, but it remains dead code.",
+    "suggested_fix": "Remove 'from app.models.context_chunks import ContextChunk' since it is unused.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.

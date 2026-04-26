@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "1c53fd510a7a",
+  "session_id": "d9e5e20d-4a3b-4f03-8726-3f06ed58d2ba",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T01:38:47.383482Z",
+  "branch": "ai/sprint-1-demo-ticket-catalog-reset-infrastructure",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "9201bbf9cbfe",
+  "token_usage": {
+    "input_tokens": 58,
+    "cache_creation_tokens": 302086,
+    "cache_read_tokens": 3648008,
+    "output_tokens": 38953,
+    "api_call_count": 50
+  },
+  "session_metrics": {
+    "turn_count": 2
+  }
+}
