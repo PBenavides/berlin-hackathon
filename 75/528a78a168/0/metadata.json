@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "75528a78a168",
+  "session_id": "e355e00b-f99c-4288-94fd-8915eab483a0",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T09:34:35.122143Z",
+  "branch": "ai/sprint-4-polish-transitions-end-to-end-demo-flow",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "frontend/apps/web/app/globals.css",
+    "frontend/apps/web/app/overview/overview-client.tsx",
+    "frontend/apps/web/app/ticket/[id]/page.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "4f1c884a9f36",
+  "token_usage": {
+    "input_tokens": 73,
+    "cache_creation_tokens": 124927,
+    "cache_read_tokens": 6704749,
+    "output_tokens": 47117,
+    "api_call_count": 67
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T09:34:35.083796Z",
+    "agent_lines": 103,
+    "agent_removed": 5,
+    "human_added": 16,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 119,
+    "total_lines_changed": 126,
+    "agent_percentage": 85.71428571428571,
+    "metric_version": 2
+  }
+}
