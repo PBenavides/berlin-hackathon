@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { cn } from "@repo/ui/lib/utils";
 import {
@@ -10,7 +10,9 @@ import {
   Users, Wrench, FileText, MessageSquareText, Sparkles, Home,
   PanelLeftClose, PanelLeftOpen, Sun, Moon,
 } from "lucide-react";
-import { properties } from "@/lib/data";
+import { api } from "@/lib/api";
+import { subscribe } from "@/lib/bus";
+import type { Property } from "@/lib/types";
 
 const PROP_TABS = [
   ["tickets",  "Tickets"],
@@ -27,7 +29,24 @@ export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [openProps, setOpenProps] = useState<Record<string, boolean>>({ p1: true });
+  const [properties, setProperties] = useState<Property[]>([]);
   const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () =>
+      api.properties.list()
+        .then((list) => { if (!cancelled) setProperties(list); })
+        .catch(() => { /* silently leave list empty */ });
+    refresh();
+    const unsub = subscribe((event) => {
+      if (event.kind === "context-bumped" || event.kind === "ticket-changed") refresh();
+    });
+    return () => { cancelled = true; unsub(); };
+  }, []);
+
+  const activePropId = pathname.match(/^\/property\/([^/]+)/)?.[1] ?? null;
+  const activeProp = activePropId ? properties.find((p) => p.id === activePropId) ?? null : null;
 
   return (
     <aside
@@ -188,10 +207,17 @@ export function Sidebar() {
 
         {!collapsed && (
           <div className="mt-2 text-[11px] text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <span>context.md</span>
-              <span className="font-mono">v11</span>
-            </div>
+            {activeProp ? (
+              <div className="flex items-center justify-between" title={activeProp.name}>
+                <span className="truncate">{activeProp.name} · context.md</span>
+                <span className="font-mono tabular-nums text-foreground/80">v{activeProp.contextVersion}</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span>context.md</span>
+                <span className="font-mono text-muted-foreground/60">—</span>
+              </div>
+            )}
             <div className="mt-1 flex items-center justify-between">
               <span>Hermes</span>
               <span className="font-mono text-emerald-500">online</span>

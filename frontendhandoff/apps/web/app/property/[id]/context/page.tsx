@@ -1,50 +1,46 @@
 import { Card, CardContent } from "@repo/ui/components/card";
 import { Badge } from "@repo/ui/components/badge";
-import { properties, owners, buildings } from "@/lib/data";
+import { api } from "@/lib/api";
+import type { Layer } from "@/lib/types";
 
-export default function ContextPage({ params }: { params: { id: string } }) {
-  const prop = properties.find((p) => p.id === params.id)!;
-  const owner = owners.find((o) => o.id === prop.ownerId)!;
-  const building = buildings.find((b) => b.id === prop.buildingId)!;
+const LAYER_ORDER: Array<{ key: Layer; title: string; tone: "zinc" | "purple" | "blue" | "emerald" }> = [
+  { key: "vendor",   title: "Vendor layer",   tone: "zinc" },
+  { key: "owner",    title: "Owner layer",    tone: "purple" },
+  { key: "building", title: "Building layer", tone: "blue" },
+  { key: "property", title: "Property layer", tone: "emerald" },
+];
+
+export default async function ContextPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const ctx = await api.context.get(id);
 
   return (
     <div className="space-y-4">
       <div className="text-xs text-muted-foreground">
-        Read-only rendered view of <code className="font-mono">context.md v{prop.contextVersion}</code>. Use the Editor tab to propose changes.
+        Read-only rendered view of <code className="font-mono">context.md v{ctx.version}</code>
+        {" · "}updated {new Date(ctx.updatedAt).toLocaleString("de-DE")}. Use the Editor tab to propose changes.
       </div>
 
-      <Layer title="Vendor layer" tone="zinc">
-        <ul className="space-y-2 text-sm">
-          {building.vendors.map((vid) => <li key={vid} className="font-mono">{vid}</li>)}
-        </ul>
-      </Layer>
-
-      <Layer title="Owner layer" tone="purple">
-        <div className="text-sm"><strong>{owner.name}</strong> ({owner.type})</div>
-        <ul className="mt-2 list-disc pl-5 text-sm space-y-1">
-          {owner.policies.map((p, i) => <li key={i}>{p}</li>)}
-        </ul>
-      </Layer>
-
-      <Layer title="Building layer" tone="blue">
-        <div className="text-sm">{building.address} · built {building.yearBuilt} · {building.units} units</div>
-        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-          {Object.entries(building.systems).map(([k, v]) => (
-            <div key={k}><span className="text-muted-foreground">{k}: </span>{v}</div>
-          ))}
-        </div>
-        {building.notes && <p className="mt-2 text-xs text-muted-foreground">{building.notes}</p>}
-      </Layer>
-
-      <Layer title="Property layer" tone="emerald">
-        <div className="text-sm">{prop.openTickets} open tickets · phone {prop.phone} · email {prop.email}</div>
-      </Layer>
+      {LAYER_ORDER.map(({ key, title, tone }) => (
+        <LayerCard key={key} title={title} tone={tone}>
+          <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">
+            {ctx.layers[key]?.raw ?? <span className="text-muted-foreground italic">empty</span>}
+          </pre>
+        </LayerCard>
+      ))}
     </div>
   );
 }
 
-function Layer({ title, tone, children }: { title: string; tone: "zinc"|"purple"|"blue"|"emerald"; children: React.ReactNode }) {
-  const cls = { zinc: "border-zinc-500/30", purple: "border-purple-500/30", blue: "border-blue-500/30", emerald: "border-emerald-500/30" }[tone];
+function LayerCard({
+  title, tone, children,
+}: { title: string; tone: "zinc" | "purple" | "blue" | "emerald"; children: React.ReactNode }) {
+  const cls = {
+    zinc: "border-zinc-500/30",
+    purple: "border-purple-500/30",
+    blue: "border-blue-500/30",
+    emerald: "border-emerald-500/30",
+  }[tone];
   return (
     <Card className={cls}>
       <CardContent className="p-4">

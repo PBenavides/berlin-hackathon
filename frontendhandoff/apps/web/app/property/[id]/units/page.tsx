@@ -1,13 +1,16 @@
 import { Card, CardContent } from "@repo/ui/components/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/table";
 import { Badge } from "@repo/ui/components/badge";
-import { units, properties, owners } from "@/lib/data";
+import { api } from "@/lib/api";
 import { formatEur } from "@/lib/utils";
 
-export default function UnitsPage({ params }: { params: { id: string } }) {
-  const propUnits = units.filter((u) => u.propertyId === params.id);
-  const prop = properties.find((p) => p.id === params.id)!;
-  const owner = owners.find((o) => o.id === prop.ownerId);
+export default async function UnitsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const prop = await api.properties.get(id);
+  const [propUnits, owner] = await Promise.all([
+    api.properties.units(id),
+    api.owners.get(prop.ownerId),
+  ]);
 
   const totalArea = propUnits.reduce((s, u) => s + u.areaQm, 0);
   const totalRent = propUnits.reduce((s, u) => s + (u.rentEur ?? 0), 0);
@@ -27,7 +30,7 @@ export default function UnitsPage({ params }: { params: { id: string } }) {
         <CardContent className="p-4">
           <div className="text-xs font-semibold uppercase tracking-wider text-purple-500 dark:text-purple-400">WEG context</div>
           <p className="mt-1 text-sm">
-            Owner layer: <strong>{owner?.name}</strong> ({owner?.type.toUpperCase()}). Beirat policies cascade to all units below.
+            Owner layer: <strong>{owner.name}</strong> ({owner.type.toUpperCase()}). Beirat policies cascade to all units below.
           </p>
         </CardContent>
       </Card>

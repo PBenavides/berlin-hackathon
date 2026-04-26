@@ -1,20 +1,54 @@
 "use client";
 
+import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useState } from "react";
 import { Card, CardContent } from "@repo/ui/components/card";
 import { Button } from "@repo/ui/components/button";
 import { RiskBadge, StatusBadge } from "@/components/badges";
-import { tickets } from "@/lib/data";
+import { api, ApiError } from "@/lib/api";
+import { subscribe } from "@/lib/bus";
+import type { Ticket } from "@/lib/types";
 import { timeAgo, formatEur } from "@/lib/utils";
 import { Phone, Mail, ArrowUpDown } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 
 type Filter = "unsolved" | "all" | "resolved";
 
-export default function PropertyTicketsPage({ params }: { params: { id: string } }) {
+export default function PropertyTicketsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [filter, setFilter] = useState<Filter>("unsolved");
-  const propTickets = tickets.filter((t) => t.propertyId === params.id);
+  const [propTickets, setPropTickets] = useState<Ticket[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTickets = useCallback(async (): Promise<void> => {
+    try {
+      const data = await api.tickets.list({ propertyId: id });
+      setPropTickets(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to load tickets");
+    }
+  }, [id]);
+
+  useEffect(() => {
+    setPropTickets(null);
+    setError(null);
+    void fetchTickets();
+    const unsub = subscribe((event) => {
+      if (event.kind === "ticket-changed" && (!event.propertyId || event.propertyId === id)) {
+        void fetchTickets();
+      }
+    });
+    return () => { unsub(); };
+  }, [id, fetchTickets]);
+
+  if (error) {
+    return <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>;
+  }
+  if (propTickets === null) {
+    return <TicketsSkeleton />;
+  }
+
   const counts = {
     unsolved: propTickets.filter((t) => !["resolved", "rejected"].includes(t.status)).length,
     all: propTickets.length,
@@ -80,5 +114,25 @@ export default function PropertyTicketsPage({ params }: { params: { id: string }
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function TicketsSkeleton() {
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <ul className="divide-y">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <li key={i} className="flex items-start gap-3 p-4">
+              <div className="mt-1 h-4 w-4 animate-pulse rounded bg-muted" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }

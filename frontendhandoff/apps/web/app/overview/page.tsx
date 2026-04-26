@@ -4,21 +4,27 @@ import { Card, CardContent } from "@repo/ui/components/card";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { RiskBadge } from "@/components/badges";
-import { tickets, properties, pipelineStages } from "@/lib/data";
+import { api } from "@/lib/api";
+import { pipelineStages } from "@/lib/pipeline";
 import { timeAgo, formatEur } from "@/lib/utils";
 import { Phone, Mail, AlertTriangle, ArrowRight } from "lucide-react";
 
-export default function OverviewPage() {
+export default async function OverviewPage() {
+  const [tickets, properties] = await Promise.all([
+    api.tickets.list(),
+    api.properties.list(),
+  ]);
+
   const unsolved = tickets.filter((t) => !["resolved", "rejected"].includes(t.status));
   const proposed = tickets.filter((t) => t.status === "proposed");
   const completed = tickets.filter((t) => t.status === "completed");
 
-  const kpis = [
+  const kpis: Array<{ label: string; value: number; accent?: "amber" | "emerald" }> = [
     { label: "Awaiting your approval", value: proposed.length, accent: "amber" },
     { label: "In flight",              value: unsolved.filter((t) => ["awaiting_vendor", "scheduled", "in_progress"].includes(t.status)).length },
     { label: "Memory writes pending",  value: completed.length, accent: "emerald" },
     { label: "Resolved last 7d",       value: 12 },
-  ] as const;
+  ];
 
   return (
     <div>

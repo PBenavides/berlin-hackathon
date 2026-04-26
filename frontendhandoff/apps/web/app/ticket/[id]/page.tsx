@@ -1,40 +1,172 @@
 "use client";
 
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@repo/ui/components/card";
 import { Button } from "@repo/ui/components/button";
 import { Badge } from "@repo/ui/components/badge";
 import { Separator } from "@repo/ui/components/separator";
 import { RiskBadge, StatusBadge } from "@/components/badges";
-import { tickets, properties, vendors } from "@/lib/data";
+import { useToast } from "@/components/toaster";
+import { api, ApiError, friendlyApiError } from "@/lib/api";
+import { emit } from "@/lib/bus";
+import type { Property, Ticket, Vendor } from "@/lib/types";
 import { formatEur, timeAgo } from "@/lib/utils";
 import { cn } from "@repo/ui/lib/utils";
 import {
   Phone, Mail, ChevronDown, ChevronRight, Check, Sparkles,
-  CheckCircle2, Clock, MessageSquare, Wrench, FileEdit,
+  CheckCircle2, Clock, MessageSquare, Wrench, FileEdit, Loader2,
 } from "lucide-react";
 
-export default function TicketDetailPage({ params }: { params: { id: string } }) {
-  const t = tickets.find((x) => x.id === params.id);
-  if (!t) notFound();
+type Mutation = "approve" | "reject" | "saveMemory" | "skipMemory";
 
-  const prop = properties.find((p) => p.id === t.propertyId);
-  const vendor = t.proposal && vendors.find((v) => v.id === t.proposal!.proposedAction.vendorId);
+export default function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  const { push: pushToast } = useToast();
+
+  const [t, setTicket] = useState<Ticket | null>(null);
+  const [prop, setProp] = useState<Property | null>(null);
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [mutating, setMutating] = useState<Mutation | null>(null);
 
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [reasoningOpen, setReasoningOpen] = useState(false);
-  const [approved, setApproved] = useState(false);
-  const [memorySaved, setMemorySaved] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTicket(null);
+    setProp(null);
+    setVendor(null);
+    setLoadError(null);
+    (async () => {
+      try {
+        const ticket = await api.tickets.get(id);
+        if (cancelled) return;
+        setTicket(ticket);
+        const [property, v] = await Promise.all([
+          api.properties.get(ticket.propertyId),
+          ticket.proposal ? api.vendors.get(ticket.proposal.proposedAction.vendorId) : Promise.resolve(null),
+        ]);
+        if (cancelled) return;
+        setProp(property);
+        setVendor(v);
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 404) {
+          notFound();
+          return;
+        }
+        setLoadError(err instanceof Error ? err.message : "Failed to load ticket");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  async function runMutation(
+    kind: Mutation,
+    fn: () => Promise<void>,
+  ) {
+    setMutating(kind);
+    try {
+      await fn();
+    } catch (err) {
+      const friendly = friendlyApiError(err, kind);
+      pushToast({ ...friendly, variant: "destructive" });
+    } finally {
+      setMutating(null);
+    }
+  }
+
+  async function refetchTicket(): Promise<Ticket | null> {
+    try {
+      const fresh = await api.tickets.get(id);
+      setTicket(fresh);
+      return fresh;
+    } catch (err) {
+      const friendly = friendlyApiError(err, "load");
+      pushToast({ ...friendly, variant: "destructive" });
+      return null;
+    }
+  }
+
+  async function handleApprove() {
+    if (!t) return;
+    await runMutation("approve", async () => {
+      await api.tickets.approve(t.id);
+      const fresh = await refetchTicket();
+      pushToast({
+        title: "Dispatch approved",
+        description: fresh?.vendorJob ? `SLA timer started · status ${fresh.status}` : "SMS sent to vendor.",
+        variant: "success",
+      });
+      emit({ kind: "ticket-changed", ticketId: t.id, propertyId: t.propertyId });
+      router.refresh();
+    });
+  }
+
+  async function handleReject() {
+    if (!t) return;
+    await runMutation("reject", async () => {
+      await api.tickets.reject(t.id);
+      await refetchTicket();
+      pushToast({ title: "Proposal rejected" });
+      emit({ kind: "ticket-changed", ticketId: t.id, propertyId: t.propertyId });
+      router.refresh();
+    });
+  }
+
+  async function handleSaveMemory() {
+    if (!t || !t.memoryProposal) return;
+    await runMutation("saveMemory", async () => {
+      const result = await api.tickets.saveMemory(t.id);
+      await refetchTicket();
+      pushToast({
+        title: "Memory saved",
+        description: `context.md bumped to v${result.contextVersion}`,
+        variant: "success",
+      });
+      emit({ kind: "context-bumped", propertyId: t.propertyId, version: result.contextVersion });
+      emit({ kind: "ticket-changed", ticketId: t.id, propertyId: t.propertyId });
+      router.refresh();
+    });
+  }
+
+  async function handleSkipMemory() {
+    if (!t || !t.memoryProposal) return;
+    await runMutation("skipMemory", async () => {
+      await api.tickets.skipMemory(t.id);
+      await refetchTicket();
+      pushToast({ title: "Memory write skipped" });
+      emit({ kind: "ticket-changed", ticketId: t.id, propertyId: t.propertyId });
+      router.refresh();
+    });
+  }
+
+  if (loadError) {
+    return <div className="p-8 text-sm text-destructive">{loadError}</div>;
+  }
+  if (!t) {
+    return <TicketDetailSkeleton />;
+  }
+
+  const isApproved = t.status !== "proposed" && t.status !== "new" && t.status !== "triaged" && t.status !== "rejected";
+  const memorySaved = t.memoryProposal?.status === "saved";
+  const memorySkipped = t.memoryProposal?.status === "skipped";
+  const showMemoryDecision =
+    !!t.memoryProposal &&
+    t.memoryProposal.status === "pending" &&
+    !!t.vendorJob?.completedAt;
 
   return (
     <div>
       <PageHeader
         title={t.subject}
-        subtitle={`${prop?.name} · ${t.raisedBy} · ${timeAgo(t.createdAt)} ago`}
-        crumbs={[{ label: "Properties" }, { label: prop?.name ?? "", href: `/property/${prop?.id}/tickets` }, { label: t.num }]}
+        subtitle={`${prop?.name ?? ""} · ${t.raisedBy} · ${timeAgo(t.createdAt)} ago`}
+        crumbs={[{ label: "Properties" }, { label: prop?.name ?? "", href: prop ? `/property/${prop.id}/tickets` : undefined }, { label: t.num }]}
         actions={
           <div className="flex items-center gap-2">
             <StatusBadge status={t.status} />
@@ -93,32 +225,49 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
                   <ul className="space-y-1.5 text-sm">
                     <li className="flex gap-2"><span>→</span><span>Dispatch <strong>{t.proposal.proposedAction.vendor}</strong> to {t.proposal.proposedAction.target}</span></li>
                     <li className="flex gap-2"><span>→</span><span>Send written confirmation to {t.raisedBy} <em>(Sie-Form, mobility flag respected)</em></span></li>
-                    <li className="flex gap-2"><span>→</span><span>Send SMS dispatch to {vendor?.name} ({vendor?.phone}) — {vendor?.slaHours}h SLA timer starts</span></li>
+                    <li className="flex gap-2"><span>→</span><span>Send SMS dispatch to {vendor?.name ?? t.proposal.proposedAction.vendor} ({vendor?.phone ?? "—"}) — {vendor?.slaHours ?? t.proposal.proposedAction.etaHours}h SLA timer starts</span></li>
                     <li className="flex gap-2 text-muted-foreground"><span>→</span><span>Memory write happens <strong>after</strong> vendor reports completion (not now)</span></li>
                   </ul>
                 </div>
 
                 {/* Action row */}
-                {!approved ? (
+                {!isApproved && t.status === "proposed" ? (
                   <div className="flex items-center gap-2">
-                    <Button variant="success" className="flex-1" onClick={() => setApproved(true)}>
-                      <Check className="h-4 w-4" />
+                    <Button
+                      variant="success"
+                      className="flex-1"
+                      onClick={handleApprove}
+                      disabled={mutating !== null}
+                    >
+                      {mutating === "approve" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                       Approve dispatch
                     </Button>
-                    <Button variant="outline">Edit</Button>
-                    <Button variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700">Reject</Button>
+                    <Button variant="outline" disabled={mutating !== null}>Edit</Button>
+                    <Button
+                      variant="ghost"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={handleReject}
+                      disabled={mutating !== null}
+                    >
+                      {mutating === "reject" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                      Reject
+                    </Button>
                   </div>
-                ) : (
+                ) : isApproved ? (
                   <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
                     <div className="flex items-center gap-2 font-medium text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="h-4 w-4" />
-                      Dispatch approved · SMS sent to Heinz GmbH · Email sent to Herr Schmidt
+                      Dispatch approved · SMS sent to {vendor?.name ?? t.proposal.proposedAction.vendor} · Email sent to {t.raisedBy}
                     </div>
                     <div className="mt-1 text-xs text-emerald-600/80 dark:text-emerald-400/80">
-                      SLA timer started (24h). Status moved to <strong>vendor pending</strong>. No memory write yet.
+                      SLA timer started ({vendor?.slaHours ?? t.proposal.proposedAction.etaHours}h). Status: <strong>{t.status}</strong>. No memory write yet.
                     </div>
                   </div>
-                )}
+                ) : t.status === "rejected" ? (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                    Proposal rejected.
+                  </div>
+                ) : null}
 
                 {/* Reasoning collapsed by default */}
                 <button
@@ -165,8 +314,8 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
             </Card>
           )}
 
-          {/* MEMORY DECISION — only after vendor completion */}
-          {t.memoryProposal && t.memoryProposal.status === "pending" && !memorySaved && (
+          {/* MEMORY DECISION — only after vendor completion AND status === pending */}
+          {showMemoryDecision && (
             <Card className="border-emerald-500/30 bg-emerald-500/5">
               <CardContent className="p-5">
                 <div className="mb-2 flex items-center gap-2">
@@ -174,15 +323,21 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
                   <div className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Memory decision · vendor closed the job</div>
                 </div>
                 <p className="mb-3 text-sm">
-                  Save to <code className="font-mono text-xs">context.md v{t.memoryProposal.targetVersion}</code>:
+                  Save to <code className="font-mono text-xs">context.md v{t.memoryProposal!.targetVersion}</code>:
                 </p>
                 <blockquote className="mb-4 rounded border-l-2 border-emerald-400 bg-background px-3 py-2 text-sm">
-                  {t.memoryProposal.text}
+                  {t.memoryProposal!.text}
                 </blockquote>
                 <div className="flex gap-2">
-                  <Button variant="success" onClick={() => setMemorySaved(true)}><Check className="h-4 w-4" />Save to memory</Button>
-                  <Button variant="outline"><FileEdit className="h-4 w-4" />Edit</Button>
-                  <Button variant="ghost">Skip</Button>
+                  <Button variant="success" onClick={handleSaveMemory} disabled={mutating !== null}>
+                    {mutating === "saveMemory" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    Save to memory
+                  </Button>
+                  <Button variant="outline" disabled={mutating !== null}><FileEdit className="h-4 w-4" />Edit</Button>
+                  <Button variant="ghost" onClick={handleSkipMemory} disabled={mutating !== null}>
+                    {mutating === "skipMemory" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Skip
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -193,6 +348,14 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
               <CardContent className="p-4 text-sm text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="mr-2 inline h-4 w-4" />
                 Memory saved to <code className="font-mono text-xs">context.md v{t.memoryProposal?.targetVersion}</code>. Ticket resolved.
+              </CardContent>
+            </Card>
+          )}
+
+          {memorySkipped && (
+            <Card>
+              <CardContent className="p-4 text-sm text-muted-foreground">
+                Memory write skipped. Ticket closed without context update.
               </CardContent>
             </Card>
           )}
@@ -252,15 +415,15 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
           <Card>
             <CardContent className="p-4">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Property</div>
-              <Link href={`/property/${prop?.id}/context`} className="mt-1 block text-sm font-medium hover:underline">
-                {prop?.name}
+              <Link href={prop ? `/property/${prop.id}/context` : "#"} className="mt-1 block text-sm font-medium hover:underline">
+                {prop?.name ?? "—"}
               </Link>
-              <div className="mt-1 text-xs text-muted-foreground">context.md v{prop?.contextVersion}</div>
+              <div className="mt-1 text-xs text-muted-foreground">context.md v{prop?.contextVersion ?? "—"}</div>
               <Separator className="my-3" />
               <div className="space-y-1 text-xs">
-                <div><span className="text-muted-foreground">Phone: </span>{prop?.phone}</div>
-                <div><span className="text-muted-foreground">Email: </span>{prop?.email}</div>
-                <div><span className="text-muted-foreground">Open tickets: </span>{prop?.openTickets}</div>
+                <div><span className="text-muted-foreground">Phone: </span>{prop?.phone ?? "—"}</div>
+                <div><span className="text-muted-foreground">Email: </span>{prop?.email ?? "—"}</div>
+                <div><span className="text-muted-foreground">Open tickets: </span>{prop?.openTickets ?? "—"}</div>
               </div>
             </CardContent>
           </Card>
@@ -272,7 +435,7 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
                 <li className="flex gap-2"><Clock className="mt-0.5 h-3 w-3 text-muted-foreground" /><span>Ticket opened — {timeAgo(t.createdAt)} ago</span></li>
                 <li className="flex gap-2"><MessageSquare className="mt-0.5 h-3 w-3 text-muted-foreground" /><span>Triage agent classified</span></li>
                 {t.proposal && <li className="flex gap-2"><Sparkles className="mt-0.5 h-3 w-3 text-blue-500 dark:text-blue-400" /><span>Hermes proposed action</span></li>}
-                {approved && <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3 w-3 text-emerald-700" /><span>Operator approved</span></li>}
+                {isApproved && <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3 w-3 text-emerald-700" /><span>Operator approved</span></li>}
                 {t.vendorJob?.completedAt && <li className="flex gap-2"><Wrench className="mt-0.5 h-3 w-3 text-emerald-700" /><span>Vendor reported completion</span></li>}
                 {memorySaved && <li className="flex gap-2"><Sparkles className="mt-0.5 h-3 w-3 text-emerald-700" /><span>Memory committed to v{t.memoryProposal?.targetVersion}</span></li>}
               </ul>
@@ -293,6 +456,23 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
               </CardContent>
             </Card>
           )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function TicketDetailSkeleton() {
+  return (
+    <div className="p-8">
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-2 space-y-4">
+          <div className="h-48 animate-pulse rounded-lg border bg-muted/30" />
+          <div className="h-32 animate-pulse rounded-lg border bg-muted/30" />
+        </div>
+        <aside className="space-y-4">
+          <div className="h-32 animate-pulse rounded-lg border bg-muted/30" />
+          <div className="h-32 animate-pulse rounded-lg border bg-muted/30" />
         </aside>
       </div>
     </div>
