@@ -26,7 +26,6 @@ from app.models.vendor_cases import VendorCase
 from app.models.properties import Property
 from app.models.units import Unit
 from app.models.context_versions import ContextVersion
-from app.models.context_chunks import ContextChunk
 from app.models.property_policies import PropertyPolicy
 from app.models.context_sources import ContextSource
 from app.models.tickets import Ticket
@@ -583,9 +582,9 @@ def seed_database(db: Session) -> dict:
     # Ticket counters
     # ------------------------------------------------------------------
     db.add_all([
-        PropertyTicketCounter(property_id="p1", prefix="GAR", last_num=130),
-        PropertyTicketCounter(property_id="p2", prefix="BRU", last_num=15),
-        PropertyTicketCounter(property_id="p3", prefix="LIN", last_num=10),
+        PropertyTicketCounter(property_id="p1", prefix="GAR", last_num=126),
+        PropertyTicketCounter(property_id="p2", prefix="BRU", last_num=12),
+        PropertyTicketCounter(property_id="p3", prefix="LIN", last_num=7),
     ])
     db.flush()
 
