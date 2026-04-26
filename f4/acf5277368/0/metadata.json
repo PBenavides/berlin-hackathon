@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "f4acf5277368",
+  "session_id": "fafe0cbf-f575-49f4-a745-f7844156062c",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T08:15:57.191549Z",
+  "branch": "ai/sprint-3-auto-solve-toggle-background-agent-loop",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ai_builder/artifacts/instances/default/events.jsonl",
+    ".ai_builder/artifacts/instances/default/state.json"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "3f4a6e9b036e",
+  "token_usage": {
+    "input_tokens": 139,
+    "cache_creation_tokens": 94878,
+    "cache_read_tokens": 5023379,
+    "output_tokens": 35758,
+    "api_call_count": 63
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T08:15:57.169469Z",
+    "agent_lines": 18,
+    "agent_removed": 3,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 18,
+    "total_lines_changed": 21,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
