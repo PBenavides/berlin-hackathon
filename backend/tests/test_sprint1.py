@@ -96,13 +96,14 @@ def test_single_ticket_nested_camel_case(client):
     assert "raisedBy" in body
     assert "raised_by" not in body
 
-    # Nested proposal (if present)
+    # Nested proposal — API.md contract shape (collapsed onto ticket).
+    # No ticketId / actionStatus on the wire; that's internal-only.
     proposal = body.get("proposal")
     if proposal:
-        assert "ticketId" in proposal, f"Expected 'ticketId' in proposal: {list(proposal.keys())}"
-        assert "ticket_id" not in proposal
-        assert "actionStatus" in proposal
-        assert "action_status" not in proposal
+        for camel_key in ("contextVersion", "proposedAction", "policiesEvaluated"):
+            assert camel_key in proposal, f"Expected '{camel_key}' in proposal: {list(proposal.keys())}"
+        for snake_key in ("context_version", "proposed_action", "policies_evaluated", "ticket_id", "action_status"):
+            assert snake_key not in proposal, f"snake_case '{snake_key}' must not appear: {list(proposal.keys())}"
 
 
 # ---------------------------------------------------------------------------

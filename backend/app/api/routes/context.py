@@ -5,9 +5,18 @@ from typing import List
 from app.database import get_db
 from app.models.properties import Property
 from app.models.context_versions import ContextVersion
-from app.schemas.context_versions import ContextVersionOut, ContextVersionCreate, DiffOut
+from app.schemas.context_versions import (
+    ContextVersionOut,
+    ContextVersionCreate,
+    DiffOut,
+    LayeredContextOut,
+    ContextLayer,
+    ContextLayers,
+    ContextVersionSummary,
+)
 from app.services.audit_service import create_audit_entry
 from app.services.context_service import compute_diff, create_context_chunks, get_next_version
+from app.services.context_layer_service import parse_layers
 
 router = APIRouter()
 
@@ -19,9 +28,24 @@ def _get_property_or_404(db: Session, property_id: str) -> Property:
     return prop
 
 
-@router.get("/properties/{property_id}/context", response_model=ContextVersionOut)
+def _to_layered(cv: ContextVersion) -> LayeredContextOut:
+    layers_dict = parse_layers(cv.content_md)
+    return LayeredContextOut(
+        property_id=cv.property_id,
+        version=cv.version,
+        updated_at=cv.created_at,
+        layers=ContextLayers(
+            vendor=ContextLayer(**layers_dict["vendor"]),
+            owner=ContextLayer(**layers_dict["owner"]),
+            building=ContextLayer(**layers_dict["building"]),
+            property=ContextLayer(**layers_dict["property"]),
+        ),
+    )
+
+
+@router.get("/properties/{property_id}/context", response_model=LayeredContextOut)
 def get_latest_context(property_id: str, db: Session = Depends(get_db)):
-    """Get the latest context version for a property."""
+    """Latest context as 4-layer split: vendor / owner / building / property."""
     _get_property_or_404(db, property_id)
 
     cv = (
@@ -43,25 +67,34 @@ def get_latest_context(property_id: str, db: Session = Depends(get_db)):
         metadata={"version": cv.version},
     )
     db.commit()
-    return cv
+    return _to_layered(cv)
 
 
-@router.get("/properties/{property_id}/context/versions", response_model=List[ContextVersionOut])
+@router.get("/properties/{property_id}/context/versions", response_model=List[ContextVersionSummary])
 def list_context_versions(property_id: str, db: Session = Depends(get_db)):
-    """List all context versions for a property."""
+    """Version history — summary rows only (no markdown body)."""
     _get_property_or_404(db, property_id)
 
-    return (
+    rows = (
         db.query(ContextVersion)
         .filter(ContextVersion.property_id == property_id)
         .order_by(ContextVersion.version.desc())
         .all()
     )
+    return [
+        ContextVersionSummary(
+            version=cv.version,
+            created_at=cv.created_at,
+            author=cv.created_by,
+            summary=cv.created_reason,
+        )
+        for cv in rows
+    ]
 
 
-@router.get("/properties/{property_id}/context/versions/{version}", response_model=ContextVersionOut)
+@router.get("/properties/{property_id}/context/versions/{version}", response_model=LayeredContextOut)
 def get_context_version(property_id: str, version: int, db: Session = Depends(get_db)):
-    """Get a specific context version."""
+    """Specific version, returned in the same layered shape as the latest endpoint."""
     _get_property_or_404(db, property_id)
 
     cv = (
@@ -85,7 +118,7 @@ def get_context_version(property_id: str, version: int, db: Session = Depends(ge
         metadata={"version": cv.version},
     )
     db.commit()
-    return cv
+    return _to_layered(cv)
 
 
 @router.post("/properties/{property_id}/context", response_model=ContextVersionOut, status_code=201)
@@ -94,7 +127,7 @@ def create_context_version(
     payload: ContextVersionCreate,
     db: Session = Depends(get_db),
 ):
-    """Create a new context version for a property."""
+    """Create a new context version (raw markdown). Internal/admin use."""
     _get_property_or_404(db, property_id)
 
     next_version = get_next_version(db, property_id)
@@ -112,7 +145,6 @@ def create_context_version(
     db.add(cv)
     db.flush()
 
-    # Auto-create chunks
     create_context_chunks(db, cv.id, property_id, payload.content_md)
 
     create_audit_entry(

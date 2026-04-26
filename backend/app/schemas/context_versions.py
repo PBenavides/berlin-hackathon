@@ -43,3 +43,35 @@ class DiffOut(CamelModel):
     from_version: int
     to_version: int
     diff: str
+
+
+# ---------------------------------------------------------------------------
+# Layered context (4 layers: vendor / owner / building / property) — API.md shape
+# ---------------------------------------------------------------------------
+
+
+class ContextLayer(CamelModel):
+    raw: str = ""
+
+
+class ContextLayers(CamelModel):
+    vendor: ContextLayer
+    owner: ContextLayer
+    building: ContextLayer
+    property: ContextLayer
+
+
+class LayeredContextOut(CamelModel):
+    property_id: str
+    version: int
+    updated_at: datetime
+    layers: ContextLayers
+
+
+class ContextVersionSummary(CamelModel):
+    """Lightweight version-history row (no markdown body)."""
+    version: int
+    created_at: datetime
+    author: str
+    summary: Optional[str] = None
+

@@ -22,6 +22,9 @@ from app.api.routes import (
     buildings,
     vendors,
     units,
+    escalations,
+    chat,
+    extract,
 )
 from app.config import get_settings
 from app.exceptions import StateConflictError, state_conflict_handler, _CODE_MAP
@@ -108,6 +111,9 @@ _routers = [
     (buildings.router, "buildings"),
     (vendors.router, "vendors"),
     (units.router, "units"),
+    (escalations.router, "escalations"),
+    (chat.router, "chat"),
+    (extract.router, "extract"),
 ]
 
 for _router, _tag in _routers:

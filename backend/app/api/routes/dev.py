@@ -20,15 +20,21 @@ from app.models.call_sessions import CallSession
 from app.models.vendor_jobs import VendorJob
 from app.models.extractions import Extraction
 from app.models.property_ticket_counters import PropertyTicketCounter
-from app.schemas.tickets import TicketOut
+from app.schemas.tickets import TicketOut, VendorJobOut
 from app.seed import TICKET_TEMPLATES, run_seed
 from app.services.audit_service import create_audit_entry
+from app.services import vendor_job_service
 
 router = APIRouter()
 
 
 class SimulateTicketRequest(BaseModel):
     template_id: str
+
+
+class CompleteVendorJobRequest(BaseModel):
+    final_cost_eur: float | None = None
+    notes: str | None = None
 
 
 @router.post("/dev/reset")
@@ -138,3 +144,32 @@ def simulate_ticket(
 def list_ticket_templates():
     """List all available ticket simulation templates."""
     return {"templates": TICKET_TEMPLATES}
+
+
+@router.post("/dev/complete-vendor-job/{job_id}", response_model=VendorJobOut)
+def dev_complete_vendor_job(
+    job_id: str,
+    payload: CompleteVendorJobRequest | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Mark a vendor job complete (lifecycle terminal state). Mirrors the ticket
+    to 'completed' and runs the memory engine to fill the proposal's
+    final_context_update_md so the operator's memory decision becomes visible.
+
+    Dev-only shortcut for the demo flow — production would receive this via
+    a vendor webhook.
+    """
+    cost = payload.final_cost_eur if payload else None
+    notes = payload.notes if payload else None
+    job = vendor_job_service.complete(db, job_id, final_cost_eur=cost, notes=notes)
+    db.commit()
+    db.refresh(job)
+    return job
+
+
+@router.post("/dev/test-conflict")
+def dev_test_conflict():
+    """Force-trigger the StateConflictError handler (for envelope tests)."""
+    from app.exceptions import StateConflictError
+    raise StateConflictError("Synthetic conflict for envelope testing")
