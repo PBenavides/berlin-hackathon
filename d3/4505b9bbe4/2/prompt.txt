@@ -1,0 +1,305 @@
+## Task
+Implement Sprint 3: Auto-Solve Toggle & Background Agent Loop
+
+## Branch
+Create and switch to branch: `ai/sprint-3-auto-solve-toggle-background-agent-loop`
+Run: `git checkout -b ai/sprint-3-auto-solve-toggle-background-agent-loop` (or `git checkout ai/sprint-3-auto-solve-toggle-background-agent-loop` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 3,
+  "name": "Auto-Solve Toggle & Background Agent Loop",
+  "goal": "Implement the master toggle that activates autonomous ticket resolution across all open tickets, with the Hermes agent working through the queue in the background.",
+  "features": [
+    {
+      "id": "s3-f1",
+      "name": "Auto-Solve Toggle Button",
+      "description": "Add a prominent toggle switch to the UI (next to the Reset Demo button) labeled 'Agent Auto-Solve' or similar. When toggled ON, it activates autonomous mode \u2014 the platform begins automatically processing all open tickets through the Hermes agent pipeline. When toggled OFF, the agent stops picking up new tickets (in-flight tickets complete their current action). The toggle state is visually clear (color change, animation) and persists across page navigation within the session.",
+      "acceptance_criteria": [
+        "A toggle button is prominently visible in the main navigation area",
+        "Toggling ON triggers a backend call that starts the autonomous agent loop",
+        "Toggling OFF stops the agent from picking up new tickets",
+        "The toggle state is visually distinct (ON = active color/animation, OFF = muted)",
+        "The toggle state persists across page navigation within the same session",
+        "A confirmation dialog appears when toggling ON, explaining what will happen"
+      ],
+      "touches": [
+        "frontend nav/layout",
+        "new backend endpoint for agent loop control"
+      ],
+      "risk_notes": "Must handle edge cases: what if toggle is turned off mid-ticket? The current ticket should finish its action gracefully."
+    },
+    {
+      "id": "s3-f2",
+      "name": "Background Agent Queue Processor",
+      "description": "Build a backend service that, when activated by the toggle, works through all open tickets sequentially (or with controlled concurrency). For each ticket, the agent: loads the ticket and property context, evaluates which action type is needed, executes the appropriate tool chain (vendor email, tenant response, owner report, or human escalation), and moves the ticket to the appropriate next status. The processor respects a configurable delay between tickets so the demo audience can follow along.",
+      "acceptance_criteria": [
+        "When activated, the processor picks up tickets in priority order (high risk first, then by age)",
+        "Each ticket is processed through the full Hermes agent pipeline",
+        "There is a configurable delay between ticket processing (e.g., 3-5 seconds) for demo pacing",
+        "The processor handles errors gracefully \u2014 a failed ticket doesn't block the queue",
+        "The processor stops cleanly when the toggle is turned off",
+        "Processing status is queryable (which ticket is being worked on, how many remaining)"
+      ],
+      "touches": [
+        "new background agent service",
+        "agent runtime",
+        "ticket pipeline"
+      ],
+      "risk_notes": "Must not interfere with manual ticket processing \u2014 if a user manually approves a ticket while the agent is running, the agent should skip it."
+    },
+    {
+      "id": "s3-f3",
+      "name": "Live Overview Dashboard Updates",
+      "description": "The overview page updates in real-time as the agent processes tickets. Tickets visibly move between pipeline stages (new \u2192 triaged \u2192 proposed \u2192 approved \u2192 etc.) as the agent works through them. KPI counters animate as they change. The audience should be able to watch the overview page and see the agent clearing the ticket queue in real-time.",
+      "acceptance_criteria": [
+        "The overview pipeline view updates without page refresh as tickets change status",
+        "Ticket cards animate when moving between pipeline columns",
+        "KPI counters (awaiting approval, in flight, resolved) update in real-time",
+        "Updates arrive within 2 seconds of the agent changing a ticket's status",
+        "The currently-being-processed ticket has a visual indicator (pulsing border, spinner)"
+      ],
+      "touches": [
+        "overview page",
+        "SSE or polling infrastructure",
+        "ticket status updates"
+      ],
+      "risk_notes": "The existing overview page uses static data fetching \u2014 need to add real-time updates via SSE or short polling."
+    },
+    {
+      "id": "s3-f4",
+      "name": "Agent Activity Feed",
+      "description": "Add a global activity feed (collapsible panel or sidebar section) that shows a chronological stream of everything the agent is doing across all tickets. Each entry shows: timestamp, ticket reference (clickable), action taken, and result. This gives the demo audience a bird's-eye view of agent activity without needing to click into individual tickets.",
+      "acceptance_criteria": [
+        "A global activity feed is accessible from any page (sidebar panel, floating widget, or dedicated section)",
+        "Each entry shows timestamp, ticket number (clickable link), action type, and brief description",
+        "New entries stream in real-time as the agent works",
+        "The feed is scrollable and shows the most recent 50 entries",
+        "Different action types have distinct icons/colors for quick scanning",
+        "Escalation entries are visually highlighted (warning color) to draw attention"
+      ],
+      "touches": [
+        "frontend layout",
+        "new activity feed component",
+        "SSE/event infrastructure"
+      ],
+      "risk_notes": null
+    },
+    {
+      "id": "s3-f5",
+      "name": "Auto-Confirm Write Actions in Auto Mode",
+      "description": "When the toggle is ON (auto-solve mode), the agent's write actions (vendor emails, tenant responses, owner reports) are automatically confirmed without requiring human click. The existing proposal-envelope pattern still fires \u2014 the UI still shows the proposed action card \u2014 but after a brief visible delay (1-2 seconds), the action auto-confirms and the card transitions to 'confirmed' status. This maintains the visual narrative while removing the need for manual approval during the demo. Human escalations are the exception \u2014 they are NOT auto-confirmed, demonstrating the agent's judgment about when to defer.",
+      "acceptance_criteria": [
+        "In auto-solve mode, proposed write actions auto-confirm after a visible delay",
+        "The auto-confirm is visible in the UI \u2014 the card shows 'proposed' then transitions to 'confirmed'",
+        "Human escalation actions are NOT auto-confirmed \u2014 they remain as 'needs human attention'",
+        "In manual mode (toggle OFF), the existing click-to-confirm behavior is unchanged",
+        "The auto-confirm delay is configurable (default 1-2 seconds)"
+      ],
+      "touches": [
+        "agent runtime",
+        "ticket pipeline",
+        "frontend action cards"
+      ],
+      "risk_notes": "Must clearly separate auto-confirm logic from manual mode to avoid accidentally auto-approving in production scenarios."
+    }
+  ],
+  "success_criteria": [
+    "Toggling ON the agent causes all open demo tickets to be processed one by one",
+    "The overview dashboard shows tickets flowing through the pipeline in real-time",
+    "The activity feed provides a running narrative of agent actions",
+    "At least one ticket triggers human escalation and stays un-resolved, demonstrating agent judgment",
+    "Toggling OFF stops the agent, and toggling Reset restores everything to the starting state",
+    "The full demo loop (reset \u2192 toggle on \u2192 watch agent work \u2192 toggle off \u2192 reset) completes cleanly"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "The existing Hermes agent uses Google Gemini 2.5 Flash via OpenRouter \u2014 all new agent actions must work through this same LLM gateway",
+  "Write tools follow the proposal-envelope pattern \u2014 they propose actions for human confirmation, never execute directly",
+  "The SSE streaming infrastructure already exists in the chat engine \u2014 reuse it for action streaming rather than building a parallel system",
+  "The seed service must remain idempotent \u2014 safe to run multiple times without duplicating data",
+  "The frontend is a Next.js 15 app in a pnpm monorepo with shadcn/ui components \u2014 all new UI must use this stack",
+  "The backend uses SQLAlchemy with Alembic migrations and PostgreSQL \u2014 new models require proper migrations",
+  "All API responses must follow the existing standardized format with camelCase serialization",
+  "The existing /dev/reset endpoint drops all tables \u2014 it must be extended to handle any new models/tables",
+  "Context files use a 4-layer markdown format (vendor/owner/building/property) \u2014 additions must respect this structure",
+  "The agent has a 50-turn budget per invocation (HERMES_MAX_TURNS) \u2014 batch processing must manage this per-ticket"
+]
+
+## Out of Scope
+[
+  "Actually sending real emails, SMS, or messages to external systems \u2014 all actions are simulated/displayed in the UI",
+  "Multi-user authentication or role-based access \u2014 this is a single-presenter demo environment",
+  "Production deployment or scaling \u2014 this runs locally or on a single demo instance",
+  "Modifying the core Hermes agent LLM or switching providers",
+  "Mobile responsiveness \u2014 the demo targets a laptop/projector presentation setup",
+  "Internationalization beyond the existing German ticket content",
+  "Integration with real Slack, email, or SMS providers",
+  "Persistent demo state across server restarts \u2014 reset is expected after restart"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 3 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-031913" in the contract.
+Set branch to "ai/sprint-3-auto-solve-toggle-background-agent-loop" in the contract.
+
+---
+
+## Task
+Implement Sprint 3: Auto-Solve Toggle & Background Agent Loop
+
+## Branch
+Create and switch to branch: `ai/sprint-3-auto-solve-toggle-background-agent-loop`
+Run: `git checkout -b ai/sprint-3-auto-solve-toggle-background-agent-loop` (or `git checkout ai/sprint-3-auto-solve-toggle-background-agent-loop` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 3,
+  "name": "Auto-Solve Toggle & Background Agent Loop",
+  "goal": "Implement the master toggle that activates autonomous ticket resolution across all open tickets, with the Hermes agent working through the queue in the background.",
+  "features": [
+    {
+      "id": "s3-f1",
+      "name": "Auto-Solve Toggle Button",
+      "description": "Add a prominent toggle switch to the UI (next to the Reset Demo button) labeled 'Agent Auto-Solve' or similar. When toggled ON, it activates autonomous mode \u2014 the platform begins automatically processing all open tickets through the Hermes agent pipeline. When toggled OFF, the agent stops picking up new tickets (in-flight tickets complete their current action). The toggle state is visually clear (color change, animation) and persists across page navigation within the session.",
+      "acceptance_criteria": [
+        "A toggle button is prominently visible in the main navigation area",
+        "Toggling ON triggers a backend call that starts the autonomous agent loop",
+        "Toggling OFF stops the agent from picking up new tickets",
+        "The toggle state is visually distinct (ON = active color/animation, OFF = muted)",
+        "The toggle state persists across page navigation within the same session",
+        "A confirmation dialog appears when toggling ON, explaining what will happen"
+      ],
+      "touches": [
+        "frontend nav/layout",
+        "new backend endpoint for agent loop control"
+      ],
+      "risk_notes": "Must handle edge cases: what if toggle is turned off mid-ticket? The current ticket should finish its action gracefully."
+    },
+    {
+      "id": "s3-f2",
+      "name": "Background Agent Queue Processor",
+      "description": "Build a backend service that, when activated by the toggle, works through all open tickets sequentially (or with controlled concurrency). For each ticket, the agent: loads the ticket and property context, evaluates which action type is needed, executes the appropriate tool chain (vendor email, tenant response, owner report, or human escalation), and moves the ticket to the appropriate next status. The processor respects a configurable delay between tickets so the demo audience can follow along.",
+      "acceptance_criteria": [
+        "When activated, the processor picks up tickets in priority order (high risk first, then by age)",
+        "Each ticket is processed through the full Hermes agent pipeline",
+        "There is a configurable delay between ticket processing (e.g., 3-5 seconds) for demo pacing",
+        "The processor handles errors gracefully \u2014 a failed ticket doesn't block the queue",
+        "The processor stops cleanly when the toggle is turned off",
+        "Processing status is queryable (which ticket is being worked on, how many remaining)"
+      ],
+      "touches": [
+        "new background agent service",
+        "agent runtime",
+        "ticket pipeline"
+      ],
+      "risk_notes": "Must not interfere with manual ticket processing \u2014 if a user manually approves a ticket while the agent is running, the agent should skip it."
+    },
+    {
+      "id": "s3-f3",
+      "name": "Live Overview Dashboard Updates",
+      "description": "The overview page updates in real-time as the agent processes tickets. Tickets visibly move between pipeline stages (new \u2192 triaged \u2192 proposed \u2192 approved \u2192 etc.) as the agent works through them. KPI counters animate as they change. The audience should be able to watch the overview page and see the agent clearing the ticket queue in real-time.",
+      "acceptance_criteria": [
+        "The overview pipeline view updates without page refresh as tickets change status",
+        "Ticket cards animate when moving between pipeline columns",
+        "KPI counters (awaiting approval, in flight, resolved) update in real-time",
+        "Updates arrive within 2 seconds of the agent changing a ticket's status",
+        "The currently-being-processed ticket has a visual indicator (pulsing border, spinner)"
+      ],
+      "touches": [
+        "overview page",
+        "SSE or polling infrastructure",
+        "ticket status updates"
+      ],
+      "risk_notes": "The existing overview page uses static data fetching \u2014 need to add real-time updates via SSE or short polling."
+    },
+    {
+      "id": "s3-f4",
+      "name": "Agent Activity Feed",
+      "description": "Add a global activity feed (collapsible panel or sidebar section) that shows a chronological stream of everything the agent is doing across all tickets. Each entry shows: timestamp, ticket reference (clickable), action taken, and result. This gives the demo audience a bird's-eye view of agent activity without needing to click into individual tickets.",
+      "acceptance_criteria": [
+        "A global activity feed is accessible from any page (sidebar panel, floating widget, or dedicated section)",
+        "Each entry shows timestamp, ticket number (clickable link), action type, and brief description",
+        "New entries stream in real-time as the agent works",
+        "The feed is scrollable and shows the most recent 50 entries",
+        "Different action types have distinct icons/colors for quick scanning",
+        "Escalation entries are visually highlighted (warning color) to draw attention"
+      ],
+      "touches": [
+        "frontend layout",
+        "new activity feed component",
+        "SSE/event infrastructure"
+      ],
+      "risk_notes": null
+    },
+    {
+      "id": "s3-f5",
+      "name": "Auto-Confirm Write Actions in Auto Mode",
+      "description": "When the toggle is ON (auto-solve mode), the agent's write actions (vendor emails, tenant responses, owner reports) are automatically confirmed without requiring human click. The existing proposal-envelope pattern still fires \u2014 the UI still shows the proposed action card \u2014 but after a brief visible delay (1-2 seconds), the action auto-confirms and the card transitions to 'confirmed' status. This maintains the visual narrative while removing the need for manual approval during the demo. Human escalations are the exception \u2014 they are NOT auto-confirmed, demonstrating the agent's judgment about when to defer.",
+      "acceptance_criteria": [
+        "In auto-solve mode, proposed write actions auto-confirm after a visible delay",
+        "The auto-confirm is visible in the UI \u2014 the card shows 'proposed' then transitions to 'confirmed'",
+        "Human escalation actions are NOT auto-confirmed \u2014 they remain as 'needs human attention'",
+        "In manual mode (toggle OFF), the existing click-to-confirm behavior is unchanged",
+        "The auto-confirm delay is configurable (default 1-2 seconds)"
+      ],
+      "touches": [
+        "agent runtime",
+        "ticket pipeline",
+        "frontend action cards"
+      ],
+      "risk_notes": "Must clearly separate auto-confirm logic from manual mode to avoid accidentally auto-approving in production scenarios."
+    }
+  ],
+  "success_criteria": [
+    "Toggling ON the agent causes all open demo tickets to be processed one by one",
+    "The overview dashboard shows tickets flowing through the pipeline in real-time",
+    "The activity feed provides a running narrative of agent actions",
+    "At least one ticket triggers human escalation and stays un-resolved, demonstrating agent judgment",
+    "Toggling OFF stops the agent, and toggling Reset restores everything to the starting state",
+    "The full demo loop (reset \u2192 toggle on \u2192 watch agent work \u2192 toggle off \u2192 reset) completes cleanly"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "The existing Hermes agent uses Google Gemini 2.5 Flash via OpenRouter \u2014 all new agent actions must work through this same LLM gateway",
+  "Write tools follow the proposal-envelope pattern \u2014 they propose actions for human confirmation, never execute directly",
+  "The SSE streaming infrastructure already exists in the chat engine \u2014 reuse it for action streaming rather than building a parallel system",
+  "The seed service must remain idempotent \u2014 safe to run multiple times without duplicating data",
+  "The frontend is a Next.js 15 app in a pnpm monorepo with shadcn/ui components \u2014 all new UI must use this stack",
+  "The backend uses SQLAlchemy with Alembic migrations and PostgreSQL \u2014 new models require proper migrations",
+  "All API responses must follow the existing standardized format with camelCase serialization",
+  "The existing /dev/reset endpoint drops all tables \u2014 it must be extended to handle any new models/tables",
+  "Context files use a 4-layer markdown format (vendor/owner/building/property) \u2014 additions must respect this structure",
+  "The agent has a 50-turn budget per invocation (HERMES_MAX_TURNS) \u2014 batch processing must manage this per-ticket"
+]
+
+## Out of Scope
+[
+  "Actually sending real emails, SMS, or messages to external systems \u2014 all actions are simulated/displayed in the UI",
+  "Multi-user authentication or role-based access \u2014 this is a single-presenter demo environment",
+  "Production deployment or scaling \u2014 this runs locally or on a single demo instance",
+  "Modifying the core Hermes agent LLM or switching providers",
+  "Mobile responsiveness \u2014 the demo targets a laptop/projector presentation setup",
+  "Internationalization beyond the existing German ticket content",
+  "Integration with real Slack, email, or SMS providers",
+  "Persistent demo state across server restarts \u2014 reset is expected after restart"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 3 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-031913" in the contract.
+Set branch to "ai/sprint-3-auto-solve-toggle-background-agent-loop" in the contract.
