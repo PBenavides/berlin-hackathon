@@ -17,6 +17,12 @@ Auto-confirm behaviour (Sprint 3, s3-f5):
   When auto-solve is active, ALL proposed write actions are automatically
   confirmed EXCEPT escalate_to_human, which intentionally stays pending
   so the audience can see the agent exercising judgment.
+
+Speed Controls (Sprint 4, s4-f5):
+  Three presets control pacing for different demo scenarios:
+  - slow:   9s inter-ticket, 2.5s auto-confirm (walkthrough mode)
+  - normal: 4s inter-ticket, 1.5s auto-confirm (standard demo)
+  - fast:   1.5s inter-ticket, 0.5s auto-confirm (quick showcase)
 """
 from __future__ import annotations
 
@@ -48,6 +54,16 @@ INTER_TICKET_DELAY = float(os.environ.get("AUTO_SOLVE_DELAY", "4"))
 AUTO_CONFIRM_DELAY = float(os.environ.get("AUTO_CONFIRM_DELAY", "1.5"))
 # Backend base URL for confirm endpoint calls
 BACKEND_BASE = os.environ.get("BACKEND_BASE_URL", "http://localhost:8000")
+
+# ---------------------------------------------------------------------------
+# Speed presets (s4-f5)
+# ---------------------------------------------------------------------------
+
+SPEED_PRESETS: Dict[str, Dict[str, float]] = {
+    "slow":   {"inter_ticket": 9.0, "auto_confirm": 2.5},
+    "normal": {"inter_ticket": 4.0, "auto_confirm": 1.5},
+    "fast":   {"inter_ticket": 1.5, "auto_confirm": 0.5},
+}
 
 # ---------------------------------------------------------------------------
 # Labels reused from agent_run.py (DRY-ish)
@@ -167,6 +183,17 @@ class QueueState:
         self.failed_count: int = 0
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
+        # Speed controls (s4-f5)
+        self.speed: str = "normal"
+        self.inter_ticket_delay: float = INTER_TICKET_DELAY
+        self.auto_confirm_delay: float = AUTO_CONFIRM_DELAY
+        # Summary stats (s4-f1)
+        self.start_time: Optional[float] = None
+        self.total_vendor_emails: int = 0
+        self.total_tenant_responses: int = 0
+        self.total_owner_reports: int = 0
+        self.total_escalations: int = 0
+        self.total_confirmed: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         with self._lock:
@@ -177,6 +204,15 @@ class QueueState:
                 "remainingCount": self.remaining_count,
                 "processedCount": self.processed_count,
                 "failedCount": self.failed_count,
+                # Speed controls
+                "speed": self.speed,
+                # Summary stats
+                "totalVendorEmails": self.total_vendor_emails,
+                "totalTenantResponses": self.total_tenant_responses,
+                "totalOwnerReports": self.total_owner_reports,
+                "totalEscalations": self.total_escalations,
+                "totalConfirmed": self.total_confirmed,
+                "startTime": self.start_time,
             }
 
 
@@ -235,7 +271,7 @@ _NO_AUTO_CONFIRM = {"escalate_to_human"}
 
 def _auto_confirm(db: Session, proposal: Dict[str, Any], ticket_id: str, ticket_num: Optional[str]) -> bool:
     """
-    After AUTO_CONFIRM_DELAY seconds, POST to the proposal's confirmEndpoint.
+    After auto_confirm_delay seconds (from _state), POST to the proposal's confirmEndpoint.
     Returns True if confirmed, False if skipped (e.g. escalation or no endpoint).
     """
     tool_name = proposal.get("tool", "")
@@ -246,7 +282,9 @@ def _auto_confirm(db: Session, proposal: Dict[str, Any], ticket_id: str, ticket_
         return False
 
     # Visual delay so the audience can see "proposed" before it flips to "confirmed"
-    time.sleep(AUTO_CONFIRM_DELAY)
+    # Use state-based delay to respect speed controls (s4-f5)
+    delay = _state.auto_confirm_delay
+    time.sleep(delay)
 
     confirm_method = (proposal.get("confirmMethod") or "POST").upper()
     confirm_body = proposal.get("confirmBody") or {}
@@ -294,7 +332,7 @@ def _get_open_tickets(db: Session) -> List[Ticket]:
 def _process_ticket(ticket_id: str, ticket_num: Optional[str], property_id: str) -> Dict[str, Any]:
     """
     Run the full Hermes agent pipeline on one ticket.
-    Returns a summary dict with counts.
+    Returns a summary dict with counts (including per-action-type counts for s4-f1).
 
     Uses its own DB session (not shared with the main thread).
     """
@@ -304,6 +342,11 @@ def _process_ticket(ticket_id: str, ticket_num: Optional[str], property_id: str)
     writes = 0
     run_id = f"auto-{uuid.uuid4().hex[:8]}"
     pending_actions: Dict[str, AgentAction] = {}
+    # Per-action-type counters (s4-f1)
+    vendor_emails = 0
+    tenant_responses = 0
+    owner_reports = 0
+    escalations = 0
 
     try:
         ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
@@ -431,6 +474,16 @@ def _process_ticket(ticket_id: str, ticket_num: Optional[str], property_id: str)
                 writes += 1
                 is_escalation = tool_name == "escalate_to_human"
 
+                # Track per-action-type counts (s4-f1)
+                if tool_name == "send_vendor_email":
+                    vendor_emails += 1
+                elif tool_name == "respond_to_tenant":
+                    tenant_responses += 1
+                elif tool_name == "send_owner_report":
+                    owner_reports += 1
+                elif tool_name == "escalate_to_human":
+                    escalations += 1
+
                 if is_escalation:
                     _log_activity(
                         db,
@@ -513,6 +566,11 @@ def _process_ticket(ticket_id: str, ticket_num: Optional[str], property_id: str)
         "writes": writes,
         "confirmed": confirmed,
         "proposals": len(proposals_seen),
+        # Per-action-type counts (s4-f1)
+        "vendor_emails": vendor_emails,
+        "tenant_responses": tenant_responses,
+        "owner_reports": owner_reports,
+        "escalations": escalations,
     }
 
 
@@ -540,7 +598,22 @@ def _queue_loop() -> None:
             db.close()
 
         if not tickets:
-            # Queue exhausted
+            # Queue exhausted — build summary (s4-f1)
+            elapsed = time.time() - (_state.start_time or time.time())
+            processed = _state.processed_count
+            tpm = round((processed / (elapsed / 60.0)), 1) if elapsed > 5 else 0.0
+
+            summary = {
+                "ticketsProcessed": processed,
+                "vendorEmails": _state.total_vendor_emails,
+                "tenantResponses": _state.total_tenant_responses,
+                "ownerReports": _state.total_owner_reports,
+                "escalations": _state.total_escalations,
+                "totalConfirmed": _state.total_confirmed,
+                "processingTimeSeconds": round(elapsed, 1),
+                "ticketsPerMinute": tpm,
+            }
+
             db = SessionLocal()
             try:
                 _log_activity(db, event_type="queue_exhausted", description="All tickets processed — queue empty", severity="success")
@@ -551,6 +624,20 @@ def _queue_loop() -> None:
                 _state.current_ticket_id = None
                 _state.current_ticket_num = None
                 _state.remaining_count = 0
+
+            # Broadcast exhausted event with summary embedded
+            _subscribers.broadcast({
+                "id": None,
+                "ticketId": None,
+                "ticketNum": None,
+                "eventType": "queue_exhausted",
+                "actionType": None,
+                "description": "All tickets processed — queue empty",
+                "severity": "success",
+                "createdAt": datetime.now(timezone.utc).isoformat(),
+                "status": _state.to_dict(),
+                "summary": summary,
+            })
             break
 
         # Update remaining count
@@ -581,8 +668,14 @@ def _queue_loop() -> None:
         # Run the agent
         result = _process_ticket(ticket.id, ticket.num, ticket.property_id)
 
+        # Accumulate summary stats (s4-f1)
         with _state._lock:
             _state.processed_count += 1
+            _state.total_vendor_emails += result.get("vendor_emails", 0)
+            _state.total_tenant_responses += result.get("tenant_responses", 0)
+            _state.total_owner_reports += result.get("owner_reports", 0)
+            _state.total_escalations += result.get("escalations", 0)
+            _state.total_confirmed += result.get("confirmed", 0)
             if "error" in result:
                 _state.failed_count += 1
 
@@ -616,8 +709,9 @@ def _queue_loop() -> None:
             "status": _state.to_dict(),
         })
 
-        # Delay between tickets
-        for _ in range(int(INTER_TICKET_DELAY * 10)):
+        # Delay between tickets — use state-based delay for speed control (s4-f5)
+        delay = _state.inter_ticket_delay
+        for _ in range(int(delay * 10)):
             if _state._stop_event.is_set():
                 break
             time.sleep(0.1)
@@ -657,16 +751,32 @@ def _queue_loop() -> None:
 # Public API
 # ---------------------------------------------------------------------------
 
-def start_queue() -> Dict[str, Any]:
-    """Start the background queue processor. No-op if already running."""
+def start_queue(speed: str = "normal") -> Dict[str, Any]:
+    """
+    Start the background queue processor. No-op if already running.
+    speed: one of 'slow', 'normal', 'fast' (s4-f5)
+    """
     with _state._lock:
         if _state.is_running:
             return {"started": False, "reason": "already running", **_state.to_dict()}
+
+        # Apply speed preset (s4-f5)
+        preset = SPEED_PRESETS.get(speed, SPEED_PRESETS["normal"])
+        _state.speed = speed
+        _state.inter_ticket_delay = preset["inter_ticket"]
+        _state.auto_confirm_delay = preset["auto_confirm"]
 
         _state.is_running = True
         _state.processed_count = 0
         _state.failed_count = 0
         _state._stop_event.clear()
+        # Reset summary counters (s4-f1)
+        _state.total_vendor_emails = 0
+        _state.total_tenant_responses = 0
+        _state.total_owner_reports = 0
+        _state.total_escalations = 0
+        _state.total_confirmed = 0
+        _state.start_time = time.time()
 
         t = threading.Thread(target=_queue_loop, daemon=True, name="hermes-auto-queue")
         _state._thread = t
