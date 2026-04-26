@@ -1,0 +1,84 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "e063d43757ae",
+  "session_id": "55c6ab75-cc77-40e6-b680-4ae0545bed58",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T00:54:05.029751Z",
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "checkpoints_count": 4,
+  "files_touched": [
+    ".ai_builder/ai_builder_cli.py",
+    ".ai_builder/artifacts/events.jsonl",
+    ".ai_builder/artifacts/events.legacy.jsonl",
+    ".ai_builder/artifacts/instances/frontend/state.json",
+    ".ai_builder/artifacts/state.legacy-20260426-004325.json",
+    ".ai_builder/bin/entire_agent_ai_builder.py",
+    ".ai_builder/config.py",
+    ".ai_builder/run.py",
+    ".ai_builder/src/agents/evaluator.py",
+    ".ai_builder/src/agents/generator.py",
+    ".ai_builder/src/agents/orchestrator.py",
+    ".ai_builder/src/agents/planner.py",
+    ".ai_builder/src/comms/comms.py",
+    ".ai_builder/src/entire_events.py",
+    ".gitignore",
+    "backend/app/config.py",
+    "backend/app/services/concierge_dispatcher.py",
+    "backend/app/services/proposal_engine.py",
+    "docs/HERMES_PLAN.md"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "cb91224264d7",
+  "token_usage": {
+    "input_tokens": 293,
+    "cache_creation_tokens": 697475,
+    "cache_read_tokens": 32140718,
+    "output_tokens": 115849,
+    "api_call_count": 188
+  },
+  "session_metrics": {
+    "turn_count": 17
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T00:54:04.99857Z",
+    "agent_lines": 632,
+    "agent_removed": 40,
+    "human_added": 8,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 640,
+    "total_lines_changed": 682,
+    "agent_percentage": 98.53372434017595,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 400,
+      "user_lines_removed": 0,
+      "agent_lines_added": 632,
+      "agent_lines_removed": 40,
+      "user_added_per_file": {
+        "hermes/upstream/.env.example": 400
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 400,
+      "user_lines_removed": 0,
+      "agent_lines_added": 632,
+      "agent_lines_removed": 40,
+      "user_added_per_file": {
+        "hermes/upstream/.env.example": 400
+      }
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "e063d43757ae",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "checkpoints_count": 4,
+  "files_touched": [
+    ".ai_builder/ai_builder_cli.py",
+    ".ai_builder/artifacts/events.jsonl",
+    ".ai_builder/artifacts/events.legacy.jsonl",
+    ".ai_builder/artifacts/instances/frontend/state.json",
+    ".ai_builder/artifacts/state.legacy-20260426-004325.json",
+    ".ai_builder/bin/entire_agent_ai_builder.py",
+    ".ai_builder/config.py",
+    ".ai_builder/run.py",
+    ".ai_builder/src/agents/evaluator.py",
+    ".ai_builder/src/agents/generator.py",
+    ".ai_builder/src/agents/orchestrator.py",
+    ".ai_builder/src/agents/planner.py",
+    ".ai_builder/src/comms/comms.py",
+    ".ai_builder/src/entire_events.py",
+    ".gitignore",
+    "backend/app/config.py",
+    "backend/app/services/concierge_dispatcher.py",
+    "backend/app/services/proposal_engine.py",
+    "docs/HERMES_PLAN.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e0/63d43757ae/0/metadata.json",
+      "transcript": "/e0/63d43757ae/0/full.jsonl",
+      "content_hash": "/e0/63d43757ae/0/content_hash.txt",
+      "prompt": "/e0/63d43757ae/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 293,
+    "cache_creation_tokens": 697475,
+    "cache_read_tokens": 32140718,
+    "output_tokens": 115849,
+    "api_call_count": 188
+  }
+}
