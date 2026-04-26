@@ -1,0 +1,20 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "140f74ca5229",
+  "session_id": "9264a611-b00f-412e-bde5-000c93a7dd80",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T02:09:08.146856Z",
+  "branch": "ai/sprint-2-agent-action-types-streaming-actions",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "80d245dc647a",
+  "token_usage": {
+    "input_tokens": 71,
+    "cache_creation_tokens": 136025,
+    "cache_read_tokens": 7065648,
+    "output_tokens": 52721,
+    "api_call_count": 67
+  }
+}
