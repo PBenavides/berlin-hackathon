@@ -1,0 +1,1161 @@
+## Self-Review Time
+
+You just implemented Sprint 1: API Foundation & Schema Expansion.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-004212",
+  "sprint_number": 1,
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "features_implemented": [
+    {
+      "id": "s1-f1",
+      "name": "Re-prefix API routes from /api/v1 to /api",
+      "files_changed": [
+        "backend/app/main.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/properties",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/tickets",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "body": null
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties \u2192 200 list",
+        "GET /api/v1/properties \u2192 200 list (backward compat)",
+        "GET /api/health \u2192 {status: 'ok'}",
+        "GET /api/docs \u2192 Swagger UI loads"
+      ],
+      "known_limitations": [
+        "/api/v1 parallel mount means duplicate operations in OpenAPI docs under -v1 tags"
+      ]
+    },
+    {
+      "id": "s1-f2",
+      "name": "Standardized error envelope",
+      "files_changed": [
+        "backend/app/main.py",
+        "backend/app/exceptions.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties/nonexistent \u2192 {error: 'Property not found', code: 'NOT_FOUND', status: 404}",
+        "POST /api/tickets with missing fields \u2192 {error: '...', code: 'VALIDATION_ERROR', status: 422}",
+        "POST /api/tickets/{id}/approve when status is not 'proposed' \u2192 {error: '...', code: 'CONFLICT', status: 409}"
+      ],
+      "known_limitations": []
+    },
+    {
+      "id": "s1-f3",
+      "name": "Knowledge-layer database schema",
+      "files_changed": [
+        "backend/app/models/owners.py",
+        "backend/app/models/buildings.py",
+        "backend/app/models/building_vendors.py",
+        "backend/app/models/vendors.py",
+        "backend/app/models/vendor_cases.py",
+        "backend/app/models/units.py",
+        "backend/app/models/call_sessions.py",
+        "backend/app/models/vendor_jobs.py",
+        "backend/app/models/extractions.py",
+        "backend/app/models/property_ticket_counters.py",
+        "backend/app/models/__init__.py",
+        "backend/alembic/versions/0004_knowledge_layer_schema.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Run: alembic upgrade head (from backend/)",
+        "Check DB: tables owners, buildings, building_vendors, vendors, vendor_cases, units, call_sessions, vendor_jobs, extractions, property_ticket_counters all exist",
+        "Verify vendor_jobs has completed_at column with index ix_vendor_jobs_completed_at",
+        "Verify extractions has composite index ix_extractions_status_created_at"
+      ],
+      "known_limitations": []
+    },
+    {
+      "id": "s1-f4",
+      "name": "Property and Ticket model extensions",
+      "files_changed": [
+        "backend/app/models/properties.py",
+        "backend/app/models/tickets.py",
+        "backend/app/schemas/properties.py",
+        "backend/app/schemas/tickets.py",
+        "backend/app/schemas/owners.py",
+        "backend/app/schemas/buildings.py",
+        "backend/app/schemas/vendors.py",
+        "backend/app/schemas/units.py",
+        "backend/app/schemas/base.py",
+        "backend/app/api/routes/properties.py",
+        "backend/app/api/routes/tickets.py",
+        "backend/app/api/routes/owners.py",
+        "backend/app/api/routes/buildings.py",
+        "backend/app/api/routes/vendors.py",
+        "backend/app/api/routes/units.py",
+        "backend/app/services/ticket_number_service.py",
+        "backend/alembic/versions/0005_property_ticket_extensions.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/owners",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/owners/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/buildings",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/buildings/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/vendors",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/vendors/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/properties/{propertyId}/units",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/api/tickets/{id}/approve",
+          "body": {}
+        },
+        {
+          "method": "POST",
+          "path": "/api/tickets/{id}/reject",
+          "body": {
+            "reason": "optional string"
+          }
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "After /api/dev/reset: GET /api/properties/p1 \u2192 response includes buildingId, ownerId, city, phone, email in camelCase",
+        "GET /api/tickets/t-7831 \u2192 response includes num='GAR-118', risk, excerpt, raisedByPhone in camelCase",
+        "GET /api/tickets?status=proposed \u2192 returns t-7831",
+        "GET /api/owners \u2192 returns o1 (WEG Gartenstra\u00dfe 42)",
+        "GET /api/vendors \u2192 returns v1-v4",
+        "GET /api/properties/p1/units \u2192 returns 8 units (1A-5A + 2B, 3B, E1)",
+        "POST /api/tickets/t-7831/approve \u2192 409 CONFLICT (status is 'proposed' - valid transition but needs proposal check)",
+        "Old 'open' ticket rows: SELECT status FROM tickets WHERE status='open' \u2192 0 rows"
+      ],
+      "known_limitations": [
+        "Ticket num auto-generation requires a property_ticket_counters row; gracefully skips if missing",
+        "Status transition validation is basic; full state-machine guards deferred"
+      ]
+    },
+    {
+      "id": "s1-f5",
+      "name": "Seed data aligned to frontend mocks",
+      "files_changed": [
+        "backend/app/services/seed_service.py",
+        "backend/app/api/routes/dev.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/dev/reset",
+          "body": {}
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "POST /api/dev/reset \u2192 {seed_result: {seeded: true, properties: ['p1...', 'p2...', 'p3...']}}",
+        "GET /api/properties \u2192 3 properties: p1 (Gartenstra\u00dfe 42), p2 (Brunnenstra\u00dfe 18), p3 (Linienstra\u00dfe 77)",
+        "GET /api/properties/p1 \u2192 {id: 'p1', buildingId: 'b1', ownerId: 'o1', city: 'Berlin', phone: '+49 30 5550 1042'}",
+        "GET /api/owners/o1 \u2192 {id: 'o1', name: 'WEG Gartenstra\u00dfe 42', type: 'weg'}",
+        "GET /api/buildings/b1 \u2192 {id: 'b1', ownerId: 'o1', vendors: ['v1','v2','v3']}",
+        "GET /api/vendors/v1 \u2192 {id: 'v1', name: 'Heinz GmbH', trade: 'HVAC', slaHours: 24}",
+        "GET /api/properties/p1/units \u2192 8 units including u-1a, u-3b, u-e1",
+        "GET /api/tickets/t-7831 \u2192 {id: 't-7831', num: 'GAR-118', status: 'proposed', unitId: 'u-3b', proposal: {id: 'pr-7831'}}",
+        "POST /api/dev/reset (second call) \u2192 {seed_result: {seeded: false}} (idempotent)"
+      ],
+      "known_limitations": [
+        "Ticket t-7832 vendor job and t-7831 call session are seeded but not yet wired to the ticket GET response (vendor job/call session fields are separate models, not included in TicketOut yet)",
+        "Seed creates property_ticket_counters at last_num=120 (GAR-120 already used); new tickets will start at GAR-121"
+      ]
+    }
+  ],
+  "migrations_applied": [
+    "backend/alembic/versions/0004_knowledge_layer_schema.py",
+    "backend/alembic/versions/0005_property_ticket_extensions.py"
+  ],
+  "how_to_verify": {
+    "start_command": "cd backend && python run.py",
+    "base_url": "http://localhost:8000",
+    "auth": {
+      "description": "No authentication required for hackathon. All endpoints are open."
+    }
+  },
+  "regression_checks": [
+    "GET /api/v1/properties still returns 200 (backward-compat mount preserved)",
+    "GET /api/v1/health still works",
+    "POST /api/v1/dev/reset still works",
+    "Existing context routes at /api/context still work",
+    "Existing proposal routes at /api/proposals still work",
+    "Existing messages/chat at /api/messages still work"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 1: API Foundation & Schema Expansion.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-004212",
+  "sprint_number": 1,
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "features_implemented": [
+    {
+      "id": "s1-f1",
+      "name": "Re-prefix API routes from /api/v1 to /api",
+      "files_changed": [
+        "backend/app/main.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/properties",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/tickets",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "body": null
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties \u2192 200 list",
+        "GET /api/v1/properties \u2192 200 list (backward compat)",
+        "GET /api/health \u2192 {status: 'ok'}",
+        "GET /api/docs \u2192 Swagger UI loads"
+      ],
+      "known_limitations": [
+        "/api/v1 parallel mount means duplicate operations in OpenAPI docs under -v1 tags"
+      ]
+    },
+    {
+      "id": "s1-f2",
+      "name": "Standardized error envelope",
+      "files_changed": [
+        "backend/app/main.py",
+        "backend/app/exceptions.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties/nonexistent \u2192 {error: 'Property not found', code: 'NOT_FOUND', status: 404}",
+        "POST /api/tickets with missing fields \u2192 {error: '...', code: 'VALIDATION_ERROR', status: 422}",
+        "POST /api/tickets/{id}/approve when status is not 'proposed' \u2192 {error: '...', code: 'CONFLICT', status: 409}"
+      ],
+      "known_limitations": []
+    },
+    {
+      "id": "s1-f3",
+      "name": "Knowledge-layer database schema",
+      "files_changed": [
+        "backend/app/models/owners.py",
+        "backend/app/models/buildings.py",
+        "backend/app/models/building_vendors.py",
+        "backend/app/models/vendors.py",
+        "backend/app/models/vendor_cases.py",
+        "backend/app/models/units.py",
+        "backend/app/models/call_sessions.py",
+        "backend/app/models/vendor_jobs.py",
+        "backend/app/models/extractions.py",
+        "backend/app/models/property_ticket_counters.py",
+        "backend/app/models/__init__.py",
+        "backend/alembic/versions/0004_knowledge_layer_schema.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Run: alembic upgrade head (from backend/)",
+        "Check DB: tables owners, buildings, building_vendors, vendors, vendor_cases, units, call_sessions, vendor_jobs, extractions, property_ticket_counters all exist",
+        "Verify vendor_jobs has completed_at column with index ix_vendor_jobs_completed_at",
+        "Verify extractions has composite index ix_extractions_status_created_at"
+      ],
+      "known_limitations": []
+    },
+    {
+      "id": "s1-f4",
+      "name": "Property and Ticket model extensions",
+      "files_changed": [
+        "backend/app/models/properties.py",
+        "backend/app/models/tickets.py",
+        "backend/app/schemas/properties.py",
+        "backend/app/schemas/tickets.py",
+        "backend/app/schemas/owners.py",
+        "backend/app/schemas/buildings.py",
+        "backend/app/schemas/vendors.py",
+        "backend/app/schemas/units.py",
+        "backend/app/schemas/base.py",
+        "backend/app/api/routes/properties.py",
+        "backend/app/api/routes/tickets.py",
+        "backend/app/api/routes/owners.py",
+        "backend/app/api/routes/buildings.py",
+        "backend/app/api/routes/vendors.py",
+        "backend/app/api/routes/units.py",
+        "backend/app/services/ticket_number_service.py",
+        "backend/alembic/versions/0005_property_ticket_extensions.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/owners",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/owners/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/buildings",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/buildings/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/vendors",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/vendors/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/properties/{propertyId}/units",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/api/tickets/{id}/approve",
+          "body": {}
+        },
+        {
+          "method": "POST",
+          "path": "/api/tickets/{id}/reject",
+          "body": {
+            "reason": "optional string"
+          }
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "After /api/dev/reset: GET /api/properties/p1 \u2192 response includes buildingId, ownerId, city, phone, email in camelCase",
+        "GET /api/tickets/t-7831 \u2192 response includes num='GAR-118', risk, excerpt, raisedByPhone in camelCase",
+        "GET /api/tickets?status=proposed \u2192 returns t-7831",
+        "GET /api/owners \u2192 returns o1 (WEG Gartenstra\u00dfe 42)",
+        "GET /api/vendors \u2192 returns v1-v4",
+        "GET /api/properties/p1/units \u2192 returns 8 units (1A-5A + 2B, 3B, E1)",
+        "POST /api/tickets/t-7831/approve \u2192 409 CONFLICT (status is 'proposed' - valid transition but needs proposal check)",
+        "Old 'open' ticket rows: SELECT status FROM tickets WHERE status='open' \u2192 0 rows"
+      ],
+      "known_limitations": [
+        "Ticket num auto-generation requires a property_ticket_counters row; gracefully skips if missing",
+        "Status transition validation is basic; full state-machine guards deferred"
+      ]
+    },
+    {
+      "id": "s1-f5",
+      "name": "Seed data aligned to frontend mocks",
+      "files_changed": [
+        "backend/app/services/seed_service.py",
+        "backend/app/api/routes/dev.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/dev/reset",
+          "body": {}
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "POST /api/dev/reset \u2192 {seed_result: {seeded: true, properties: ['p1...', 'p2...', 'p3...']}}",
+        "GET /api/properties \u2192 3 properties: p1 (Gartenstra\u00dfe 42), p2 (Brunnenstra\u00dfe 18), p3 (Linienstra\u00dfe 77)",
+        "GET /api/properties/p1 \u2192 {id: 'p1', buildingId: 'b1', ownerId: 'o1', city: 'Berlin', phone: '+49 30 5550 1042'}",
+        "GET /api/owners/o1 \u2192 {id: 'o1', name: 'WEG Gartenstra\u00dfe 42', type: 'weg'}",
+        "GET /api/buildings/b1 \u2192 {id: 'b1', ownerId: 'o1', vendors: ['v1','v2','v3']}",
+        "GET /api/vendors/v1 \u2192 {id: 'v1', name: 'Heinz GmbH', trade: 'HVAC', slaHours: 24}",
+        "GET /api/properties/p1/units \u2192 8 units including u-1a, u-3b, u-e1",
+        "GET /api/tickets/t-7831 \u2192 {id: 't-7831', num: 'GAR-118', status: 'proposed', unitId: 'u-3b', proposal: {id: 'pr-7831'}}",
+        "POST /api/dev/reset (second call) \u2192 {seed_result: {seeded: false}} (idempotent)"
+      ],
+      "known_limitations": [
+        "Ticket t-7832 vendor job and t-7831 call session are seeded but not yet wired to the ticket GET response (vendor job/call session fields are separate models, not included in TicketOut yet)",
+        "Seed creates property_ticket_counters at last_num=120 (GAR-120 already used); new tickets will start at GAR-121"
+      ]
+    }
+  ],
+  "migrations_applied": [
+    "backend/alembic/versions/0004_knowledge_layer_schema.py",
+    "backend/alembic/versions/0005_property_ticket_extensions.py"
+  ],
+  "how_to_verify": {
+    "start_command": "cd backend && python run.py",
+    "base_url": "http://localhost:8000",
+    "auth": {
+      "description": "No authentication required for hackathon. All endpoints are open."
+    }
+  },
+  "regression_checks": [
+    "GET /api/v1/properties still returns 200 (backward-compat mount preserved)",
+    "GET /api/v1/health still works",
+    "POST /api/v1/dev/reset still works",
+    "Existing context routes at /api/context still work",
+    "Existing proposal routes at /api/proposals still work",
+    "Existing messages/chat at /api/messages still work"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "high",
+    "category": "database",
+    "file": "backend/app/models/properties.py",
+    "line_range": "1-20",
+    "description": "Model was reverted to pre-sprint state. Missing columns building_id, owner_id, city, phone, email. Migration 0005 adds these columns to the DB table, but the SQLAlchemy ORM model won't see them. Any code that sets property.building_id (e.g. seed_service.py) will raise AttributeError at runtime.",
+    "suggested_fix": "Restore the sprint-1 version: add building_id (FK buildings.id, SET NULL), owner_id (FK owners.id, SET NULL), city (Text nullable), phone (Text nullable), email (Text nullable) columns to the ORM model.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "database",
+    "file": "backend/app/models/tickets.py",
+    "line_range": "1-29",
+    "description": "Model was reverted to pre-sprint state. Missing columns num, unit_id, risk, excerpt, raised_by_phone, confidence, and the VALID_TICKET_STATUSES constant. Server default for status is 'open' instead of 'new'. Migration 0005 adds these columns but the ORM won't map them. seed_service.py sets ticket.num, ticket.risk, etc. which will fail with AttributeError. The 'open'\u2192'new' data migration in 0005 is also now inconsistent with the default.",
+    "suggested_fix": "Restore the sprint-1 version with all new columns, set server_default='new', and re-export VALID_TICKET_STATUSES = {'new','triaged','proposed','approved','awaiting_vendor','scheduled','in_progress','completed','resolved','rejected'}.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "error_handling",
+    "file": "backend/app/api/routes/tickets.py",
+    "line_range": "1-164",
+    "description": "Route file was reverted to pre-sprint state. Three critical regressions: (1) POST /api/tickets/{id}/approve and POST /api/tickets/{id}/reject endpoints are gone \u2014 these are part of the s1-f4 API contract. (2) valid_statuses set still contains only 5 old statuses ('open','proposed','approved','resolved','rejected') instead of 10 new ones; filtering by 'new','triaged', etc. returns 400. (3) create_ticket sets status='open' instead of 'new', contradicting migration 0005 and the API contract. (4) list_all_tickets is missing ?propertyId and ?risk query params required by the API spec.",
+    "suggested_fix": "Restore the sprint-1 version: use VALID_TICKET_STATUSES from the model, set status='new' on create, add propertyId/risk query params to list_all_tickets, add approve and reject endpoint handlers.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "pattern",
+    "file": "backend/app/api/routes/properties.py",
+    "line_range": "1-24",
+    "description": "Route file was reverted to pre-sprint state. The _enrich() function that populates computed fields (units, open_tickets, context_version) and new FK fields (building_id, owner_id, city, phone, email) is gone. GET /api/properties and GET /api/properties/{id} return the bare ORM object with no enrichment. The PropertyOut schema declares these fields but they will all be null, failing the acceptance criteria 'Property responses include all new fields'.",
+    "suggested_fix": "Restore the sprint-1 version with the _enrich() helper that queries Unit count, open Ticket count, and latest ContextVersion for each property before serializing.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "project_specific",
+    "file": "backend/app/services/seed_service.py",
+    "line_range": "1-381",
+    "description": "Seed service was reverted to the pre-sprint version that creates only 2 properties (Gartenstra\u00dfe and Lindenallee) with random gen_random_uuid() IDs. The sprint-1 requirement mandates stable string IDs (p1, p2, p3, b1, o1, v1\u2026v4, u-1a\u2026u-e1, t-7831, pr-7831). The reverted version also creates zero owners, buildings, vendors, units, vendor_cases, call_sessions, or property_ticket_counters rows \u2014 so none of those tables will be populated after /api/dev/reset, breaking all new API endpoints.",
+    "suggested_fix": "Restore the sprint-1 seed_service.py with stable IDs and full dataset: o1/o2 owners, b1/b2/b3 buildings, v1-v4 vendors, building_vendor assignments, p1/p2/p3 properties with FK references, 8 units for p1, 3 context versions (v11/v3/v5), property_ticket_counters, 3 tickets (t-7831/t-7832/t-7833), proposal pr-7831, call session cs-7831, vendor job vj-7832, vendor cases vc1/vc2/vc3.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "database",
+    "file": "backend/app/api/routes/dev.py",
+    "line_range": "21-39",
+    "description": "Dev reset route was reverted to the pre-sprint version. It deletes only 8 original tables (AuditLog, AgentProposal, Ticket, ContextSource, PropertyPolicy, ContextChunk, ContextVersion, Property) but does NOT delete the 10 new knowledge-layer tables (Owner, Building, BuildingVendor, Vendor, VendorCase, Unit, CallSession, VendorJob, Extraction, PropertyTicketCounter). When the new seed inserts rows with stable IDs into these tables on the second call, it will encounter PK-collision or FK-constraint errors because orphaned rows from the first call remain. Also, deleting Property before Unit will violate the FK constraint (units.property_id \u2192 properties.id CASCADE DELETE is on the DB but the ORM delete order bypasses it).",
+    "suggested_fix": "Restore the sprint-1 version of dev.py reset that deletes all knowledge-layer tables in correct reverse-FK order before calling run_seed: AuditLog \u2192 Attachment \u2192 OwnerMessage \u2192 VendorJob \u2192 CallSession \u2192 Extraction \u2192 PropertyTicketCounter \u2192 AgentProposal \u2192 Ticket \u2192 Unit \u2192 ContextSource \u2192 PropertyPolicy \u2192 ContextChunk \u2192 ContextVersion \u2192 VendorCase \u2192 BuildingVendor \u2192 Property \u2192 Building \u2192 Vendor \u2192 Owner.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "pattern",
+    "file": "backend/app/api/routes/buildings.py",
+    "line_range": "15-22",
+    "description": "In _enrich(), the variable `units_count` is computed via a query that always returns 0 (filter against empty list []) and then the variable is never used \u2014 `out.units = building.units_count` correctly reads from the stored counter instead. The dead query adds a useless DB round-trip on every building fetch.",
+    "suggested_fix": "Remove the dead `units_count = db.query(Unit).filter(Unit.property_id.in_([])).count()` line. The line `out.units = building.units_count` is sufficient.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "error_handling",
+    "file": "backend/app/api/routes/tickets.py",
+    "line_range": "N/A (sprint-1 version)",
+    "description": "In the sprint-1 version of reject_ticket, the body is typed as `Optional[dict] = None`. This is not a Pydantic schema \u2014 FastAPI cannot validate or document it. If a client sends a JSON body with a 'reason' field, FastAPI may treat it as a query param depending on version. The API contract specifies {\"reason\": \"optional free text\"} as the request body.",
+    "suggested_fix": "Replace `payload: Optional[dict] = None` with a Pydantic model: `class RejectRequest(BaseModel): reason: Optional[str] = None` and use that as the body parameter.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "pattern",
+    "file": "backend/app/main.py",
+    "line_range": "44-58",
+    "description": "_STATUS_CODES dict in main.py duplicates _CODE_MAP in app/exceptions.py. Two sources of truth for status\u2192code mapping that could diverge. main.py's dict is missing entries present in exceptions.py (405, 410, 413, 415, 503).",
+    "suggested_fix": "Remove _STATUS_CODES from main.py and import _CODE_MAP from app.exceptions, or delegate entirely to the http_exception_handler in exceptions.py.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "database",
+    "file": "backend/alembic/versions/0005_property_ticket_extensions.py",
+    "line_range": "52-55",
+    "description": "The migration calls op.alter_column() to change the server_default for status from 'open' to 'new'. op.alter_column with only server_default change works on PostgreSQL but the existing_type and existing_nullable must exactly match the live column definition. If a prior migration set nullable=False without explicit type declaration, this may emit a no-op or warning depending on Alembic version.",
+    "suggested_fix": "Add existing_server_default='open' parameter to the alter_column call to make the change explicit and idempotent.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "high",
+    "category": "database",
+    "file": "backend/app/models/properties.py",
+    "line_range": "1-20",
+    "description": "Model was reverted to pre-sprint state. Missing columns building_id, owner_id, city, phone, email. Migration 0005 adds these columns to the DB table, but the SQLAlchemy ORM model won't see them. Any code that sets property.building_id (e.g. seed_service.py) will raise AttributeError at runtime.",
+    "suggested_fix": "Restore the sprint-1 version: add building_id (FK buildings.id, SET NULL), owner_id (FK owners.id, SET NULL), city (Text nullable), phone (Text nullable), email (Text nullable) columns to the ORM model.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "database",
+    "file": "backend/app/models/tickets.py",
+    "line_range": "1-29",
+    "description": "Model was reverted to pre-sprint state. Missing columns num, unit_id, risk, excerpt, raised_by_phone, confidence, and the VALID_TICKET_STATUSES constant. Server default for status is 'open' instead of 'new'. Migration 0005 adds these columns but the ORM won't map them. seed_service.py sets ticket.num, ticket.risk, etc. which will fail with AttributeError. The 'open'\u2192'new' data migration in 0005 is also now inconsistent with the default.",
+    "suggested_fix": "Restore the sprint-1 version with all new columns, set server_default='new', and re-export VALID_TICKET_STATUSES = {'new','triaged','proposed','approved','awaiting_vendor','scheduled','in_progress','completed','resolved','rejected'}.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "error_handling",
+    "file": "backend/app/api/routes/tickets.py",
+    "line_range": "1-164",
+    "description": "Route file was reverted to pre-sprint state. Three critical regressions: (1) POST /api/tickets/{id}/approve and POST /api/tickets/{id}/reject endpoints are gone \u2014 these are part of the s1-f4 API contract. (2) valid_statuses set still contains only 5 old statuses ('open','proposed','approved','resolved','rejected') instead of 10 new ones; filtering by 'new','triaged', etc. returns 400. (3) create_ticket sets status='open' instead of 'new', contradicting migration 0005 and the API contract. (4) list_all_tickets is missing ?propertyId and ?risk query params required by the API spec.",
+    "suggested_fix": "Restore the sprint-1 version: use VALID_TICKET_STATUSES from the model, set status='new' on create, add propertyId/risk query params to list_all_tickets, add approve and reject endpoint handlers.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "pattern",
+    "file": "backend/app/api/routes/properties.py",
+    "line_range": "1-24",
+    "description": "Route file was reverted to pre-sprint state. The _enrich() function that populates computed fields (units, open_tickets, context_version) and new FK fields (building_id, owner_id, city, phone, email) is gone. GET /api/properties and GET /api/properties/{id} return the bare ORM object with no enrichment. The PropertyOut schema declares these fields but they will all be null, failing the acceptance criteria 'Property responses include all new fields'.",
+    "suggested_fix": "Restore the sprint-1 version with the _enrich() helper that queries Unit count, open Ticket count, and latest ContextVersion for each property before serializing.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "project_specific",
+    "file": "backend/app/services/seed_service.py",
+    "line_range": "1-381",
+    "description": "Seed service was reverted to the pre-sprint version that creates only 2 properties (Gartenstra\u00dfe and Lindenallee) with random gen_random_uuid() IDs. The sprint-1 requirement mandates stable string IDs (p1, p2, p3, b1, o1, v1\u2026v4, u-1a\u2026u-e1, t-7831, pr-7831). The reverted version also creates zero owners, buildings, vendors, units, vendor_cases, call_sessions, or property_ticket_counters rows \u2014 so none of those tables will be populated after /api/dev/reset, breaking all new API endpoints.",
+    "suggested_fix": "Restore the sprint-1 seed_service.py with stable IDs and full dataset: o1/o2 owners, b1/b2/b3 buildings, v1-v4 vendors, building_vendor assignments, p1/p2/p3 properties with FK references, 8 units for p1, 3 context versions (v11/v3/v5), property_ticket_counters, 3 tickets (t-7831/t-7832/t-7833), proposal pr-7831, call session cs-7831, vendor job vj-7832, vendor cases vc1/vc2/vc3.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "database",
+    "file": "backend/app/api/routes/dev.py",
+    "line_range": "21-39",
+    "description": "Dev reset route was reverted to the pre-sprint version. It deletes only 8 original tables (AuditLog, AgentProposal, Ticket, ContextSource, PropertyPolicy, ContextChunk, ContextVersion, Property) but does NOT delete the 10 new knowledge-layer tables (Owner, Building, BuildingVendor, Vendor, VendorCase, Unit, CallSession, VendorJob, Extraction, PropertyTicketCounter). When the new seed inserts rows with stable IDs into these tables on the second call, it will encounter PK-collision or FK-constraint errors because orphaned rows from the first call remain. Also, deleting Property before Unit will violate the FK constraint (units.property_id \u2192 properties.id CASCADE DELETE is on the DB but the ORM delete order bypasses it).",
+    "suggested_fix": "Restore the sprint-1 version of dev.py reset that deletes all knowledge-layer tables in correct reverse-FK order before calling run_seed: AuditLog \u2192 Attachment \u2192 OwnerMessage \u2192 VendorJob \u2192 CallSession \u2192 Extraction \u2192 PropertyTicketCounter \u2192 AgentProposal \u2192 Ticket \u2192 Unit \u2192 ContextSource \u2192 PropertyPolicy \u2192 ContextChunk \u2192 ContextVersion \u2192 VendorCase \u2192 BuildingVendor \u2192 Property \u2192 Building \u2192 Vendor \u2192 Owner.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "pattern",
+    "file": "backend/app/api/routes/buildings.py",
+    "line_range": "15-22",
+    "description": "In _enrich(), the variable `units_count` is computed via a query that always returns 0 (filter against empty list []) and then the variable is never used \u2014 `out.units = building.units_count` correctly reads from the stored counter instead. The dead query adds a useless DB round-trip on every building fetch.",
+    "suggested_fix": "Remove the dead `units_count = db.query(Unit).filter(Unit.property_id.in_([])).count()` line. The line `out.units = building.units_count` is sufficient.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "error_handling",
+    "file": "backend/app/api/routes/tickets.py",
+    "line_range": "N/A (sprint-1 version)",
+    "description": "In the sprint-1 version of reject_ticket, the body is typed as `Optional[dict] = None`. This is not a Pydantic schema \u2014 FastAPI cannot validate or document it. If a client sends a JSON body with a 'reason' field, FastAPI may treat it as a query param depending on version. The API contract specifies {\"reason\": \"optional free text\"} as the request body.",
+    "suggested_fix": "Replace `payload: Optional[dict] = None` with a Pydantic model: `class RejectRequest(BaseModel): reason: Optional[str] = None` and use that as the body parameter.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "pattern",
+    "file": "backend/app/main.py",
+    "line_range": "44-58",
+    "description": "_STATUS_CODES dict in main.py duplicates _CODE_MAP in app/exceptions.py. Two sources of truth for status\u2192code mapping that could diverge. main.py's dict is missing entries present in exceptions.py (405, 410, 413, 415, 503).",
+    "suggested_fix": "Remove _STATUS_CODES from main.py and import _CODE_MAP from app.exceptions, or delegate entirely to the http_exception_handler in exceptions.py.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "database",
+    "file": "backend/alembic/versions/0005_property_ticket_extensions.py",
+    "line_range": "52-55",
+    "description": "The migration calls op.alter_column() to change the server_default for status from 'open' to 'new'. op.alter_column with only server_default change works on PostgreSQL but the existing_type and existing_nullable must exactly match the live column definition. If a prior migration set nullable=False without explicit type declaration, this may emit a no-op or warning depending on Alembic version.",
+    "suggested_fix": "Add existing_server_default='open' parameter to the alter_column call to make the change explicit and idempotent.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 1: API Foundation & Schema Expansion.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-004212",
+  "sprint_number": 1,
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "features_implemented": [
+    {
+      "id": "s1-f1",
+      "name": "Re-prefix API routes from /api/v1 to /api",
+      "files_changed": [
+        "backend/app/main.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/properties",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/tickets",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "body": null
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties \u2192 200 list",
+        "GET /api/v1/properties \u2192 200 list (backward compat)",
+        "GET /api/health \u2192 {status: 'ok'}",
+        "GET /api/docs \u2192 Swagger UI loads"
+      ],
+      "known_limitations": [
+        "/api/v1 parallel mount means duplicate operations in OpenAPI docs under -v1 tags"
+      ]
+    },
+    {
+      "id": "s1-f2",
+      "name": "Standardized error envelope",
+      "files_changed": [
+        "backend/app/main.py",
+        "backend/app/exceptions.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties/nonexistent \u2192 {error: 'Property not found', code: 'NOT_FOUND', status: 404}",
+        "POST /api/tickets with missing fields \u2192 {error: '...', code: 'VALIDATION_ERROR', status: 422}",
+        "POST /api/tickets/{id}/approve when status is not 'proposed' \u2192 {error: '...', code: 'CONFLICT', status: 409}"
+      ],
+      "known_limitations": []
+    },
+    {
+      "id": "s1-f3",
+      "name": "Knowledge-layer database schema",
+      "files_changed": [
+        "backend/app/models/owners.py",
+        "backend/app/models/buildings.py",
+        "backend/app/models/building_vendors.py",
+        "backend/app/models/vendors.py",
+        "backend/app/models/vendor_cases.py",
+        "backend/app/models/units.py",
+        "backend/app/models/call_sessions.py",
+        "backend/app/models/vendor_jobs.py",
+        "backend/app/models/extractions.py",
+        "backend/app/models/property_ticket_counters.py",
+        "backend/app/models/__init__.py",
+        "backend/alembic/versions/0004_knowledge_layer_schema.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Run: alembic upgrade head (from backend/)",
+        "Check DB: tables owners, buildings, building_vendors, vendors, vendor_cases, units, call_sessions, vendor_jobs, extractions, property_ticket_counters all exist",
+        "Verify vendor_jobs has completed_at column with index ix_vendor_jobs_completed_at",
+        "Verify extractions has composite index ix_extractions_status_created_at"
+      ],
+      "known_limitations": []
+    },
+    {
+      "id": "s1-f4",
+      "name": "Property and Ticket model extensions",
+      "files_changed": [
+        "backend/app/models/properties.py",
+        "backend/app/models/tickets.py",
+        "backend/app/schemas/properties.py",
+        "backend/app/schemas/tickets.py",
+        "backend/app/schemas/owners.py",
+        "backend/app/schemas/buildings.py",
+        "backend/app/schemas/vendors.py",
+        "backend/app/schemas/units.py",
+        "backend/app/schemas/base.py",
+        "backend/app/api/routes/properties.py",
+        "backend/app/api/routes/tickets.py",
+        "backend/app/api/routes/owners.py",
+        "backend/app/api/routes/buildings.py",
+        "backend/app/api/routes/vendors.py",
+        "backend/app/api/routes/units.py",
+        "backend/app/services/ticket_number_service.py",
+        "backend/alembic/versions/0005_property_ticket_extensions.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/owners",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/owners/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/buildings",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/buildings/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/vendors",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/vendors/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/properties/{propertyId}/units",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/api/tickets/{id}/approve",
+          "body": {}
+        },
+        {
+          "method": "POST",
+          "path": "/api/tickets/{id}/reject",
+          "body": {
+            "reason": "optional string"
+          }
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "After /api/dev/reset: GET /api/properties/p1 \u2192 response includes buildingId, ownerId, city, phone, email in camelCase",
+        "GET /api/tickets/t-7831 \u2192 response includes num='GAR-118', risk, excerpt, raisedByPhone in camelCase",
+        "GET /api/tickets?status=proposed \u2192 returns t-7831",
+        "GET /api/owners \u2192 returns o1 (WEG Gartenstra\u00dfe 42)",
+        "GET /api/vendors \u2192 returns v1-v4",
+        "GET /api/properties/p1/units \u2192 returns 8 units (1A-5A + 2B, 3B, E1)",
+        "POST /api/tickets/t-7831/approve \u2192 409 CONFLICT (status is 'proposed' - valid transition but needs proposal check)",
+        "Old 'open' ticket rows: SELECT status FROM tickets WHERE status='open' \u2192 0 rows"
+      ],
+      "known_limitations": [
+        "Ticket num auto-generation requires a property_ticket_counters row; gracefully skips if missing",
+        "Status transition validation is basic; full state-machine guards deferred"
+      ]
+    },
+    {
+      "id": "s1-f5",
+      "name": "Seed data aligned to frontend mocks",
+      "files_changed": [
+        "backend/app/services/seed_service.py",
+        "backend/app/api/routes/dev.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/dev/reset",
+          "body": {}
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "POST /api/dev/reset \u2192 {seed_result: {seeded: true, properties: ['p1...', 'p2...', 'p3...']}}",
+        "GET /api/properties \u2192 3 properties: p1 (Gartenstra\u00dfe 42), p2 (Brunnenstra\u00dfe 18), p3 (Linienstra\u00dfe 77)",
+        "GET /api/properties/p1 \u2192 {id: 'p1', buildingId: 'b1', ownerId: 'o1', city: 'Berlin', phone: '+49 30 5550 1042'}",
+        "GET /api/owners/o1 \u2192 {id: 'o1', name: 'WEG Gartenstra\u00dfe 42', type: 'weg'}",
+        "GET /api/buildings/b1 \u2192 {id: 'b1', ownerId: 'o1', vendors: ['v1','v2','v3']}",
+        "GET /api/vendors/v1 \u2192 {id: 'v1', name: 'Heinz GmbH', trade: 'HVAC', slaHours: 24}",
+        "GET /api/properties/p1/units \u2192 8 units including u-1a, u-3b, u-e1",
+        "GET /api/tickets/t-7831 \u2192 {id: 't-7831', num: 'GAR-118', status: 'proposed', unitId: 'u-3b', proposal: {id: 'pr-7831'}}",
+        "POST /api/dev/reset (second call) \u2192 {seed_result: {seeded: false}} (idempotent)"
+      ],
+      "known_limitations": [
+        "Ticket t-7832 vendor job and t-7831 call session are seeded but not yet wired to the ticket GET response (vendor job/call session fields are separate models, not included in TicketOut yet)",
+        "Seed creates property_ticket_counters at last_num=120 (GAR-120 already used); new tickets will start at GAR-121"
+      ]
+    }
+  ],
+  "migrations_applied": [
+    "backend/alembic/versions/0004_knowledge_layer_schema.py",
+    "backend/alembic/versions/0005_property_ticket_extensions.py"
+  ],
+  "how_to_verify": {
+    "start_command": "cd backend && python run.py",
+    "base_url": "http://localhost:8000",
+    "auth": {
+      "description": "No authentication required for hackathon. All endpoints are open."
+    }
+  },
+  "regression_checks": [
+    "GET /api/v1/properties still returns 200 (backward-compat mount preserved)",
+    "GET /api/v1/health still works",
+    "POST /api/v1/dev/reset still works",
+    "Existing context routes at /api/context still work",
+    "Existing proposal routes at /api/proposals still work",
+    "Existing messages/chat at /api/messages still work"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 1: API Foundation & Schema Expansion.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-004212",
+  "sprint_number": 1,
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "features_implemented": [
+    {
+      "id": "s1-f1",
+      "name": "Re-prefix API routes from /api/v1 to /api",
+      "files_changed": [
+        "backend/app/main.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/properties",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/tickets",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "body": null
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties \u2192 200 list",
+        "GET /api/v1/properties \u2192 200 list (backward compat)",
+        "GET /api/health \u2192 {status: 'ok'}",
+        "GET /api/docs \u2192 Swagger UI loads"
+      ],
+      "known_limitations": [
+        "/api/v1 parallel mount means duplicate operations in OpenAPI docs under -v1 tags"
+      ]
+    },
+    {
+      "id": "s1-f2",
+      "name": "Standardized error envelope",
+      "files_changed": [
+        "backend/app/main.py",
+        "backend/app/exceptions.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties/nonexistent \u2192 {error: 'Property not found', code: 'NOT_FOUND', status: 404}",
+        "POST /api/tickets with missing fields \u2192 {error: '...', code: 'VALIDATION_ERROR', status: 422}",
+        "POST /api/tickets/{id}/approve when status is not 'proposed' \u2192 {error: '...', code: 'CONFLICT', status: 409}"
+      ],
+      "known_limitations": []
+    },
+    {
+      "id": "s1-f3",
+      "name": "Knowledge-layer database schema",
+      "files_changed": [
+        "backend/app/models/owners.py",
+        "backend/app/models/buildings.py",
+        "backend/app/models/building_vendors.py",
+        "backend/app/models/vendors.py",
+        "backend/app/models/vendor_cases.py",
+        "backend/app/models/units.py",
+        "backend/app/models/call_sessions.py",
+        "backend/app/models/vendor_jobs.py",
+        "backend/app/models/extractions.py",
+        "backend/app/models/property_ticket_counters.py",
+        "backend/app/models/__init__.py",
+        "backend/alembic/versions/0004_knowledge_layer_schema.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Run: alembic upgrade head (from backend/)",
+        "Check DB: tables owners, buildings, building_vendors, vendors, vendor_cases, units, call_sessions, vendor_jobs, extractions, property_ticket_counters all exist",
+        "Verify vendor_jobs has completed_at column with index ix_vendor_jobs_completed_at",
+        "Verify extractions has composite index ix_extractions_status_created_at"
+      ],
+      "known_limitations": []
+    },
+    {
+      "id": "s1-f4",
+      "name": "Property and Ticket model extensions",
+      "files_changed": [
+        "backend/app/models/properties.py",
+        "backend/app/models/tickets.py",
+        "backend/app/schemas/properties.py",
+        "backend/app/schemas/tickets.py",
+        "backend/app/schemas/owners.py",
+        "backend/app/schemas/buildings.py",
+        "backend/app/schemas/vendors.py",
+        "backend/app/schemas/units.py",
+        "backend/app/schemas/base.py",
+        "backend/app/api/routes/properties.py",
+        "backend/app/api/routes/tickets.py",
+        "backend/app/api/routes/owners.py",
+        "backend/app/api/routes/buildings.py",
+        "backend/app/api/routes/vendors.py",
+        "backend/app/api/routes/units.py",
+        "backend/app/services/ticket_number_service.py",
+        "backend/alembic/versions/0005_property_ticket_extensions.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/owners",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/owners/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/buildings",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/buildings/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/vendors",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/vendors/{id}",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/properties/{propertyId}/units",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/api/tickets/{id}/approve",
+          "body": {}
+        },
+        {
+          "method": "POST",
+          "path": "/api/tickets/{id}/reject",
+          "body": {
+            "reason": "optional string"
+          }
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "After /api/dev/reset: GET /api/properties/p1 \u2192 response includes buildingId, ownerId, city, phone, email in camelCase",
+        "GET /api/tickets/t-7831 \u2192 response includes num='GAR-118', risk, excerpt, raisedByPhone in camelCase",
+        "GET /api/tickets?status=proposed \u2192 returns t-7831",
+        "GET /api/owners \u2192 returns o1 (WEG Gartenstra\u00dfe 42)",
+        "GET /api/vendors \u2192 returns v1-v4",
+        "GET /api/properties/p1/units \u2192 returns 8 units (1A-5A + 2B, 3B, E1)",
+        "POST /api/tickets/t-7831/approve \u2192 409 CONFLICT (status is 'proposed' - valid transition but needs proposal check)",
+        "Old 'open' ticket rows: SELECT status FROM tickets WHERE status='open' \u2192 0 rows"
+      ],
+      "known_limitations": [
+        "Ticket num auto-generation requires a property_ticket_counters row; gracefully skips if missing",
+        "Status transition validation is basic; full state-machine guards deferred"
+      ]
+    },
+    {
+      "id": "s1-f5",
+      "name": "Seed data aligned to frontend mocks",
+      "files_changed": [
+        "backend/app/services/seed_service.py",
+        "backend/app/api/routes/dev.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/dev/reset",
+          "body": {}
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "POST /api/dev/reset \u2192 {seed_result: {seeded: true, properties: ['p1...', 'p2...', 'p3...']}}",
+        "GET /api/properties \u2192 3 properties: p1 (Gartenstra\u00dfe 42), p2 (Brunnenstra\u00dfe 18), p3 (Linienstra\u00dfe 77)",
+        "GET /api/properties/p1 \u2192 {id: 'p1', buildingId: 'b1', ownerId: 'o1', city: 'Berlin', phone: '+49 30 5550 1042'}",
+        "GET /api/owners/o1 \u2192 {id: 'o1', name: 'WEG Gartenstra\u00dfe 42', type: 'weg'}",
+        "GET /api/buildings/b1 \u2192 {id: 'b1', ownerId: 'o1', vendors: ['v1','v2','v3']}",
+        "GET /api/vendors/v1 \u2192 {id: 'v1', name: 'Heinz GmbH', trade: 'HVAC', slaHours: 24}",
+        "GET /api/properties/p1/units \u2192 8 units including u-1a, u-3b, u-e1",
+        "GET /api/tickets/t-7831 \u2192 {id: 't-7831', num: 'GAR-118', status: 'proposed', unitId: 'u-3b', proposal: {id: 'pr-7831'}}",
+        "POST /api/dev/reset (second call) \u2192 {seed_result: {seeded: false}} (idempotent)"
+      ],
+      "known_limitations": [
+        "Ticket t-7832 vendor job and t-7831 call session are seeded but not yet wired to the ticket GET response (vendor job/call session fields are separate models, not included in TicketOut yet)",
+        "Seed creates property_ticket_counters at last_num=120 (GAR-120 already used); new tickets will start at GAR-121"
+      ]
+    }
+  ],
+  "migrations_applied": [
+    "backend/alembic/versions/0004_knowledge_layer_schema.py",
+    "backend/alembic/versions/0005_property_ticket_extensions.py"
+  ],
+  "how_to_verify": {
+    "start_command": "cd backend && python run.py",
+    "base_url": "http://localhost:8000",
+    "auth": {
+      "description": "No authentication required for hackathon. All endpoints are open."
+    }
+  },
+  "regression_checks": [
+    "GET /api/v1/properties still returns 200 (backward-compat mount preserved)",
+    "GET /api/v1/health still works",
+    "POST /api/v1/dev/reset still works",
+    "Existing context routes at /api/context still work",
+    "Existing proposal routes at /api/proposals still work",
+    "Existing messages/chat at /api/messages still work"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.

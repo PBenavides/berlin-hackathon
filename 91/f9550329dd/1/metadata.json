@@ -1,0 +1,52 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "91f9550329dd",
+  "session_id": "ca501b9c-6e82-4d85-81b7-8f2bb7088b22",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T00:01:50.368465Z",
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/app/api/routes/dev.py",
+    "backend/app/api/routes/tickets.py",
+    "backend/app/main.py",
+    "backend/app/schemas/tickets.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "4edf51992b52",
+  "token_usage": {
+    "input_tokens": 130,
+    "cache_creation_tokens": 520092,
+    "cache_read_tokens": 8821187,
+    "output_tokens": 71294,
+    "api_call_count": 118
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T00:01:50.309886Z",
+    "agent_lines": 385,
+    "agent_removed": 65,
+    "human_added": 734,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1119,
+    "total_lines_changed": 1201,
+    "agent_percentage": 37.468776019983345,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 400,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "hermes/upstream/.env.example": 400
+      }
+    }
+  ]
+}
