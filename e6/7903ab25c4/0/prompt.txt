@@ -1,0 +1,487 @@
+## Task
+Implement Sprint 2: Agent Action Types & Streaming Actions
+
+## Branch
+Create and switch to branch: `ai/sprint-2-agent-action-types-streaming-actions`
+Run: `git checkout -b ai/sprint-2-agent-action-types-streaming-actions` (or `git checkout ai/sprint-2-agent-action-types-streaming-actions` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 2,
+  "name": "Agent Action Types & Streaming Actions",
+  "goal": "Extend the Hermes agent with new action types (send email, respond to tenant, send financial report) and make all actions stream visibly in the UI.",
+  "features": [
+    {
+      "id": "s2-f1",
+      "name": "Agent Email-to-Vendor Action",
+      "description": "Add a new agent write-tool that proposes sending an email to a vendor. When the agent determines a ticket requires vendor coordination, it drafts an email (recipient, subject, body) based on the vendor's contact info from context and the ticket details. The email is not actually sent \u2014 it's displayed as a proposed action in the UI showing exactly what would be sent. In auto-mode (Sprint 3), this action is auto-confirmed and logged as 'sent'.",
+      "acceptance_criteria": [
+        "The agent can propose a 'send vendor email' action with recipient, subject, and body fields",
+        "The email content references the specific ticket details and vendor information from context",
+        "The proposed email is visible in the ticket detail page as a distinct action card",
+        "The action follows the existing proposal-envelope pattern (tool \u2192 confirmEndpoint \u2192 UI button)",
+        "Email actions are logged in the audit trail"
+      ],
+      "touches": [
+        "agent tools",
+        "schemas",
+        "ticket detail UI",
+        "audit service"
+      ],
+      "risk_notes": "Must follow the existing write-tool pattern where actions are proposed, not executed directly."
+    },
+    {
+      "id": "s2-f2",
+      "name": "Agent Tenant-Response Action",
+      "description": "Add a new agent write-tool that proposes a response to a tenant inquiry. The agent reads the tenant's question from the ticket, looks up the answer in the property context (FAQ, policies, rules), and drafts a response. The response includes the channel it would be sent through (matching the ticket's source channel \u2014 email reply, SMS, portal message). The drafted response is displayed as a proposed action.",
+      "acceptance_criteria": [
+        "The agent can propose a 'respond to tenant' action with the response text and target channel",
+        "Responses are contextually accurate \u2014 they use information from the property's context layers",
+        "The response channel matches the ticket's source (email \u2192 email reply, phone \u2192 SMS, portal \u2192 portal message)",
+        "The proposed response is visible in the ticket detail page as a distinct action card",
+        "Response actions are logged in the audit trail"
+      ],
+      "touches": [
+        "agent tools",
+        "schemas",
+        "ticket detail UI",
+        "audit service"
+      ],
+      "risk_notes": null
+    },
+    {
+      "id": "s2-f3",
+      "name": "Agent Owner-Financial-Report Action",
+      "description": "Add a new agent write-tool that proposes sending financial information to a property owner. When a ticket involves cost reporting, invoice forwarding, or arrears notification, the agent compiles the relevant data (from vendor jobs, ticket history, unit rent data) and drafts a financial summary to send to the owner. The summary respects the owner's communication preferences from context.",
+      "acceptance_criteria": [
+        "The agent can propose a 'send owner report' action with recipient, format, and content summary",
+        "Financial data is pulled from relevant sources (vendor job costs, unit rents, ticket history)",
+        "The owner's preferred communication channel and language are respected",
+        "The proposed report is visible in the ticket detail page as a distinct action card",
+        "Financial actions are logged in the audit trail"
+      ],
+      "touches": [
+        "agent tools",
+        "schemas",
+        "ticket detail UI",
+        "audit service"
+      ],
+      "risk_notes": "Financial data must come from seed data \u2014 ensure seed includes enough cost/rent data for realistic reports."
+    },
+    {
+      "id": "s2-f4",
+      "name": "Agent Human-Escalation Action",
+      "description": "Add a new agent write-tool that escalates a ticket to a human operator when the agent determines it cannot or should not resolve it autonomously. This happens when the ticket matches an escalation policy (e.g., legal issue, cost above threshold, safety concern). The escalation includes the reason, the specific policy that triggered it, and a recommended next step for the human.",
+      "acceptance_criteria": [
+        "The agent can propose an 'escalate to human' action with reason, triggering policy, and recommendation",
+        "At least one demo ticket reliably triggers this escalation path",
+        "Escalated tickets move to a visible 'needs human attention' state",
+        "The escalation is visible in both the ticket detail and the overview/escalations page",
+        "Escalation actions are logged in the audit trail"
+      ],
+      "touches": [
+        "agent tools",
+        "schemas",
+        "escalation routes",
+        "ticket detail UI",
+        "overview UI"
+      ],
+      "risk_notes": "There's already an escalations page and route \u2014 integrate with existing infrastructure rather than building parallel."
+    },
+    {
+      "id": "s2-f5",
+      "name": "Streamable Action Cards in Ticket Detail",
+      "description": "Redesign the ticket detail page to display agent actions as a real-time stream of action cards. As the agent works on a ticket, each step it takes (reading context, evaluating policies, drafting an email, proposing a vendor dispatch) appears as a new card that animates in. Each card shows: the action type (icon + label), a brief description of what the agent did or proposes, the timestamp, and the status (thinking \u2192 proposed \u2192 confirmed/rejected). This creates a visible narrative of the agent's reasoning process.",
+      "acceptance_criteria": [
+        "Agent actions appear as a vertical stream of cards on the ticket detail page",
+        "Cards animate in as they happen (not all at once after completion)",
+        "Each card shows action type, description, timestamp, and status",
+        "Read actions (context lookup, ticket read) show as completed immediately",
+        "Write actions (email, response, dispatch) show as 'proposed' with a confirm/reject option in manual mode",
+        "The stream updates via SSE or polling without requiring a page refresh"
+      ],
+      "touches": [
+        "ticket detail UI",
+        "SSE/streaming infrastructure",
+        "action schemas"
+      ],
+      "risk_notes": "The existing chat engine already uses SSE streaming \u2014 reuse that infrastructure for action streaming."
+    }
+  ],
+  "success_criteria": [
+    "The agent can resolve tickets using four distinct action types: vendor email, tenant response, owner report, human escalation",
+    "Every agent action streams into the ticket detail page in real-time as visible action cards",
+    "Running the pipeline on any demo ticket produces a visible, understandable trail of agent activity"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "The existing Hermes agent uses Google Gemini 2.5 Flash via OpenRouter \u2014 all new agent actions must work through this same LLM gateway",
+  "Write tools follow the proposal-envelope pattern \u2014 they propose actions for human confirmation, never execute directly",
+  "The SSE streaming infrastructure already exists in the chat engine \u2014 reuse it for action streaming rather than building a parallel system",
+  "The seed service must remain idempotent \u2014 safe to run multiple times without duplicating data",
+  "The frontend is a Next.js 15 app in a pnpm monorepo with shadcn/ui components \u2014 all new UI must use this stack",
+  "The backend uses SQLAlchemy with Alembic migrations and PostgreSQL \u2014 new models require proper migrations",
+  "All API responses must follow the existing standardized format with camelCase serialization",
+  "The existing /dev/reset endpoint drops all tables \u2014 it must be extended to handle any new models/tables",
+  "Context files use a 4-layer markdown format (vendor/owner/building/property) \u2014 additions must respect this structure",
+  "The agent has a 50-turn budget per invocation (HERMES_MAX_TURNS) \u2014 batch processing must manage this per-ticket"
+]
+
+## Out of Scope
+[
+  "Actually sending real emails, SMS, or messages to external systems \u2014 all actions are simulated/displayed in the UI",
+  "Multi-user authentication or role-based access \u2014 this is a single-presenter demo environment",
+  "Production deployment or scaling \u2014 this runs locally or on a single demo instance",
+  "Modifying the core Hermes agent LLM or switching providers",
+  "Mobile responsiveness \u2014 the demo targets a laptop/projector presentation setup",
+  "Internationalization beyond the existing German ticket content",
+  "Integration with real Slack, email, or SMS providers",
+  "Persistent demo state across server restarts \u2014 reset is expected after restart"
+]
+
+## Previous QA Bugs to Fix
+The evaluator found these bugs in your previous attempt. Fix them ALL:
+
+[
+  {
+    "id": "bug-001",
+    "severity": "high",
+    "category": "functionality",
+    "description": "Agent always runs in stub mode by default. agent_runtime.py reads the API key via os.environ.get('OPENROUTER_API_KEY'), which returns None because pydantic-settings loads the key into the Settings object but does NOT export it to os.environ. As a result, all ticket agent-run requests produce only faux-streaming text ('You asked: ...') with no tool calls, no action_card events, and no persisted actions \u2014 unless the key is explicitly exported in the shell before starting the server.",
+    "steps_to_reproduce": [
+      "Start backend with: cd backend && python run.py",
+      "Navigate to any ticket detail page (e.g., /ticket/t-7843)",
+      "Click 'Run Hermes'",
+      "Observe SSE stream: only delta events appear, event type is 'done' with turns=0",
+      "Check /api/tickets/{id}/actions \u2014 returns []"
+    ],
+    "expected": "Agent should make real LLM calls with tool use, emitting tool_call, tool_result, action_card, and action_proposal SSE events",
+    "actual": "Agent falls back to _stub_stream() (turns=0) producing only text deltas matching the format 'You asked: ... Open items: ...'",
+    "file_hint": "backend/app/services/agent_runtime.py line 200 \u2014 replace os.environ.get('OPENROUTER_API_KEY') with get_settings().openrouter_api_key"
+  },
+  {
+    "id": "bug-002",
+    "severity": "high",
+    "category": "functionality",
+    "description": "LLM consistently calls get_ticket() with the ticket display number (e.g. 'GAR-126') instead of the internal ticket ID (e.g. 't-7843'). This causes get_ticket to return 'Ticket not found' and the agent aborts without proposing any action (except escalation which the LLM sometimes proposes anyway). All four write-action types (vendor email, tenant response, owner report, escalation) fail to load full ticket context.",
+    "steps_to_reproduce": [
+      "Start backend with OPENROUTER_API_KEY exported in shell",
+      "POST /api/tickets/t-7834/agent-run with empty body",
+      "Watch SSE: first action_card has args={'ticketId': 'GAR-121'} (ticket number, not ID)",
+      "tool_result shows error: 'Ticket GAR-121 not found'",
+      "Agent responds: 'I cannot find ticket GAR-121. Please provide a valid ticket ID.'",
+      "No action proposal cards are emitted for vendor email, tenant response, or owner report"
+    ],
+    "expected": "LLM should call get_ticket('t-7834') using the internal ID provided in the prompt instruction 'Call get_ticket(\"t-7834\") to read full details'",
+    "actual": "LLM calls get_ticket('GAR-121') using the ticket number from the opening line 'Process ticket GAR-121' \u2014 overriding the explicit ID instruction",
+    "file_hint": "backend/app/api/routes/agent_run.py lines 199-213 \u2014 the user_message starts with 'Process ticket {ticket_ref}' (ticket number) which primes the LLM to use the number; ticket_ref should be replaced with ticket_id in the opening line"
+  },
+  {
+    "id": "bug-003",
+    "severity": "high",
+    "category": "functionality",
+    "description": "When escalation IS proposed (e.g. for t-7843), the confirmEndpoint is constructed using the LLM-supplied ticketId argument ('GAR-126') not the real internal ticket ID. Clicking Confirm triggers a POST to /api/tickets/GAR-126/escalate which returns 404, silently failing the escalation.",
+    "steps_to_reproduce": [
+      "With API key exported, run Hermes on /ticket/t-7843",
+      "Reload page after run completes",
+      "Expand escalation card \u2014 verify confirmEndpoint shows '/api/tickets/GAR-126/escalate' in payload (visible in browser devtools network)",
+      "Click 'Confirm'",
+      "Check browser console: 'Failed to load resource: 404 Not Found @ /api/tickets/GAR-126/escalate'",
+      "Escalation card remains 'proposed' \u2014 no state change"
+    ],
+    "expected": "confirmEndpoint should be /api/tickets/t-7843/escalate (using the real ticket ID from the URL)",
+    "actual": "confirmEndpoint is /api/tickets/GAR-126/escalate (derived from LLM argument), returns 404",
+    "file_hint": "backend/app/services/agent_tools.py line 438 \u2014 _propose_escalate_to_human constructs confirmEndpoint from args.get('ticketId') which is LLM-supplied; should be cross-validated or the real ticket_id injected at the route level in agent_run.py"
+  },
+  {
+    "id": "bug-004",
+    "severity": "medium",
+    "category": "ux",
+    "description": "During live SSE streaming, action card status badge is stuck at 'thinking...' even after the action_proposal event fires and the DB status is updated to 'proposed'. The Confirm/Dismiss buttons only appear after a full page reload. This is caused by ActionCard using useState(action.status) which only initializes from the prop and does not react to subsequent prop updates from the SSE-driven parent re-render.",
+    "steps_to_reproduce": [
+      "With API key exported, navigate to /ticket/t-7843",
+      "Click 'Run Hermes'",
+      "Watch streaming: escalation card appears with 'thinking...' badge",
+      "Run completes ('complete' badge on header), but escalation card still shows 'thinking...'",
+      "No Confirm button visible",
+      "Reload the page \u2014 card now shows 'proposed' badge with Confirm/Dismiss buttons"
+    ],
+    "expected": "Badge should update from 'thinking...' to 'proposed' in real-time as action_proposal SSE event fires; Confirm button should appear immediately without reload",
+    "actual": "Badge stays 'thinking...' during streaming; requires page reload for correct status display",
+    "file_hint": "frontend/apps/web/components/action-card.tsx line 183 \u2014 add useEffect(() => { setLocalStatus(action.status); }, [action.status]) to sync state when prop changes during streaming"
+  },
+  {
+    "id": "bug-005",
+    "severity": "low",
+    "category": "functionality",
+    "description": "In the Hermes Chat (/chat), list_tickets tool calls use a derived slug (e.g. 'gartenstrasse-42') as the propertyId instead of the internal ID ('p1'). The list_tickets executor filters by Ticket.property_id == pid, returning 0 results even though 9 tickets exist for that property.",
+    "steps_to_reproduce": [
+      "Navigate to /chat, select Gartenstra\u00dfe 42 property",
+      "Send: 'List all open tickets for Gartenstra\u00dfe 42'",
+      "Observe SSE: tool_call args contain {'propertyId': 'gartenstrasse-42', ...}",
+      "tool_result returns count=0 even though tickets exist"
+    ],
+    "expected": "Tool call should use propertyId='p1' (matching the database record) to return the 9 open tickets",
+    "actual": "Tool call uses propertyId='gartenstrasse-42' (LLM-derived slug), returns 0 results",
+    "file_hint": "backend/app/services/agent_runtime.py \u2014 the system prompt includes property context but doesn't explicitly tell the LLM to use the internal property ID 'p1'; the ctx_preview should include the exact propertyId to use in tool calls"
+  }
+]
+
+Evaluator notes: Sprint 2 implemented a solid architectural foundation for streaming action cards (SSE route, AgentAction model, action-card component, four new write tool types), but two critical bugs prevent the features from working end-to-end in the default configuration. Bug-001 (os.environ vs pydantic-settings) makes the agent permanently fall back to stub mode when started normally with 'python run.py'. Bug-002 (LLM uses display ticket number as tool argument) causes get_ticket() to fail on every invocation, blocking vendor email, tenant response, and owner report actions from ever reaching the proposal stage. Escalation partially works because the LLM skips ahead to escalate_to_human even after get_ticket fails, but Bug-003 makes the Confirm button 404. The UI components (action-card.tsx, escalations page) are well-designed with proper styling and badge states, but Bug-004 prevents live status updates during streaming. All regression checks pass cleanly. Recommendation: fix agent_runtime.py to use get_settings().openrouter_api_key, and rewrite the user_message in agent_run.py to lead with the internal ticket ID rather than the display number.
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 2 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-031913" in the contract.
+Set branch to "ai/sprint-2-agent-action-types-streaming-actions" in the contract.
+
+---
+
+## Task
+Implement Sprint 2: Agent Action Types & Streaming Actions
+
+## Branch
+Create and switch to branch: `ai/sprint-2-agent-action-types-streaming-actions`
+Run: `git checkout -b ai/sprint-2-agent-action-types-streaming-actions` (or `git checkout ai/sprint-2-agent-action-types-streaming-actions` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 2,
+  "name": "Agent Action Types & Streaming Actions",
+  "goal": "Extend the Hermes agent with new action types (send email, respond to tenant, send financial report) and make all actions stream visibly in the UI.",
+  "features": [
+    {
+      "id": "s2-f1",
+      "name": "Agent Email-to-Vendor Action",
+      "description": "Add a new agent write-tool that proposes sending an email to a vendor. When the agent determines a ticket requires vendor coordination, it drafts an email (recipient, subject, body) based on the vendor's contact info from context and the ticket details. The email is not actually sent \u2014 it's displayed as a proposed action in the UI showing exactly what would be sent. In auto-mode (Sprint 3), this action is auto-confirmed and logged as 'sent'.",
+      "acceptance_criteria": [
+        "The agent can propose a 'send vendor email' action with recipient, subject, and body fields",
+        "The email content references the specific ticket details and vendor information from context",
+        "The proposed email is visible in the ticket detail page as a distinct action card",
+        "The action follows the existing proposal-envelope pattern (tool \u2192 confirmEndpoint \u2192 UI button)",
+        "Email actions are logged in the audit trail"
+      ],
+      "touches": [
+        "agent tools",
+        "schemas",
+        "ticket detail UI",
+        "audit service"
+      ],
+      "risk_notes": "Must follow the existing write-tool pattern where actions are proposed, not executed directly."
+    },
+    {
+      "id": "s2-f2",
+      "name": "Agent Tenant-Response Action",
+      "description": "Add a new agent write-tool that proposes a response to a tenant inquiry. The agent reads the tenant's question from the ticket, looks up the answer in the property context (FAQ, policies, rules), and drafts a response. The response includes the channel it would be sent through (matching the ticket's source channel \u2014 email reply, SMS, portal message). The drafted response is displayed as a proposed action.",
+      "acceptance_criteria": [
+        "The agent can propose a 'respond to tenant' action with the response text and target channel",
+        "Responses are contextually accurate \u2014 they use information from the property's context layers",
+        "The response channel matches the ticket's source (email \u2192 email reply, phone \u2192 SMS, portal \u2192 portal message)",
+        "The proposed response is visible in the ticket detail page as a distinct action card",
+        "Response actions are logged in the audit trail"
+      ],
+      "touches": [
+        "agent tools",
+        "schemas",
+        "ticket detail UI",
+        "audit service"
+      ],
+      "risk_notes": null
+    },
+    {
+      "id": "s2-f3",
+      "name": "Agent Owner-Financial-Report Action",
+      "description": "Add a new agent write-tool that proposes sending financial information to a property owner. When a ticket involves cost reporting, invoice forwarding, or arrears notification, the agent compiles the relevant data (from vendor jobs, ticket history, unit rent data) and drafts a financial summary to send to the owner. The summary respects the owner's communication preferences from context.",
+      "acceptance_criteria": [
+        "The agent can propose a 'send owner report' action with recipient, format, and content summary",
+        "Financial data is pulled from relevant sources (vendor job costs, unit rents, ticket history)",
+        "The owner's preferred communication channel and language are respected",
+        "The proposed report is visible in the ticket detail page as a distinct action card",
+        "Financial actions are logged in the audit trail"
+      ],
+      "touches": [
+        "agent tools",
+        "schemas",
+        "ticket detail UI",
+        "audit service"
+      ],
+      "risk_notes": "Financial data must come from seed data \u2014 ensure seed includes enough cost/rent data for realistic reports."
+    },
+    {
+      "id": "s2-f4",
+      "name": "Agent Human-Escalation Action",
+      "description": "Add a new agent write-tool that escalates a ticket to a human operator when the agent determines it cannot or should not resolve it autonomously. This happens when the ticket matches an escalation policy (e.g., legal issue, cost above threshold, safety concern). The escalation includes the reason, the specific policy that triggered it, and a recommended next step for the human.",
+      "acceptance_criteria": [
+        "The agent can propose an 'escalate to human' action with reason, triggering policy, and recommendation",
+        "At least one demo ticket reliably triggers this escalation path",
+        "Escalated tickets move to a visible 'needs human attention' state",
+        "The escalation is visible in both the ticket detail and the overview/escalations page",
+        "Escalation actions are logged in the audit trail"
+      ],
+      "touches": [
+        "agent tools",
+        "schemas",
+        "escalation routes",
+        "ticket detail UI",
+        "overview UI"
+      ],
+      "risk_notes": "There's already an escalations page and route \u2014 integrate with existing infrastructure rather than building parallel."
+    },
+    {
+      "id": "s2-f5",
+      "name": "Streamable Action Cards in Ticket Detail",
+      "description": "Redesign the ticket detail page to display agent actions as a real-time stream of action cards. As the agent works on a ticket, each step it takes (reading context, evaluating policies, drafting an email, proposing a vendor dispatch) appears as a new card that animates in. Each card shows: the action type (icon + label), a brief description of what the agent did or proposes, the timestamp, and the status (thinking \u2192 proposed \u2192 confirmed/rejected). This creates a visible narrative of the agent's reasoning process.",
+      "acceptance_criteria": [
+        "Agent actions appear as a vertical stream of cards on the ticket detail page",
+        "Cards animate in as they happen (not all at once after completion)",
+        "Each card shows action type, description, timestamp, and status",
+        "Read actions (context lookup, ticket read) show as completed immediately",
+        "Write actions (email, response, dispatch) show as 'proposed' with a confirm/reject option in manual mode",
+        "The stream updates via SSE or polling without requiring a page refresh"
+      ],
+      "touches": [
+        "ticket detail UI",
+        "SSE/streaming infrastructure",
+        "action schemas"
+      ],
+      "risk_notes": "The existing chat engine already uses SSE streaming \u2014 reuse that infrastructure for action streaming."
+    }
+  ],
+  "success_criteria": [
+    "The agent can resolve tickets using four distinct action types: vendor email, tenant response, owner report, human escalation",
+    "Every agent action streams into the ticket detail page in real-time as visible action cards",
+    "Running the pipeline on any demo ticket produces a visible, understandable trail of agent activity"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "The existing Hermes agent uses Google Gemini 2.5 Flash via OpenRouter \u2014 all new agent actions must work through this same LLM gateway",
+  "Write tools follow the proposal-envelope pattern \u2014 they propose actions for human confirmation, never execute directly",
+  "The SSE streaming infrastructure already exists in the chat engine \u2014 reuse it for action streaming rather than building a parallel system",
+  "The seed service must remain idempotent \u2014 safe to run multiple times without duplicating data",
+  "The frontend is a Next.js 15 app in a pnpm monorepo with shadcn/ui components \u2014 all new UI must use this stack",
+  "The backend uses SQLAlchemy with Alembic migrations and PostgreSQL \u2014 new models require proper migrations",
+  "All API responses must follow the existing standardized format with camelCase serialization",
+  "The existing /dev/reset endpoint drops all tables \u2014 it must be extended to handle any new models/tables",
+  "Context files use a 4-layer markdown format (vendor/owner/building/property) \u2014 additions must respect this structure",
+  "The agent has a 50-turn budget per invocation (HERMES_MAX_TURNS) \u2014 batch processing must manage this per-ticket"
+]
+
+## Out of Scope
+[
+  "Actually sending real emails, SMS, or messages to external systems \u2014 all actions are simulated/displayed in the UI",
+  "Multi-user authentication or role-based access \u2014 this is a single-presenter demo environment",
+  "Production deployment or scaling \u2014 this runs locally or on a single demo instance",
+  "Modifying the core Hermes agent LLM or switching providers",
+  "Mobile responsiveness \u2014 the demo targets a laptop/projector presentation setup",
+  "Internationalization beyond the existing German ticket content",
+  "Integration with real Slack, email, or SMS providers",
+  "Persistent demo state across server restarts \u2014 reset is expected after restart"
+]
+
+## Previous QA Bugs to Fix
+The evaluator found these bugs in your previous attempt. Fix them ALL:
+
+[
+  {
+    "id": "bug-001",
+    "severity": "high",
+    "category": "functionality",
+    "description": "Agent always runs in stub mode by default. agent_runtime.py reads the API key via os.environ.get('OPENROUTER_API_KEY'), which returns None because pydantic-settings loads the key into the Settings object but does NOT export it to os.environ. As a result, all ticket agent-run requests produce only faux-streaming text ('You asked: ...') with no tool calls, no action_card events, and no persisted actions \u2014 unless the key is explicitly exported in the shell before starting the server.",
+    "steps_to_reproduce": [
+      "Start backend with: cd backend && python run.py",
+      "Navigate to any ticket detail page (e.g., /ticket/t-7843)",
+      "Click 'Run Hermes'",
+      "Observe SSE stream: only delta events appear, event type is 'done' with turns=0",
+      "Check /api/tickets/{id}/actions \u2014 returns []"
+    ],
+    "expected": "Agent should make real LLM calls with tool use, emitting tool_call, tool_result, action_card, and action_proposal SSE events",
+    "actual": "Agent falls back to _stub_stream() (turns=0) producing only text deltas matching the format 'You asked: ... Open items: ...'",
+    "file_hint": "backend/app/services/agent_runtime.py line 200 \u2014 replace os.environ.get('OPENROUTER_API_KEY') with get_settings().openrouter_api_key"
+  },
+  {
+    "id": "bug-002",
+    "severity": "high",
+    "category": "functionality",
+    "description": "LLM consistently calls get_ticket() with the ticket display number (e.g. 'GAR-126') instead of the internal ticket ID (e.g. 't-7843'). This causes get_ticket to return 'Ticket not found' and the agent aborts without proposing any action (except escalation which the LLM sometimes proposes anyway). All four write-action types (vendor email, tenant response, owner report, escalation) fail to load full ticket context.",
+    "steps_to_reproduce": [
+      "Start backend with OPENROUTER_API_KEY exported in shell",
+      "POST /api/tickets/t-7834/agent-run with empty body",
+      "Watch SSE: first action_card has args={'ticketId': 'GAR-121'} (ticket number, not ID)",
+      "tool_result shows error: 'Ticket GAR-121 not found'",
+      "Agent responds: 'I cannot find ticket GAR-121. Please provide a valid ticket ID.'",
+      "No action proposal cards are emitted for vendor email, tenant response, or owner report"
+    ],
+    "expected": "LLM should call get_ticket('t-7834') using the internal ID provided in the prompt instruction 'Call get_ticket(\"t-7834\") to read full details'",
+    "actual": "LLM calls get_ticket('GAR-121') using the ticket number from the opening line 'Process ticket GAR-121' \u2014 overriding the explicit ID instruction",
+    "file_hint": "backend/app/api/routes/agent_run.py lines 199-213 \u2014 the user_message starts with 'Process ticket {ticket_ref}' (ticket number) which primes the LLM to use the number; ticket_ref should be replaced with ticket_id in the opening line"
+  },
+  {
+    "id": "bug-003",
+    "severity": "high",
+    "category": "functionality",
+    "description": "When escalation IS proposed (e.g. for t-7843), the confirmEndpoint is constructed using the LLM-supplied ticketId argument ('GAR-126') not the real internal ticket ID. Clicking Confirm triggers a POST to /api/tickets/GAR-126/escalate which returns 404, silently failing the escalation.",
+    "steps_to_reproduce": [
+      "With API key exported, run Hermes on /ticket/t-7843",
+      "Reload page after run completes",
+      "Expand escalation card \u2014 verify confirmEndpoint shows '/api/tickets/GAR-126/escalate' in payload (visible in browser devtools network)",
+      "Click 'Confirm'",
+      "Check browser console: 'Failed to load resource: 404 Not Found @ /api/tickets/GAR-126/escalate'",
+      "Escalation card remains 'proposed' \u2014 no state change"
+    ],
+    "expected": "confirmEndpoint should be /api/tickets/t-7843/escalate (using the real ticket ID from the URL)",
+    "actual": "confirmEndpoint is /api/tickets/GAR-126/escalate (derived from LLM argument), returns 404",
+    "file_hint": "backend/app/services/agent_tools.py line 438 \u2014 _propose_escalate_to_human constructs confirmEndpoint from args.get('ticketId') which is LLM-supplied; should be cross-validated or the real ticket_id injected at the route level in agent_run.py"
+  },
+  {
+    "id": "bug-004",
+    "severity": "medium",
+    "category": "ux",
+    "description": "During live SSE streaming, action card status badge is stuck at 'thinking...' even after the action_proposal event fires and the DB status is updated to 'proposed'. The Confirm/Dismiss buttons only appear after a full page reload. This is caused by ActionCard using useState(action.status) which only initializes from the prop and does not react to subsequent prop updates from the SSE-driven parent re-render.",
+    "steps_to_reproduce": [
+      "With API key exported, navigate to /ticket/t-7843",
+      "Click 'Run Hermes'",
+      "Watch streaming: escalation card appears with 'thinking...' badge",
+      "Run completes ('complete' badge on header), but escalation card still shows 'thinking...'",
+      "No Confirm button visible",
+      "Reload the page \u2014 card now shows 'proposed' badge with Confirm/Dismiss buttons"
+    ],
+    "expected": "Badge should update from 'thinking...' to 'proposed' in real-time as action_proposal SSE event fires; Confirm button should appear immediately without reload",
+    "actual": "Badge stays 'thinking...' during streaming; requires page reload for correct status display",
+    "file_hint": "frontend/apps/web/components/action-card.tsx line 183 \u2014 add useEffect(() => { setLocalStatus(action.status); }, [action.status]) to sync state when prop changes during streaming"
+  },
+  {
+    "id": "bug-005",
+    "severity": "low",
+    "category": "functionality",
+    "description": "In the Hermes Chat (/chat), list_tickets tool calls use a derived slug (e.g. 'gartenstrasse-42') as the propertyId instead of the internal ID ('p1'). The list_tickets executor filters by Ticket.property_id == pid, returning 0 results even though 9 tickets exist for that property.",
+    "steps_to_reproduce": [
+      "Navigate to /chat, select Gartenstra\u00dfe 42 property",
+      "Send: 'List all open tickets for Gartenstra\u00dfe 42'",
+      "Observe SSE: tool_call args contain {'propertyId': 'gartenstrasse-42', ...}",
+      "tool_result returns count=0 even though tickets exist"
+    ],
+    "expected": "Tool call should use propertyId='p1' (matching the database record) to return the 9 open tickets",
+    "actual": "Tool call uses propertyId='gartenstrasse-42' (LLM-derived slug), returns 0 results",
+    "file_hint": "backend/app/services/agent_runtime.py \u2014 the system prompt includes property context but doesn't explicitly tell the LLM to use the internal property ID 'p1'; the ctx_preview should include the exact propertyId to use in tool calls"
+  }
+]
+
+Evaluator notes: Sprint 2 implemented a solid architectural foundation for streaming action cards (SSE route, AgentAction model, action-card component, four new write tool types), but two critical bugs prevent the features from working end-to-end in the default configuration. Bug-001 (os.environ vs pydantic-settings) makes the agent permanently fall back to stub mode when started normally with 'python run.py'. Bug-002 (LLM uses display ticket number as tool argument) causes get_ticket() to fail on every invocation, blocking vendor email, tenant response, and owner report actions from ever reaching the proposal stage. Escalation partially works because the LLM skips ahead to escalate_to_human even after get_ticket fails, but Bug-003 makes the Confirm button 404. The UI components (action-card.tsx, escalations page) are well-designed with proper styling and badge states, but Bug-004 prevents live status updates during streaming. All regression checks pass cleanly. Recommendation: fix agent_runtime.py to use get_settings().openrouter_api_key, and rewrite the user_message in agent_run.py to lead with the internal ticket ID rather than the display number.
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 2 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-031913" in the contract.
+Set branch to "ai/sprint-2-agent-action-types-streaming-actions" in the contract.

@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "e67903ab25c4",
+  "session_id": "904ff63b-37c0-4b75-b018-9e4e628757a4",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T02:46:14.733151Z",
+  "branch": "ai/sprint-2-agent-action-types-streaming-actions",
+  "checkpoints_count": 0,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "16ed620fe8b9",
+  "token_usage": {
+    "input_tokens": 4611,
+    "cache_creation_tokens": 54461,
+    "cache_read_tokens": 617053,
+    "output_tokens": 5359,
+    "api_call_count": 14
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 433,
+      "user_lines_removed": 2,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".ai_builder/artifacts/instances/default/events.jsonl": 1,
+        ".ai_builder/artifacts/instances/default/state.json": 32,
+        "hermes/upstream/.env.example": 400
+      },
+      "user_removed_per_file": {
+        ".ai_builder/artifacts/instances/default/state.json": 2
+      }
+    }
+  ]
+}
