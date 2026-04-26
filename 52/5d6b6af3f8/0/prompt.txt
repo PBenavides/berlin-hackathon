@@ -1,0 +1,101 @@
+We have to plan in order to build and include a Hermes Tool related to emails. We have to use it as a tool in the workflow and you can get inspiration from this. The Email action should be streamed and be a class to be showed in the agent activity. The doc is : End-to-End Mailosaur Flow Implementation Plan
+This document outlines the exact flow, setup, and components required to implement the 3-way email interaction between Tenant, Agent, and Vendor using Mailosaur.
+
+1. Mailosaur Configuration
+You have provided three separate Mailosaur servers, which provides excellent isolation for testing the flow.
+
+ActorEmail DomainServer IDRoleAgent@cuujqwff.mailosaur.netcuujqwffThe central system inbox that receives requests and dispatches emails.Tenant@ulzwgcxr.mailosaur.netulzwgcxrSimulates the end-user reporting an issue and selecting timeslots.Vendor@16pylsux.mailosaur.net16pylsuxSimulates the third-party contractor providing timeslots and confirming.
+Global Credentials:
+
+API Key:REDACTED
+SMTP Password:REDACTED
+NOTE
+I noticed for the Tenant email you listed ID:cuujqwff at the very end, but based on the email domain (anything@ulzwgcxr), the Server ID is ulzwgcxr. I will proceed using ulzwgcxr for the Tenant.
+
+2. The End-to-End Flow
+Below is the step-by-step sequence of events we need to implement. For the hackathon demo, we will build a continuous flow script that executes these steps sequentially, simulating external actors where necessary.
+🔧 Vendor Inbox
+(16pylsux)
+🤖 Agent Backend
+(cuujqwff)
+🏠 Tenant Inbox
+(ulzwgcxr)
+🔧 Vendor Inbox
+(16pylsux)
+🤖 Agent Backend
+(cuujqwff)
+🏠 Tenant Inbox
+(ulzwgcxr)
+Phase 1: Issue Report
+Phase 2: Vendor Outreach
+Phase 3: Vendor Timeslots
+Phase 4: Tenant Selection
+Phase 5: Tenant Confirms
+Phase 6: Final Confirmation
+SMTP: "Bathroom leak recurring (Unit 3B)"
+Agent polls inbox, creates Ticket & Proposal
+SMTP: "Need quote/timeslot for Unit 3B Leak"
+SMTP: "Available Mon 10am or Tue 2pm"
+Agent polls inbox, evaluates payload
+SMTP: "Vendor available at Mon 10am or Tue 2pm. Choose one."
+SMTP: "Monday 10am works for me."
+SMTP: "Confirmed for Mon 10am."
+Agent updates Property Context & Resolves Ticket
+
+3. What We Need to Build
+To accomplish this, we need the following components added to the project:
+
+A. Environment Configuration (.env)
+We need to add the Mailosaur credentials to your backend environment:
+dotenv
+# Mailosaur Setup
+REDACTED
+MAILOSAUR_SMTP_HOST=smtp.mailosaur.net
+MAILOSAUR_SMTP_PORT=465
+REDACTED
+
+# Mailosaur Servers
+MAILOSAUR_AGENT_SERVER=cuujqwff
+MAILOSAUR_TENANT_SERVER=ulzwgcxr
+MAILOSAUR_VENDOR_SERVER=16pylsuxB. mailosaur_client.py (Core Email Handler)
+A utility script to handle SMTP sending and Mailosaur API receiving:
+
+send_email(from_addr, to_addr, subject, text): Sends an email via SMTP.
+wait_for_email(server_id, send_to_addr): Polls Mailosaur until an email arrives at a specific address, returning the subject and body.
+delete_all_emails(): Cleans up all inboxes before a demo run to ensure clean state.
+C. The Demo Orchestrator (run_e2e_demo.py)
+Because you likely want a smooth, push-button demo for the hackathon, we will build an orchestrator script that runs the entire sequence. It will mix simulated actions (Tenant/Vendor sending emails) with backend triggers (Agent polling and pushing out emails).
+The script will:
+
+[Tenant Action]Send issue email to Agent.
+[Agent Action]Pick up email, triggerPOST /tickets, trigger proposal generation.
+[Agent Action]Send the proposeddraft_messageto the Vendor.
+[Vendor Action]Pick up Agent's email, auto-reply with timeslots.
+[Agent Action]Pick up Vendor timeslots, format, and forward to Tenant.
+[Tenant Action]Pick up options, auto-reply with a choice.
+[Agent Action]Pick up choice, send final confirmation to Vendor.
+[Agent Action]Accept Memory Proposal, updating the property's context doc to reflect the scheduled repair and you can also see a diagram [Image #2]
+
+---
+
+can we test it shortly, you have the keys as well right? if you not please list what you need
+
+---
+
+Nice, now we have to plan to integrate Tavily as a tool, that is something we already got in Tavily so we just have to activate it and show it downstream in the platform as a tool execution. From the system prompt you have to create the clear view that we will use this for vendor search, so we can create a case where we must use this because we didnt find any vendors, The preffered actions should not be to escalate to human but to solve the issue right away.
+
+---
+
+Nice, now we have to plan to integrate Tavily as a tool, that is something we already got in Tavily so we just have to activate it and show it downstream in the platform as a tool execution. From the system prompt you have to create the clear view that we will use this for vendor search, so we can create a case where we must use this because we didnt find any vendors, The preffered actions should not be to escalate to human but to solve the issue right away. That should be included in the Demo Mode.
+
+---
+
+tavily here: REDACTED
+
+---
+
+Is the email inside the demo?
+
+---
+
+Yes lets wire that we need it for the demo hehe

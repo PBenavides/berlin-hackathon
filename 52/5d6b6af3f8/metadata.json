@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "525d6b6af3f8",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "backend/app/api/routes/agent_run.py",
+    "backend/app/config.py",
+    "backend/app/schemas/agent_actions.py",
+    "backend/app/scripts/__init__.py",
+    "backend/app/scripts/run_e2e_demo.py",
+    "backend/app/services/agent_queue_service.py",
+    "backend/app/services/agent_runtime.py",
+    "backend/app/services/agent_tools.py",
+    "backend/app/services/email_action.py",
+    "backend/app/services/mailosaur_client.py",
+    "backend/app/services/tavily_client.py",
+    "frontend/apps/web/app/ticket/[id]/page.tsx",
+    "frontend/apps/web/components/action-card.tsx",
+    "frontend/apps/web/components/activity-feed.tsx",
+    "frontend/apps/web/lib/api.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/52/5d6b6af3f8/0/metadata.json",
+      "transcript": "/52/5d6b6af3f8/0/full.jsonl",
+      "content_hash": "/52/5d6b6af3f8/0/content_hash.txt",
+      "prompt": "/52/5d6b6af3f8/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 160,
+    "cache_creation_tokens": 296235,
+    "cache_read_tokens": 19151726,
+    "output_tokens": 93045,
+    "api_call_count": 120
+  }
+}
