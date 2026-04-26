@@ -94,3 +94,7 @@ yep lets do it
 ---
 
 lets completely skip docker
+
+---
+
+lets just run it locally man
