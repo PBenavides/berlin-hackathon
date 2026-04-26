@@ -15,13 +15,19 @@
       "transcript": "/fb/3c8947cd6d/0/full.jsonl",
       "content_hash": "/fb/3c8947cd6d/0/content_hash.txt",
       "prompt": "/fb/3c8947cd6d/0/prompt.txt"
+    },
+    {
+      "metadata": "/fb/3c8947cd6d/1/metadata.json",
+      "transcript": "/fb/3c8947cd6d/1/full.jsonl",
+      "content_hash": "/fb/3c8947cd6d/1/content_hash.txt",
+      "prompt": "/fb/3c8947cd6d/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 139,
-    "cache_creation_tokens": 535307,
-    "cache_read_tokens": 11585835,
-    "output_tokens": 76969,
-    "api_call_count": 126
+    "input_tokens": 164,
+    "cache_creation_tokens": 608263,
+    "cache_read_tokens": 12659741,
+    "output_tokens": 84285,
+    "api_call_count": 146
   }
 }

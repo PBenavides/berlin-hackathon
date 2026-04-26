@@ -1,0 +1,54 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "fb3c8947cd6d",
+  "session_id": "e4e103c0-7ab2-453b-b26d-46f08e9ddf8f",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T10:06:47.118593Z",
+  "branch": "ai/sprint-4-polish-transitions-end-to-end-demo-flow",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "backend/app/api/routes/agent_queue.py",
+    "frontend/apps/web/components/activity-feed.tsx",
+    "frontend/apps/web/components/demo-control-bar.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "42a5f71d5da1",
+  "token_usage": {
+    "input_tokens": 25,
+    "cache_creation_tokens": 72956,
+    "cache_read_tokens": 1073906,
+    "output_tokens": 7316,
+    "api_call_count": 20
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T10:06:47.108385Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 12,
+    "human_modified": 10,
+    "human_removed": 0,
+    "total_committed": 12,
+    "total_lines_changed": 22,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 424,
+      "user_lines_removed": 9,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".ai_builder/artifacts/instances/default/events.jsonl": 1,
+        ".ai_builder/artifacts/instances/default/state.json": 23,
+        "hermes/upstream/.env.example": 400
+      },
+      "user_removed_per_file": {
+        ".ai_builder/artifacts/instances/default/.lock": 7,
+        ".ai_builder/artifacts/instances/default/state.json": 2
+      }
+    }
+  ]
+}
