@@ -3,7 +3,7 @@
   "checkpoint_id": "91f9550329dd",
   "strategy": "manual-commit",
   "branch": "ai/sprint-1-api-foundation-schema-expansion",
-  "checkpoints_count": 8,
+  "checkpoints_count": 9,
   "files_touched": [
     "backend/app/api/routes/chat.py",
     "backend/app/api/routes/context.py",
@@ -34,13 +34,19 @@
       "transcript": "/91/f9550329dd/1/full.jsonl",
       "content_hash": "/91/f9550329dd/1/content_hash.txt",
       "prompt": "/91/f9550329dd/1/prompt.txt"
+    },
+    {
+      "metadata": "/91/f9550329dd/2/metadata.json",
+      "transcript": "/91/f9550329dd/2/full.jsonl",
+      "content_hash": "/91/f9550329dd/2/content_hash.txt",
+      "prompt": "/91/f9550329dd/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 284,
-    "cache_creation_tokens": 969936,
-    "cache_read_tokens": 20218533,
-    "output_tokens": 147877,
-    "api_call_count": 217
+    "input_tokens": 293,
+    "cache_creation_tokens": 1004851,
+    "cache_read_tokens": 21186451,
+    "output_tokens": 156655,
+    "api_call_count": 227
   }
 }

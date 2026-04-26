@@ -1,0 +1,276 @@
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "high",
+    "category": "integration",
+    "file": "backend/tests/test_sprint1.py",
+    "line_range": "160-184",
+    "description": "test_conflict_handler_wired is a vacuous no-op. The fallback path calls POST /api/proposals/nonexistent-id/action/approve WITHOUT a request body. approve_action requires a JSON body with 'reviewed_by: str' (ActionDecisionRequest). Missing body \u2192 422, not 404. The guard 'if resp.status_code == 404: return' never fires (it's 422), and 'if resp.status_code == 409:' is also false, so the test ends with zero assertions executed. It always passes while never actually verifying the CONFLICT envelope shape.",
+    "suggested_fix": "Either (a) provide the required body: client.post('/api/proposals/nonexistent-id/action/approve', json={'reviewed_by': 'test'}) so a real 404 fires and the guard works, or (b) add a /dev/raise-conflict endpoint to dev.py that explicitly raises StateConflictError('test'), then test against that endpoint unconditionally.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "integration",
+    "file": "backend/app/main.py",
+    "line_range": "27",
+    "description": "_CODE_MAP is imported from app.exceptions on line 27 but is never referenced anywhere else in main.py. All exception handling is delegated to the functions from exceptions.py (_http_handler, _validation_handler, _generic_handler) which use _CODE_MAP internally. The direct import of a private symbol (_CODE_MAP) is dead code and will produce an F401 lint error.",
+    "suggested_fix": "Remove _CODE_MAP from the import on line 27: change 'from app.exceptions import StateConflictError, state_conflict_handler, _CODE_MAP' to 'from app.exceptions import StateConflictError, state_conflict_handler'.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "integration",
+    "file": "backend/app/main.py",
+    "line_range": "66-69",
+    "description": "The http_exception_handler wrapper registered for StarletteHTTPException has type annotation exc: HTTPException (FastAPI subclass). When the Starlette router raises a path-not-found 404, it passes a StarletteHTTPException instance (the parent class). Python doesn't enforce type annotations at runtime so this works, but the annotation is misleading and mypy/pyright would flag a type error at the call site inside _http_handler which also annotates exc: HTTPException.",
+    "suggested_fix": "Change the handler signature to accept the parent type: 'async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:' since StarletteHTTPException also has .status_code and .detail, and the exceptions.py handler only accesses those two attributes.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "pattern",
+    "file": "backend/app/api/routes/documents.py",
+    "line_range": "64-69",
+    "description": "_to_detail() calls summary.model_dump() without by_alias=True, yielding snake_case keys (property_id, has_extracted_text, file_url, etc.). These are then unpacked as kwargs into PropertyDocumentDetail. This currently works because CamelModel sets populate_by_name=True, which allows snake_case field names as constructor kwargs. However, it is semantically fragile: if populate_by_name were ever removed from CamelModel, this would silently drop all snake_case kwargs without error, resulting in a response with all fields at their default (None) values.",
+    "suggested_fix": "Either pass mode='python' explicitly to clarify intent, or construct PropertyDocumentDetail by passing the ORM object directly since CamelModel has from_attributes=True: return PropertyDocumentDetail.model_validate(doc) with the file_url computed via a @model_validator or validator. Minimally: keep the pattern but add a comment explaining the populate_by_name dependency.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "pattern",
+    "file": "backend/app/main.py",
+    "line_range": "52-56",
+    "description": "Second import block for exceptions handlers (lines 52-56) appears after app = FastAPI() with a noqa: E402 comment. The first import block at line 27 already imports from app.exceptions. Having two separate import blocks from the same module (one at top-level, one mid-file) is non-standard and the E402 suppression is a code smell. Both imports could be combined into the top-level import.",
+    "suggested_fix": "Move all app.exceptions imports to the top-level block: 'from app.exceptions import StateConflictError, state_conflict_handler, http_exception_handler as _http_handler, validation_exception_handler as _validation_handler, generic_exception_handler as _generic_handler' and remove the mid-file import block entirely.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
+
+---
+
+## Fix Self-Critic Issues
+
+Fix these issues identified in the self-review:
+
+[
+  {
+    "severity": "high",
+    "category": "integration",
+    "file": "backend/tests/test_sprint1.py",
+    "line_range": "160-184",
+    "description": "test_conflict_handler_wired is a vacuous no-op. The fallback path calls POST /api/proposals/nonexistent-id/action/approve WITHOUT a request body. approve_action requires a JSON body with 'reviewed_by: str' (ActionDecisionRequest). Missing body \u2192 422, not 404. The guard 'if resp.status_code == 404: return' never fires (it's 422), and 'if resp.status_code == 409:' is also false, so the test ends with zero assertions executed. It always passes while never actually verifying the CONFLICT envelope shape.",
+    "suggested_fix": "Either (a) provide the required body: client.post('/api/proposals/nonexistent-id/action/approve', json={'reviewed_by': 'test'}) so a real 404 fires and the guard works, or (b) add a /dev/raise-conflict endpoint to dev.py that explicitly raises StateConflictError('test'), then test against that endpoint unconditionally.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "high",
+    "category": "integration",
+    "file": "backend/app/main.py",
+    "line_range": "27",
+    "description": "_CODE_MAP is imported from app.exceptions on line 27 but is never referenced anywhere else in main.py. All exception handling is delegated to the functions from exceptions.py (_http_handler, _validation_handler, _generic_handler) which use _CODE_MAP internally. The direct import of a private symbol (_CODE_MAP) is dead code and will produce an F401 lint error.",
+    "suggested_fix": "Remove _CODE_MAP from the import on line 27: change 'from app.exceptions import StateConflictError, state_conflict_handler, _CODE_MAP' to 'from app.exceptions import StateConflictError, state_conflict_handler'.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "medium",
+    "category": "integration",
+    "file": "backend/app/main.py",
+    "line_range": "66-69",
+    "description": "The http_exception_handler wrapper registered for StarletteHTTPException has type annotation exc: HTTPException (FastAPI subclass). When the Starlette router raises a path-not-found 404, it passes a StarletteHTTPException instance (the parent class). Python doesn't enforce type annotations at runtime so this works, but the annotation is misleading and mypy/pyright would flag a type error at the call site inside _http_handler which also annotates exc: HTTPException.",
+    "suggested_fix": "Change the handler signature to accept the parent type: 'async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:' since StarletteHTTPException also has .status_code and .detail, and the exceptions.py handler only accesses those two attributes.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "pattern",
+    "file": "backend/app/api/routes/documents.py",
+    "line_range": "64-69",
+    "description": "_to_detail() calls summary.model_dump() without by_alias=True, yielding snake_case keys (property_id, has_extracted_text, file_url, etc.). These are then unpacked as kwargs into PropertyDocumentDetail. This currently works because CamelModel sets populate_by_name=True, which allows snake_case field names as constructor kwargs. However, it is semantically fragile: if populate_by_name were ever removed from CamelModel, this would silently drop all snake_case kwargs without error, resulting in a response with all fields at their default (None) values.",
+    "suggested_fix": "Either pass mode='python' explicitly to clarify intent, or construct PropertyDocumentDetail by passing the ORM object directly since CamelModel has from_attributes=True: return PropertyDocumentDetail.model_validate(doc) with the file_url computed via a @model_validator or validator. Minimally: keep the pattern but add a comment explaining the populate_by_name dependency.",
+    "auto_fixable": true
+  },
+  {
+    "severity": "low",
+    "category": "pattern",
+    "file": "backend/app/main.py",
+    "line_range": "52-56",
+    "description": "Second import block for exceptions handlers (lines 52-56) appears after app = FastAPI() with a noqa: E402 comment. The first import block at line 27 already imports from app.exceptions. Having two separate import blocks from the same module (one at top-level, one mid-file) is non-standard and the E402 suppression is a code smell. Both imports could be combined into the top-level import.",
+    "suggested_fix": "Move all app.exceptions imports to the top-level block: 'from app.exceptions import StateConflictError, state_conflict_handler, http_exception_handler as _http_handler, validation_exception_handler as _validation_handler, generic_exception_handler as _generic_handler' and remove the mid-file import block entirely.",
+    "auto_fixable": true
+  }
+]
+
+For each fix:
+1. Make the code change
+2. Commit with format: [ai-builder/self-fix] <description>\nSprint: N | Self-critic fix
+
+Fix ALL issues listed above.
+
+## Final Step (CRITICAL)
+After all fixes, run `git status`. If there are ANY uncommitted changes:
+```
+git add -A
+git commit -m "[ai-builder/self-fix] finalize fixes
+Sprint: N | Self-critic final"
+```
+This commit triggers session tracking hooks — do not skip it.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 1: Foundation & Wire Compatibility.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-004325",
+  "sprint_number": 1,
+  "branch": "ai/sprint-1-foundation-wire-compatibility",
+  "features_implemented": [
+    {
+      "id": "s1-f1",
+      "name": "Re-prefix routers to /api",
+      "files_changed": [
+        "backend/app/main.py"
+      ],
+      "new_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/properties",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/tickets",
+          "body": null
+        },
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "body": null
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties \u2192 200 with property list",
+        "GET /api/v1/properties \u2192 200 with same list (backward compat)",
+        "GET /api/health \u2192 {status: ok, service: buena-contextops}",
+        "GET /api/v1/health \u2192 same response",
+        "GET /api/docs \u2192 200 (OpenAPI UI)"
+      ],
+      "known_limitations": [
+        "/api/v1 compat mount should be removed in sprint 2"
+      ]
+    },
+    {
+      "id": "s1-f2",
+      "name": "CamelCase response serialization",
+      "files_changed": [
+        "backend/app/schemas/base.py",
+        "backend/app/schemas/properties.py",
+        "backend/app/schemas/tickets.py",
+        "backend/app/schemas/proposals.py",
+        "backend/app/schemas/context_versions.py",
+        "backend/app/schemas/audit.py",
+        "backend/app/schemas/attachments.py",
+        "backend/app/schemas/messages.py",
+        "backend/app/schemas/policies.py",
+        "backend/app/schemas/property_documents.py",
+        "backend/app/schemas/sources.py",
+        "backend/app/main.py",
+        "backend/app/api/routes/documents.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/properties \u2192 each item has 'createdAt' (not 'created_at'), 'slackChannel' (not 'slack_channel')",
+        "GET /api/tickets \u2192 each item has 'propertyId', 'raisedBy', 'createdAt'",
+        "GET /api/tickets/:id \u2192 nested proposal uses 'ticketId', 'actionStatus', 'memoryStatus'",
+        "POST /api/tickets with snake_case body {property_id: '...'} \u2192 still accepted (populate_by_name=True)"
+      ],
+      "known_limitations": [
+        "Inline schemas defined in route files (e.g. TicketWithProposal in tickets.py) inherit CamelModel via TicketOut parent \u2014 no manual update needed"
+      ]
+    },
+    {
+      "id": "s1-f3",
+      "name": "Standardized error envelope",
+      "files_changed": [
+        "backend/app/exceptions.py",
+        "backend/app/main.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "GET /api/tickets/nonexistent \u2192 {error: 'Ticket not found', code: 'NOT_FOUND', status: 404}",
+        "GET /api/this-path-does-not-exist \u2192 {error: 'Not Found', code: 'NOT_FOUND', status: 404}",
+        "POST /api/tickets with {} body \u2192 {error: '...', code: 'VALIDATION_ERROR', status: 422}",
+        "Raise StateConflictError in code \u2192 {code: 'CONFLICT', status: 409}",
+        "No 'detail' key, no 'Traceback' text in any error response"
+      ],
+      "known_limitations": [
+        "StateConflictError requires caller code to import and raise it explicitly \u2014 no existing routes use it yet"
+      ]
+    },
+    {
+      "id": "s1-f4",
+      "name": "Sprint 1 test suite",
+      "files_changed": [
+        "backend/tests/test_sprint1.py",
+        "backend/tests/test_health.py",
+        "backend/tests/test_properties_api.py",
+        "backend/tests/test_documents_api.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "cd backend && pytest tests/test_sprint1.py -v",
+        "cd backend && pytest tests/test_health.py tests/test_properties_api.py -v",
+        "cd backend && pytest tests/test_documents_api.py -v  # requires running Postgres with seeded data"
+      ],
+      "known_limitations": [
+        "test_documents_api.py and camelCase assertions in test_sprint1.py require a running Postgres DB with seeded properties",
+        "Error envelope tests (404, 422, no-stack-trace) run without DB"
+      ]
+    }
+  ],
+  "migrations_applied": [],
+  "how_to_verify": {
+    "start_command": "cd hackathon2026/backend && python run.py",
+    "base_url": "http://localhost:8000",
+    "auth": {
+      "description": "No authentication \u2014 all endpoints are public for the hackathon"
+    }
+  },
+  "regression_checks": [
+    "GET /api/v1/health still returns 200 (backward compat)",
+    "GET /api/v1/properties still returns 200 (backward compat)",
+    "GET /api/docs returns OpenAPI UI (unchanged URL)",
+    "POST /api/dev/reset still works for DB seeding",
+    "All existing route logic unchanged \u2014 only prefix and response serialization updated"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
