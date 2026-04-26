@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "c87cc6bb7ba9",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-2-agent-action-types-streaming-actions",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "frontend/apps/web/app/ticket/[id]/page.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/c8/7cc6bb7ba9/0/metadata.json",
+      "transcript": "/c8/7cc6bb7ba9/0/full.jsonl",
+      "content_hash": "/c8/7cc6bb7ba9/0/content_hash.txt",
+      "prompt": "/c8/7cc6bb7ba9/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 13,
+    "cache_creation_tokens": 182593,
+    "cache_read_tokens": 619602,
+    "output_tokens": 14364,
+    "api_call_count": 10
+  }
+}

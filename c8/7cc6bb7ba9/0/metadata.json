@@ -1,0 +1,70 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "c87cc6bb7ba9",
+  "session_id": "9264a611-b00f-412e-bde5-000c93a7dd80",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T02:16:40.023005Z",
+  "branch": "ai/sprint-2-agent-action-types-streaming-actions",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "frontend/apps/web/app/ticket/[id]/page.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "86f72c21e41b",
+  "checkpoint_transcript_start": 222,
+  "transcript_lines_at_start": 222,
+  "token_usage": {
+    "input_tokens": 13,
+    "cache_creation_tokens": 182593,
+    "cache_read_tokens": 619602,
+    "output_tokens": 14364,
+    "api_call_count": 10
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T02:16:39.984687Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 2,
+    "human_removed": 1,
+    "total_committed": 0,
+    "total_lines_changed": 3,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 410,
+      "user_lines_removed": 2,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".ai_builder/artifacts/instances/default/events.jsonl": 1,
+        ".ai_builder/artifacts/instances/default/state.json": 9,
+        "hermes/upstream/.env.example": 400
+      },
+      "user_removed_per_file": {
+        ".ai_builder/artifacts/instances/default/state.json": 2
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 409,
+      "user_lines_removed": 2,
+      "agent_lines_added": 10,
+      "agent_lines_removed": 2,
+      "user_added_per_file": {
+        ".ai_builder/artifacts/instances/default/state.json": 9,
+        "hermes/upstream/.env.example": 400
+      },
+      "user_removed_per_file": {
+        ".ai_builder/artifacts/instances/default/state.json": 2
+      }
+    }
+  ]
+}

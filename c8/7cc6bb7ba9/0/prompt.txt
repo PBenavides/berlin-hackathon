@@ -1,0 +1,389 @@
+## Self-Review Time
+
+You just implemented Sprint 2: Agent Action Types & Streaming Actions.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-031913",
+  "sprint_number": 2,
+  "branch": "ai/sprint-2-agent-action-types-streaming-actions",
+  "features_implemented": [
+    {
+      "id": "s2-f1",
+      "name": "Agent Email-to-Vendor Action",
+      "files_changed": [
+        "backend/app/services/agent_tools.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Open the Hermes chat (any property page with a vendor-coordination ticket)",
+        "Ask: 'Process ticket t-7834 and draft a vendor email'",
+        "Observe the SSE stream: the agent calls get_ticket, get_property_context, list_vendors, get_vendor, then calls send_vendor_email",
+        "An action_proposal event fires with tool='send_vendor_email', email.to, email.subject, email.body filled in",
+        "Alternatively: open ticket t-7834 detail page, click 'Run Hermes', watch action cards stream in \u2014 one should be a 'send_vendor_email' proposed card",
+        "Expand the action card to see the full drafted email",
+        "The card shows 'Proposed (display only)' since no actual send endpoint exists"
+      ],
+      "known_limitations": [
+        "Email is displayed only \u2014 no actual SMTP send is performed",
+        "The confirmEndpoint is null for send_vendor_email (display-only proposal)"
+      ]
+    },
+    {
+      "id": "s2-f2",
+      "name": "Agent Tenant-Response Action",
+      "files_changed": [
+        "backend/app/services/agent_tools.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Open ticket t-7837 (GAR-123 \u2014 recycling inquiry from Herr Mayer, source=email)",
+        "Click 'Run Hermes' on the ticket detail page",
+        "Agent reads the ticket, loads property context (which contains recycling FAQ), then calls respond_to_tenant",
+        "The proposed action card shows channel='email_reply' matching the ticket source=email",
+        "Expand the card to see the drafted response in German referencing the property FAQ",
+        "For ticket t-7838 (voice source), the agent should propose channel='sms'",
+        "For ticket t-7839 (portal source), the agent should propose channel='portal_message'"
+      ],
+      "known_limitations": [
+        "Channel selection is guided by agent prompt \u2014 LLM must correctly match source to channel",
+        "Response is display-only, no actual SMS/portal integration"
+      ]
+    },
+    {
+      "id": "s2-f3",
+      "name": "Agent Owner-Financial-Report Action",
+      "files_changed": [
+        "backend/app/services/agent_tools.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Open ticket t-7840 (GAR-125 \u2014 monthly cost summary request from WEG Beirat)",
+        "Click 'Run Hermes' on the ticket detail page",
+        "Agent reads ticket, loads property context (owner layer has financial reporting prefs), calls get_owner, list_units",
+        "Agent then calls send_owner_report with ownerName='WEG Gartenstra\u00dfe 42', recipient='klein@weg-gartenstrasse.de', format='pdf_email'",
+        "The proposed action card shows a compiled financial summary",
+        "For ticket t-7841 (BRU-12 \u2014 invoice forwarding), agent should propose send_owner_report for Klaus Weber"
+      ],
+      "known_limitations": [
+        "Financial data comes from seed data \u2014 real invoice amounts are from vendor_cases table",
+        "Report is display-only, no actual email send"
+      ]
+    },
+    {
+      "id": "s2-f4",
+      "name": "Agent Human-Escalation Action",
+      "files_changed": [
+        "backend/app/services/agent_tools.py",
+        "backend/app/services/agent_runtime.py",
+        "backend/app/models/tickets.py",
+        "backend/app/schemas/tickets.py",
+        "backend/app/schemas/agent_actions.py",
+        "backend/app/api/routes/tickets.py",
+        "backend/app/models/agent_actions.py",
+        "backend/alembic/versions/0006_agent_actions_escalation.py",
+        "frontend/apps/web/app/ticket/[id]/page.tsx",
+        "frontend/apps/web/app/escalations/page.tsx",
+        "frontend/apps/web/lib/types.ts"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/tickets/{ticket_id}/escalate",
+          "body": {
+            "reason": "string",
+            "triggeringPolicy": "string (optional)",
+            "recommendation": "string (optional)"
+          }
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "Open ticket t-7843 (GAR-126 \u2014 legal Abmahnung from lawyer Dr. M\u00fcller)",
+        "Click 'Run Hermes' on the ticket detail page",
+        "Agent reads ticket body (contains 'Abmahnung'), loads property context (escalation rules say legal matters \u2192 always escalate), then calls escalate_to_human",
+        "An 'escalate_to_human' proposed action card appears in red with reason, triggering policy, and recommendation",
+        "Click 'Confirm' on the escalation card \u2014 this POSTs to /api/tickets/{id}/escalate",
+        "The ticket risk is set to 'high' and escalatedAt/escalationReason are stored",
+        "Verify ticket now appears on the /escalations page with 'Agent escalated' badge",
+        "Ticket t-7842 (LIN-7 \u2014 rent arrears 2 months) should also trigger escalation"
+      ],
+      "known_limitations": [
+        "Escalation confirm sets risk=high and stores reason \u2014 ticket status unchanged",
+        "The escalation action card has a working confirm button (unlike display-only email/response actions)"
+      ]
+    },
+    {
+      "id": "s2-f5",
+      "name": "Streamable Action Cards in Ticket Detail",
+      "files_changed": [
+        "backend/app/api/routes/agent_run.py",
+        "backend/app/models/agent_actions.py",
+        "backend/app/schemas/agent_actions.py",
+        "backend/app/models/__init__.py",
+        "backend/app/api/routes/dev.py",
+        "backend/app/main.py",
+        "backend/alembic/versions/0006_agent_actions_escalation.py",
+        "frontend/apps/web/app/ticket/[id]/page.tsx",
+        "frontend/apps/web/components/action-card.tsx",
+        "frontend/apps/web/lib/api.ts",
+        "frontend/apps/web/lib/types.ts"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/tickets/{ticket_id}/agent-run",
+          "body": {
+            "promptHint": "string (optional)"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/tickets/{ticket_id}/actions",
+          "body": null
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "Open any ticket detail page (e.g., /ticket/t-7843 or /ticket/t-7837)",
+        "In the 'Hermes agent actions' card, click 'Run Hermes'",
+        "Watch action cards stream in one-by-one as the agent runs",
+        "Read-tool cards (context lookups, vendor reads) appear with a search icon and green 'done' badge",
+        "Write-tool cards (email drafts, responses, escalations) appear with amber/red styling and 'proposed' badge",
+        "Expand any proposed action card with the chevron to see full details",
+        "For write actions with a confirmEndpoint (escalate_to_human), click 'Confirm' to execute",
+        "After confirming escalation, the ticket's escalation badge appears in the header",
+        "Reload the page \u2014 previous run's action cards are loaded from the database",
+        "Click 'Re-run Hermes' to run the agent again (new run_id, cards animate in fresh)"
+      ],
+      "known_limitations": [
+        "The streaming is SSE from POST \u2014 browser may require the page to remain open during run",
+        "If OPENROUTER_API_KEY is not set, the agent falls back to stub mode (no tool calls, no action cards)",
+        "Animation uses Tailwind animate-in which requires the tailwindcss-animate plugin"
+      ]
+    }
+  ],
+  "migrations_applied": [
+    "backend/alembic/versions/0006_agent_actions_escalation.py"
+  ],
+  "how_to_verify": {
+    "start_command": "cd backend && python run.py (port 8000) | cd frontend && pnpm dev (port 3000)",
+    "base_url": "http://localhost:3000",
+    "auth": {
+      "description": "No authentication required. Single-presenter demo environment. Navigate directly to any ticket at /ticket/{id}."
+    }
+  },
+  "regression_checks": [
+    "POST /api/dev/reset still drops and re-seeds all tables including new agent_actions",
+    "Existing ticket detail page still shows proposal card, vendor job, memory decision",
+    "GET /api/tickets still returns all tickets with existing fields",
+    "GET /api/escalations still returns high-risk tickets (now also with escalationReason/escalatedAt fields)",
+    "Existing write tools (approve_ticket, reject_ticket, save_memory, skip_memory, propose_context_edit) still work in chat",
+    "POST /api/chat still streams correctly with all 18 tools available",
+    "Ticket approve/reject/memory flows still work from ticket detail page buttons"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
+
+---
+
+## Self-Review Time
+
+You just implemented Sprint 2: Agent Action Types & Streaming Actions.
+
+Now switch to reviewer mode. Go through the self-critic checklist for every file you changed.
+
+## Sprint Contract (what you implemented)
+{
+  "run_id": "20260426-031913",
+  "sprint_number": 2,
+  "branch": "ai/sprint-2-agent-action-types-streaming-actions",
+  "features_implemented": [
+    {
+      "id": "s2-f1",
+      "name": "Agent Email-to-Vendor Action",
+      "files_changed": [
+        "backend/app/services/agent_tools.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Open the Hermes chat (any property page with a vendor-coordination ticket)",
+        "Ask: 'Process ticket t-7834 and draft a vendor email'",
+        "Observe the SSE stream: the agent calls get_ticket, get_property_context, list_vendors, get_vendor, then calls send_vendor_email",
+        "An action_proposal event fires with tool='send_vendor_email', email.to, email.subject, email.body filled in",
+        "Alternatively: open ticket t-7834 detail page, click 'Run Hermes', watch action cards stream in \u2014 one should be a 'send_vendor_email' proposed card",
+        "Expand the action card to see the full drafted email",
+        "The card shows 'Proposed (display only)' since no actual send endpoint exists"
+      ],
+      "known_limitations": [
+        "Email is displayed only \u2014 no actual SMTP send is performed",
+        "The confirmEndpoint is null for send_vendor_email (display-only proposal)"
+      ]
+    },
+    {
+      "id": "s2-f2",
+      "name": "Agent Tenant-Response Action",
+      "files_changed": [
+        "backend/app/services/agent_tools.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Open ticket t-7837 (GAR-123 \u2014 recycling inquiry from Herr Mayer, source=email)",
+        "Click 'Run Hermes' on the ticket detail page",
+        "Agent reads the ticket, loads property context (which contains recycling FAQ), then calls respond_to_tenant",
+        "The proposed action card shows channel='email_reply' matching the ticket source=email",
+        "Expand the card to see the drafted response in German referencing the property FAQ",
+        "For ticket t-7838 (voice source), the agent should propose channel='sms'",
+        "For ticket t-7839 (portal source), the agent should propose channel='portal_message'"
+      ],
+      "known_limitations": [
+        "Channel selection is guided by agent prompt \u2014 LLM must correctly match source to channel",
+        "Response is display-only, no actual SMS/portal integration"
+      ]
+    },
+    {
+      "id": "s2-f3",
+      "name": "Agent Owner-Financial-Report Action",
+      "files_changed": [
+        "backend/app/services/agent_tools.py"
+      ],
+      "new_endpoints": [],
+      "new_pages": [],
+      "test_instructions": [
+        "Open ticket t-7840 (GAR-125 \u2014 monthly cost summary request from WEG Beirat)",
+        "Click 'Run Hermes' on the ticket detail page",
+        "Agent reads ticket, loads property context (owner layer has financial reporting prefs), calls get_owner, list_units",
+        "Agent then calls send_owner_report with ownerName='WEG Gartenstra\u00dfe 42', recipient='klein@weg-gartenstrasse.de', format='pdf_email'",
+        "The proposed action card shows a compiled financial summary",
+        "For ticket t-7841 (BRU-12 \u2014 invoice forwarding), agent should propose send_owner_report for Klaus Weber"
+      ],
+      "known_limitations": [
+        "Financial data comes from seed data \u2014 real invoice amounts are from vendor_cases table",
+        "Report is display-only, no actual email send"
+      ]
+    },
+    {
+      "id": "s2-f4",
+      "name": "Agent Human-Escalation Action",
+      "files_changed": [
+        "backend/app/services/agent_tools.py",
+        "backend/app/services/agent_runtime.py",
+        "backend/app/models/tickets.py",
+        "backend/app/schemas/tickets.py",
+        "backend/app/schemas/agent_actions.py",
+        "backend/app/api/routes/tickets.py",
+        "backend/app/models/agent_actions.py",
+        "backend/alembic/versions/0006_agent_actions_escalation.py",
+        "frontend/apps/web/app/ticket/[id]/page.tsx",
+        "frontend/apps/web/app/escalations/page.tsx",
+        "frontend/apps/web/lib/types.ts"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/tickets/{ticket_id}/escalate",
+          "body": {
+            "reason": "string",
+            "triggeringPolicy": "string (optional)",
+            "recommendation": "string (optional)"
+          }
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "Open ticket t-7843 (GAR-126 \u2014 legal Abmahnung from lawyer Dr. M\u00fcller)",
+        "Click 'Run Hermes' on the ticket detail page",
+        "Agent reads ticket body (contains 'Abmahnung'), loads property context (escalation rules say legal matters \u2192 always escalate), then calls escalate_to_human",
+        "An 'escalate_to_human' proposed action card appears in red with reason, triggering policy, and recommendation",
+        "Click 'Confirm' on the escalation card \u2014 this POSTs to /api/tickets/{id}/escalate",
+        "The ticket risk is set to 'high' and escalatedAt/escalationReason are stored",
+        "Verify ticket now appears on the /escalations page with 'Agent escalated' badge",
+        "Ticket t-7842 (LIN-7 \u2014 rent arrears 2 months) should also trigger escalation"
+      ],
+      "known_limitations": [
+        "Escalation confirm sets risk=high and stores reason \u2014 ticket status unchanged",
+        "The escalation action card has a working confirm button (unlike display-only email/response actions)"
+      ]
+    },
+    {
+      "id": "s2-f5",
+      "name": "Streamable Action Cards in Ticket Detail",
+      "files_changed": [
+        "backend/app/api/routes/agent_run.py",
+        "backend/app/models/agent_actions.py",
+        "backend/app/schemas/agent_actions.py",
+        "backend/app/models/__init__.py",
+        "backend/app/api/routes/dev.py",
+        "backend/app/main.py",
+        "backend/alembic/versions/0006_agent_actions_escalation.py",
+        "frontend/apps/web/app/ticket/[id]/page.tsx",
+        "frontend/apps/web/components/action-card.tsx",
+        "frontend/apps/web/lib/api.ts",
+        "frontend/apps/web/lib/types.ts"
+      ],
+      "new_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/tickets/{ticket_id}/agent-run",
+          "body": {
+            "promptHint": "string (optional)"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/tickets/{ticket_id}/actions",
+          "body": null
+        }
+      ],
+      "new_pages": [],
+      "test_instructions": [
+        "Open any ticket detail page (e.g., /ticket/t-7843 or /ticket/t-7837)",
+        "In the 'Hermes agent actions' card, click 'Run Hermes'",
+        "Watch action cards stream in one-by-one as the agent runs",
+        "Read-tool cards (context lookups, vendor reads) appear with a search icon and green 'done' badge",
+        "Write-tool cards (email drafts, responses, escalations) appear with amber/red styling and 'proposed' badge",
+        "Expand any proposed action card with the chevron to see full details",
+        "For write actions with a confirmEndpoint (escalate_to_human), click 'Confirm' to execute",
+        "After confirming escalation, the ticket's escalation badge appears in the header",
+        "Reload the page \u2014 previous run's action cards are loaded from the database",
+        "Click 'Re-run Hermes' to run the agent again (new run_id, cards animate in fresh)"
+      ],
+      "known_limitations": [
+        "The streaming is SSE from POST \u2014 browser may require the page to remain open during run",
+        "If OPENROUTER_API_KEY is not set, the agent falls back to stub mode (no tool calls, no action cards)",
+        "Animation uses Tailwind animate-in which requires the tailwindcss-animate plugin"
+      ]
+    }
+  ],
+  "migrations_applied": [
+    "backend/alembic/versions/0006_agent_actions_escalation.py"
+  ],
+  "how_to_verify": {
+    "start_command": "cd backend && python run.py (port 8000) | cd frontend && pnpm dev (port 3000)",
+    "base_url": "http://localhost:3000",
+    "auth": {
+      "description": "No authentication required. Single-presenter demo environment. Navigate directly to any ticket at /ticket/{id}."
+    }
+  },
+  "regression_checks": [
+    "POST /api/dev/reset still drops and re-seeds all tables including new agent_actions",
+    "Existing ticket detail page still shows proposal card, vendor job, memory decision",
+    "GET /api/tickets still returns all tickets with existing fields",
+    "GET /api/escalations still returns high-risk tickets (now also with escalationReason/escalatedAt fields)",
+    "Existing write tools (approve_ticket, reject_ticket, save_memory, skip_memory, propose_context_edit) still work in chat",
+    "POST /api/chat still streams correctly with all 18 tools available",
+    "Ticket approve/reject/memory flows still work from ticket detail page buttons"
+  ]
+}
+
+Read each file you changed and review against the checklist in your system prompt.
+Return ONLY the review JSON. No other text.
