@@ -42,7 +42,7 @@ export function Sidebar() {
   const toast = useToastSafe();
 
   // Auto-Solve toggle (Sprint 3)
-  const { autoSolve, queueStatus, isToggling, enable, disable } = useAutoSolve();
+  const { autoSolve, queueStatus, isToggling, enable, disable, setSpeed } = useAutoSolve();
   const [showAutoSolveConfirm, setShowAutoSolveConfirm] = useState(false);
 
   useEffect(() => {
@@ -114,6 +114,8 @@ export function Sidebar() {
         description: "Alle Tickets und Daten wurden auf den Demo-Ausgangszustand zurückgesetzt.",
         variant: "success",
       });
+      // Reset speed to Normal so the next demo session starts at the default pace (s4-f5 fix)
+      setSpeed("normal");
       // Hard-redirect to overview so all client state (sidebar counts,
       // cached queries) is fully wiped — avoids the router.refresh() race
       // condition where refresh fires against the current route, not /overview.
