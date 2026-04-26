@@ -269,7 +269,7 @@ def _log_activity(
 _NO_AUTO_CONFIRM = {"escalate_to_human"}
 
 
-def _auto_confirm(db: Session, proposal: Dict[str, Any], ticket_id: str, ticket_num: Optional[str]) -> bool:
+def _auto_confirm(proposal: Dict[str, Any], ticket_id: str, ticket_num: Optional[str]) -> bool:
     """
     After auto_confirm_delay seconds (from _state), POST to the proposal's confirmEndpoint.
     Returns True if confirmed, False if skipped (e.g. escalation or no endpoint).
@@ -540,7 +540,7 @@ def _process_ticket(ticket_id: str, ticket_num: Optional[str], property_id: str)
         proposal = item["proposal"]
         action = item["action"]
         tool_name = proposal.get("tool", "")
-        if _auto_confirm(SessionLocal(), proposal, ticket_id, ticket_num):
+        if _auto_confirm(proposal, ticket_id, ticket_num):
             confirmed += 1
             # Update action status to confirmed
             db2: Session = SessionLocal()
