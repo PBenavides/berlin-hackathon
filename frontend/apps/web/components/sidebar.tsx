@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { cn } from "@repo/ui/lib/utils";
@@ -28,7 +28,6 @@ const PROP_TABS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [openProps, setOpenProps] = useState<Record<string, boolean>>({ p1: true });
   const [properties, setProperties] = useState<Property[]>([]);
@@ -67,9 +66,10 @@ export function Sidebar() {
         description: "Alle Tickets und Daten wurden auf den Demo-Ausgangszustand zurückgesetzt.",
         variant: "success",
       });
-      // Redirect to overview and hard-refresh to reload all data
-      router.push("/overview");
-      router.refresh();
+      // Hard-redirect to overview so all client state (sidebar counts,
+      // cached queries) is fully wiped — avoids the router.refresh() race
+      // condition where refresh fires against the current route, not /overview.
+      window.location.href = "/overview";
     } catch (err) {
       toast.push({
         title: "Reset fehlgeschlagen",
@@ -312,8 +312,16 @@ export function Sidebar() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="reset-dialog-title"
+          onClick={() => setShowResetConfirm(false)}
+          onKeyDown={(e) => { if (e.key === "Escape") setShowResetConfirm(false); }}
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+          tabIndex={-1}
         >
-          <div className="mx-4 w-full max-w-sm rounded-xl border bg-background p-6 shadow-2xl">
+          {/* stopPropagation prevents backdrop click from reaching the inner card */}
+          <div
+            className="mx-4 w-full max-w-sm rounded-xl border bg-background p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-1 flex items-center gap-2">
               <RotateCcw className="h-5 w-5 text-destructive" />
               <h2 id="reset-dialog-title" className="text-base font-semibold">Demo zurücksetzen?</h2>
