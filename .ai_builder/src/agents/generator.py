@@ -134,7 +134,7 @@ async def run_generator(
             system_prompt=system_prompt,
             setting_sources=["project"],
             permission_mode="bypassPermissions",
-            cwd=str(config.project_root),
+            cwd=str(config.work_dir),
             max_turns=config.generator_max_turns,
             mcp_servers={
                 "playwright": {
@@ -208,7 +208,7 @@ Return ONLY the review JSON. No other text."""
             system_prompt=system_prompt,
             setting_sources=["project"],
             permission_mode="bypassPermissions",
-            cwd=str(config.project_root),
+            cwd=str(config.work_dir),
             resume=generator_session_id,
             max_turns=config.self_critic_max_turns,
             mcp_servers={
@@ -335,7 +335,7 @@ This commit triggers session tracking hooks — do not skip it."""
             model=config.generator_model,
             setting_sources=["project"],
             permission_mode="bypassPermissions",
-            cwd=str(config.project_root),
+            cwd=str(config.work_dir),
             resume=generator_session_id,
             max_turns=config.self_fix_max_turns,
         ),

@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from app.schemas.base import CamelModel
 
 
-class PropertyDocumentOut(BaseModel):
+class PropertyDocumentOut(CamelModel):
     """List/summary view — omits the extracted_text body to keep payloads small."""
 
     id: str
@@ -18,8 +18,6 @@ class PropertyDocumentOut(BaseModel):
     has_extracted_text: bool
     file_url: str
     created_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class PropertyDocumentDetail(PropertyDocumentOut):

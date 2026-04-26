@@ -88,7 +88,7 @@ async def run_planner(user_prompt: str, run_id: str) -> dict | None:
             system_prompt=system_prompt,
             setting_sources=["project"],
             permission_mode="bypassPermissions",
-            cwd=str(config.project_root),
+            cwd=str(config.work_dir),
             max_turns=config.planner_max_turns,
         ),
         max_attempts=config.agent_max_attempts,

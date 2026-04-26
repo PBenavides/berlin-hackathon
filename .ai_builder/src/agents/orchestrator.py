@@ -27,10 +27,15 @@ logger = logging.getLogger("ai_builder")
 
 
 def _git(args: list[str], check: bool = True) -> subprocess.CompletedProcess:
-    """Run a git command in the project root."""
+    """Run a git command in the active work directory.
+
+    In worktree mode, this is the per-instance worktree; otherwise it's
+    the monorepo root. Either way, branch creation, commits, and merges
+    happen inside the working tree the agents are operating on.
+    """
     return subprocess.run(
         ["git"] + args,
-        cwd=str(config.project_root),
+        cwd=str(config.work_dir),
         capture_output=True,
         text=True,
         check=check,
@@ -513,16 +518,38 @@ async def run_build_loop(
 
     # ── Summary ────────────────────────────────────────────────────────
     total_duration = time.time() - total_start
-    state["status"] = "complete"
+    merged_sprints = {
+        h.get("sprint")
+        for h in state.get("history", [])
+        if h.get("stage") == "merged"
+    }
+    expected_sprints = {
+        s["sprint_number"]
+        for s in sprints
+        if s["sprint_number"] >= start_sprint
+    }
+    if merged_sprints >= expected_sprints and expected_sprints:
+        final_status = "complete"
+    elif merged_sprints:
+        # Some sprints merged, some didn't — non-terminal so --resume works.
+        final_status = "partial"
+    else:
+        final_status = "failed"
+    state["status"] = final_status
     state["total_duration_s"] = round(total_duration, 1)
     save_state(state)
-    emit_session_end(run_id, "complete", round(total_duration, 1))
+    emit_session_end(run_id, final_status, round(total_duration, 1))
 
     print(f"\n{'='*60}")
-    print(f"  Build Complete")
+    if final_status == "complete":
+        print(f"  Build Complete")
+    elif final_status == "partial":
+        print(f"  Build Partial — some sprints failed (resume with --resume)")
+    else:
+        print(f"  Build Failed — no sprints merged (resume with --resume)")
     print(f"  Run ID: {run_id}")
     print(f"  Duration: {total_duration / 60:.1f} minutes")
-    print(f"  Sprints: {len(sprints)}")
+    print(f"  Merged: {len(merged_sprints)}/{len(expected_sprints)} sprints")
     print(f"{'='*60}")
 
     return state

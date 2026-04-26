@@ -39,6 +39,18 @@ def _artifacts_dir() -> Path:
 
 
 def _events_path() -> Path:
+    """Locate this repo's ai-builder events.jsonl.
+
+    With per-instance isolation, events live under
+    artifacts/instances/<instance>/events.jsonl. Fall back to the legacy
+    top-level path if no instance file exists yet.
+    """
+    instances_root = _artifacts_dir() / "instances"
+    if instances_root.is_dir():
+        candidates = [p for p in instances_root.glob("*/events.jsonl") if p.is_file()]
+        if candidates:
+            # Most recently modified — best proxy for the active session.
+            return max(candidates, key=lambda p: p.stat().st_mtime)
     return _artifacts_dir() / "events.jsonl"
 
 

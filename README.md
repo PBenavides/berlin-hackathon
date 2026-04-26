@@ -42,11 +42,11 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-**Frontend:**
+**Frontend** (pnpm monorepo — `apps/web` is the Next.js app, `packages/ui` holds shared primitives):
 ```bash
 cd frontend
 pnpm install
-pnpm dev
+pnpm dev   # runs `pnpm --filter web dev` on port 3000
 ```
 
 ## Environment Variables
@@ -74,11 +74,16 @@ hackathon2026/
 │   │       ├── audit_service.py     # Immutable audit trail
 │   │       └── slack_service.py     # Slack notifications
 │   └── alembic/              # DB migrations
-└── frontend/
-    └── app/
-        ├── tickets/          # Ticket list + detail views
-        ├── properties/       # Property + context management
-        └── audit/            # Audit trail viewer
+└── frontend/                    # pnpm workspace (canonical UI)
+    ├── apps/web/                # Next.js 15 app (port 3000)
+    │   ├── app/                 # routes: overview, property/[id], ticket/[id],
+    │   │                        # building/[id], owner/[id], vendor/[id],
+    │   │                        # buildings, owners, vendors, chat,
+    │   │                        # escalations, extract
+    │   ├── components/          # app-local UI (sidebar, page-header, …)
+    │   └── lib/                 # api client, types, utils
+    └── packages/ui/             # @repo/ui — shadcn primitives
+        └── src/components/      # button, card, input, table, tabs, …
 ```
 
 ## API

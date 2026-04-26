@@ -1,0 +1,24 @@
+{"type": "session_start", "timestamp": "2026-04-25T14:55:42.167454+00:00", "session_id": "ai-builder-20260425-165542", "data": {"user_prompt": "Build the hello world app from docs/REQS.md"}}
+{"type": "sprint_start", "timestamp": "2026-04-25T14:59:24.653680+00:00", "session_id": "ai-builder-20260425-165542", "data": {"sprint_number": 1, "sprint_name": "Infrastructure & Data Foundation"}}
+{"type": "session_start", "timestamp": "2026-04-25T22:42:12.171949+00:00", "session_id": "ai-builder-20260426-004212", "data": {"user_prompt": "We have to build a set of features that are written at @OVERNIGHT_RUN.md and considering the @RECONCILE_CONTRACT.md Lets make sure this thing is running properly"}}
+{"type": "session_start", "timestamp": "2026-04-25T22:43:25.938711+00:00", "session_id": "ai-builder-20260426-004325", "data": {"user_prompt": "We have to build the set of feature that is defined in @backendhandoff/OVERNIGHT_RUN.md lets try to plan and validate with test that all the endpoints are working as expected."}}
+{"type": "sprint_start", "timestamp": "2026-04-25T22:47:37.827509+00:00", "session_id": "ai-builder-20260426-004212", "data": {"sprint_number": 1, "sprint_name": "API Foundation & Schema Expansion"}}
+{"type": "sprint_start", "timestamp": "2026-04-25T22:48:50.320818+00:00", "session_id": "ai-builder-20260426-004325", "data": {"sprint_number": 1, "sprint_name": "Foundation & Wire Compatibility"}}
+{"type": "sprint_end", "timestamp": "2026-04-25T23:13:22.995683+00:00", "session_id": "ai-builder-20260426-004212", "data": {"sprint_number": 1, "verdict": "fail", "score": 0}}
+{"type": "sprint_start", "timestamp": "2026-04-25T23:13:23.015527+00:00", "session_id": "ai-builder-20260426-004212", "data": {"sprint_number": 2, "sprint_name": "Read Endpoints & Frontend Bootstrapping"}}
+{"type": "sprint_end", "timestamp": "2026-04-25T23:13:29.472441+00:00", "session_id": "ai-builder-20260426-004212", "data": {"sprint_number": 2, "verdict": "fail", "score": 0}}
+{"type": "sprint_start", "timestamp": "2026-04-25T23:13:29.494188+00:00", "session_id": "ai-builder-20260426-004212", "data": {"sprint_number": 3, "sprint_name": "Core Demo Flow \u2014 Approve, Dispatch & Memory"}}
+{"type": "sprint_end", "timestamp": "2026-04-25T23:13:35.557358+00:00", "session_id": "ai-builder-20260426-004212", "data": {"sprint_number": 3, "verdict": "fail", "score": 0}}
+{"type": "sprint_start", "timestamp": "2026-04-25T23:13:35.576199+00:00", "session_id": "ai-builder-20260426-004212", "data": {"sprint_number": 4, "sprint_name": "Knowledge Layer Pages & Layered Context"}}
+{"type": "sprint_end", "timestamp": "2026-04-25T23:13:42.186348+00:00", "session_id": "ai-builder-20260426-004212", "data": {"sprint_number": 4, "verdict": "fail", "score": 0}}
+{"type": "sprint_start", "timestamp": "2026-04-25T23:13:42.212705+00:00", "session_id": "ai-builder-20260426-004212", "data": {"sprint_number": 5, "sprint_name": "Chat Streaming, PDF Extract & Demo Polish"}}
+{"type": "sprint_end", "timestamp": "2026-04-25T23:13:48.345537+00:00", "session_id": "ai-builder-20260426-004212", "data": {"sprint_number": 5, "verdict": "fail", "score": 0}}
+{"type": "session_end", "timestamp": "2026-04-25T23:13:48.368923+00:00", "session_id": "ai-builder-20260426-004212", "data": {"status": "complete", "total_duration_s": 1896.2}}
+{"type": "sprint_end", "timestamp": "2026-04-25T23:14:43.691547+00:00", "session_id": "ai-builder-20260426-004325", "data": {"sprint_number": 1, "verdict": "fail", "score": 0}}
+{"type": "sprint_start", "timestamp": "2026-04-25T23:14:43.713940+00:00", "session_id": "ai-builder-20260426-004325", "data": {"sprint_number": 2, "sprint_name": "Knowledge-Layer Schema & Read Endpoints"}}
+{"type": "sprint_end", "timestamp": "2026-04-25T23:14:49.602454+00:00", "session_id": "ai-builder-20260426-004325", "data": {"sprint_number": 2, "verdict": "fail", "score": 0}}
+{"type": "sprint_start", "timestamp": "2026-04-25T23:14:49.621426+00:00", "session_id": "ai-builder-20260426-004325", "data": {"sprint_number": 3, "sprint_name": "Ticket Lifecycle & Layered Context"}}
+{"type": "sprint_end", "timestamp": "2026-04-25T23:14:56.138680+00:00", "session_id": "ai-builder-20260426-004325", "data": {"sprint_number": 3, "verdict": "fail", "score": 0}}
+{"type": "sprint_start", "timestamp": "2026-04-25T23:14:56.160219+00:00", "session_id": "ai-builder-20260426-004325", "data": {"sprint_number": 4, "sprint_name": "Chat SSE, PDF Extract, & Escalations"}}
+{"type": "sprint_end", "timestamp": "2026-04-25T23:15:02.431107+00:00", "session_id": "ai-builder-20260426-004325", "data": {"sprint_number": 4, "verdict": "fail", "score": 0}}
+{"type": "session_end", "timestamp": "2026-04-25T23:15:02.452642+00:00", "session_id": "ai-builder-20260426-004325", "data": {"status": "complete", "total_duration_s": 1896.5}}

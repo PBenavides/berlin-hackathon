@@ -20,7 +20,7 @@ _EVENTS_FILE = "events.jsonl"
 
 
 def _events_path() -> Path:
-    return config.artifacts_dir / _EVENTS_FILE
+    return config.instance_dir / _EVENTS_FILE
 
 
 def _emit(event_type: str, run_id: str, **data):
@@ -52,7 +52,7 @@ def _attach_session(run_id: str):
         result = subprocess.run(
             ["entire", "attach", "--agent", "ai-builder", "--force", session_id],
             capture_output=True, text=True,
-            cwd=str(config.project_root),
+            cwd=str(config.work_dir),
             timeout=15,
         )
         if result.returncode == 0:

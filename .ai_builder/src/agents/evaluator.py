@@ -139,7 +139,7 @@ async def run_evaluator(
             model=config.evaluator_model,
             system_prompt=system_prompt,
             permission_mode="bypassPermissions",
-            cwd=str(config.project_root),
+            cwd=str(config.work_dir),
             setting_sources=["project"],
             max_turns=config.evaluator_max_turns,
             mcp_servers={

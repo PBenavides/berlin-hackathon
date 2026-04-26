@@ -2,8 +2,10 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from app.schemas.base import CamelModel
 
-class AuditLogOut(BaseModel):
+
+class AuditLogOut(CamelModel):
     id: str
     actor: str
     action: str
@@ -13,10 +15,8 @@ class AuditLogOut(BaseModel):
     event_metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
 
-    model_config = {"from_attributes": True}
 
-
-class AuditListOut(BaseModel):
+class AuditListOut(CamelModel):
     items: list[AuditLogOut]
     total: int
     limit: int

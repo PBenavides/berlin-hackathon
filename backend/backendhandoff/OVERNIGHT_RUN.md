@@ -1,5 +1,7 @@
 # Overnight Run — Backend
 
+> **Historical document.** References to `frontendhandoff/` now point to the renamed `frontend/` (consolidated 2026-04-26).
+
 > **Reading order:** start with `frontendhandoff/API.md` (the canonical contract)
 > and `frontendhandoff/RECONCILE_CONTRACT.md` (the gap analysis). This file is
 > the *execution* view: how to work through the gap in a single overnight, what

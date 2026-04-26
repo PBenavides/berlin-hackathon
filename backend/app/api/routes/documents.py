@@ -42,7 +42,7 @@ def _safe_filename(raw: Optional[str]) -> str:
 
 
 def _file_url(document_id: str) -> str:
-    return f"/api/v1/documents/{document_id}/file"
+    return f"/api/documents/{document_id}/file"
 
 
 def _to_summary(doc: PropertyDocument) -> PropertyDocumentOut:

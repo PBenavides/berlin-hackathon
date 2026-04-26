@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
+from app.schemas.base import CamelModel
+
 
 class ContextSourceBase(BaseModel):
     kind: str
@@ -16,8 +18,12 @@ class ContextSourceCreate(ContextSourceBase):
     pass
 
 
-class ContextSourceOut(ContextSourceBase):
+class ContextSourceOut(CamelModel):
     id: str
     property_id: str
-
-    model_config = {"from_attributes": True}
+    kind: str
+    uri: str
+    sha256: Optional[str] = None
+    status: str
+    approved_by: Optional[str] = None
+    approved_at: Optional[datetime] = None

@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from app.schemas.base import CamelModel
+
 
 class PolicyBase(BaseModel):
     kind: str
@@ -21,9 +23,11 @@ class PolicyUpdate(BaseModel):
     active: Optional[bool] = None
 
 
-class PolicyOut(PolicyBase):
+class PolicyOut(CamelModel):
     id: str
     property_id: str
+    kind: str
+    rule_json: Dict[str, Any]
+    description: str
+    active: bool
     created_at: datetime
-
-    model_config = {"from_attributes": True}

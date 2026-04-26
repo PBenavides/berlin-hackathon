@@ -663,11 +663,11 @@ class StubProposalEngine(BaseProposalEngine):
 
 class AIProposalEngine(BaseProposalEngine):
     """
-    LLM-backed proposal engine using OpenRouter (google/gemini-2.5-flash by default).
+    LLM-backed proposal engine using OpenRouter (google/gemini-3.1-flash-lite-preview by default).
     Falls back to stub if AI call fails.
     """
 
-    MODEL = "google/gemini-2.5-flash"
+    MODEL = "google/gemini-3.1-flash-lite-preview"
     OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
     def __init__(self):
