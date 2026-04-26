@@ -1,0 +1,255 @@
+## Task
+Implement Sprint 1: Demo Ticket Catalog & Reset Infrastructure
+
+## Branch
+Create and switch to branch: `ai/sprint-1-demo-ticket-catalog-reset-infrastructure`
+Run: `git checkout -b ai/sprint-1-demo-ticket-catalog-reset-infrastructure` (or `git checkout ai/sprint-1-demo-ticket-catalog-reset-infrastructure` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 1,
+  "name": "Demo Ticket Catalog & Reset Infrastructure",
+  "goal": "Create a rich, diverse set of pre-loaded demo tickets and a bulletproof one-click reset that restores the full demo state.",
+  "features": [
+    {
+      "id": "s1-f1",
+      "name": "Expanded Demo Ticket Suite",
+      "description": "Extend the seed data with 8\u201310 new tickets across three properties that represent the full spectrum of agent capabilities. Tickets should include: (1) Vendor coordination tickets \u2014 e.g., broken boiler needing HVAC dispatch, plumbing leak requiring emergency scheduling, intercom replacement quote request. (2) Tenant inquiry tickets \u2014 e.g., a tenant asking about recycling rules via email, a tenant calling about a lost package, a tenant messaging about guest parking policy. (3) Owner financial action tickets \u2014 e.g., monthly cost summary request from an owner, invoice forwarding after a completed job, rent arrears notification to an owner. Each ticket should arrive from a different source (phone, email, letter, portal) so the multi-channel nature is visible. All tickets start in 'new' or 'triaged' status so the agent has work to do.",
+      "acceptance_criteria": [
+        "At least 3 tickets require vendor email coordination as their resolution path",
+        "At least 3 tickets represent tenant questions from different channels (phone, email, portal)",
+        "At least 2 tickets require sending financial information to property owners",
+        "At least 1 ticket is designed to trigger a human escalation (e.g., legal concern, high-cost decision above threshold)",
+        "Each ticket has realistic German-language content (subject, excerpt, raised-by details) consistent with the existing seed style",
+        "All new tickets reference existing properties, units, tenants, and vendors from seed data"
+      ],
+      "touches": [
+        "seed service",
+        "ticket templates"
+      ],
+      "risk_notes": "Must not break the existing 3 demo tickets (t-7831, t-7832, t-7833) \u2014 extend, don't replace."
+    },
+    {
+      "id": "s1-f2",
+      "name": "Context Enrichment for Agent Decision-Making",
+      "description": "Enrich the property context files and policy rules so the Hermes agent has enough information to autonomously resolve each demo ticket type. Add vendor email addresses and communication preferences to the vendor layer. Add tenant communication preferences and FAQ answers to the property layer (e.g., recycling rules, parking policy, package handling). Add owner financial reporting preferences (format, frequency, preferred channel) to the owner layer. Add escalation rules that clearly define when the agent must defer to a human.",
+      "acceptance_criteria": [
+        "Vendor context includes email addresses and preferred communication method for each vendor",
+        "Property context includes answers to the common tenant questions seeded in the tickets",
+        "Owner context includes financial reporting preferences (at least email and format)",
+        "Escalation policies are explicit \u2014 at least one rule triggers human escalation for the demo",
+        "Context is seeded as part of the reset flow so it's always available"
+      ],
+      "touches": [
+        "seed service",
+        "context versions",
+        "property policies"
+      ],
+      "risk_notes": "Context changes affect the 4-layer markdown format \u2014 must maintain layer separation (vendor/owner/building/property)."
+    },
+    {
+      "id": "s1-f3",
+      "name": "One-Click Demo Reset Button",
+      "description": "Add a prominent 'Reset Demo' button to the UI that calls the existing /dev/reset endpoint and restores the entire platform to its initial demo state. After reset, all tickets return to their starting statuses, all proposals and vendor jobs are cleared, all context versions revert to seed state, and audit logs are wiped. The button should show a confirmation dialog, then a loading state while reset runs, and finally redirect to the overview page with a success toast.",
+      "acceptance_criteria": [
+        "A clearly visible 'Reset Demo' button exists in the UI (e.g., in the sidebar or top nav)",
+        "Clicking it shows a confirmation dialog warning that all progress will be lost",
+        "After confirmation, the full database is wiped and re-seeded with all demo data",
+        "The UI redirects to the overview page and shows a success notification",
+        "The reset completes in under 5 seconds",
+        "After reset, all new demo tickets appear in 'new' or 'triaged' status, ready for the agent"
+      ],
+      "touches": [
+        "frontend sidebar/nav",
+        "dev routes",
+        "seed service"
+      ],
+      "risk_notes": "The existing /dev/reset endpoint drops all tables \u2014 verify it handles the new seed data and any new models added in later sprints."
+    },
+    {
+      "id": "s1-f4",
+      "name": "Demo Mode Indicator",
+      "description": "Add a visual indicator in the UI that shows the platform is in 'demo mode' \u2014 a subtle banner or badge that communicates this is a showcase environment. This sets audience expectations and makes the two control buttons (toggle agent, reset) feel intentional rather than accidental.",
+      "acceptance_criteria": [
+        "A 'Demo Mode' badge or banner is visible on all pages",
+        "It does not interfere with normal platform usage or obstruct content",
+        "It visually groups with the toggle agent and reset buttons"
+      ],
+      "touches": [
+        "frontend layout/nav"
+      ],
+      "risk_notes": null
+    }
+  ],
+  "success_criteria": [
+    "After running reset, the overview page shows 8+ tickets in early pipeline stages (new/triaged)",
+    "Tickets span all three action categories: vendor coordination, tenant response, owner financials",
+    "The platform context contains enough information for the agent to resolve each ticket type",
+    "The reset button reliably returns the demo to a clean starting state every time"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "The existing Hermes agent uses Google Gemini 2.5 Flash via OpenRouter \u2014 all new agent actions must work through this same LLM gateway",
+  "Write tools follow the proposal-envelope pattern \u2014 they propose actions for human confirmation, never execute directly",
+  "The SSE streaming infrastructure already exists in the chat engine \u2014 reuse it for action streaming rather than building a parallel system",
+  "The seed service must remain idempotent \u2014 safe to run multiple times without duplicating data",
+  "The frontend is a Next.js 15 app in a pnpm monorepo with shadcn/ui components \u2014 all new UI must use this stack",
+  "The backend uses SQLAlchemy with Alembic migrations and PostgreSQL \u2014 new models require proper migrations",
+  "All API responses must follow the existing standardized format with camelCase serialization",
+  "The existing /dev/reset endpoint drops all tables \u2014 it must be extended to handle any new models/tables",
+  "Context files use a 4-layer markdown format (vendor/owner/building/property) \u2014 additions must respect this structure",
+  "The agent has a 50-turn budget per invocation (HERMES_MAX_TURNS) \u2014 batch processing must manage this per-ticket"
+]
+
+## Out of Scope
+[
+  "Actually sending real emails, SMS, or messages to external systems \u2014 all actions are simulated/displayed in the UI",
+  "Multi-user authentication or role-based access \u2014 this is a single-presenter demo environment",
+  "Production deployment or scaling \u2014 this runs locally or on a single demo instance",
+  "Modifying the core Hermes agent LLM or switching providers",
+  "Mobile responsiveness \u2014 the demo targets a laptop/projector presentation setup",
+  "Internationalization beyond the existing German ticket content",
+  "Integration with real Slack, email, or SMS providers",
+  "Persistent demo state across server restarts \u2014 reset is expected after restart"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 1 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-031913" in the contract.
+Set branch to "ai/sprint-1-demo-ticket-catalog-reset-infrastructure" in the contract.
+
+---
+
+## Task
+Implement Sprint 1: Demo Ticket Catalog & Reset Infrastructure
+
+## Branch
+Create and switch to branch: `ai/sprint-1-demo-ticket-catalog-reset-infrastructure`
+Run: `git checkout -b ai/sprint-1-demo-ticket-catalog-reset-infrastructure` (or `git checkout ai/sprint-1-demo-ticket-catalog-reset-infrastructure` if it already exists from a retry)
+
+## Sprint Specification
+{
+  "sprint_number": 1,
+  "name": "Demo Ticket Catalog & Reset Infrastructure",
+  "goal": "Create a rich, diverse set of pre-loaded demo tickets and a bulletproof one-click reset that restores the full demo state.",
+  "features": [
+    {
+      "id": "s1-f1",
+      "name": "Expanded Demo Ticket Suite",
+      "description": "Extend the seed data with 8\u201310 new tickets across three properties that represent the full spectrum of agent capabilities. Tickets should include: (1) Vendor coordination tickets \u2014 e.g., broken boiler needing HVAC dispatch, plumbing leak requiring emergency scheduling, intercom replacement quote request. (2) Tenant inquiry tickets \u2014 e.g., a tenant asking about recycling rules via email, a tenant calling about a lost package, a tenant messaging about guest parking policy. (3) Owner financial action tickets \u2014 e.g., monthly cost summary request from an owner, invoice forwarding after a completed job, rent arrears notification to an owner. Each ticket should arrive from a different source (phone, email, letter, portal) so the multi-channel nature is visible. All tickets start in 'new' or 'triaged' status so the agent has work to do.",
+      "acceptance_criteria": [
+        "At least 3 tickets require vendor email coordination as their resolution path",
+        "At least 3 tickets represent tenant questions from different channels (phone, email, portal)",
+        "At least 2 tickets require sending financial information to property owners",
+        "At least 1 ticket is designed to trigger a human escalation (e.g., legal concern, high-cost decision above threshold)",
+        "Each ticket has realistic German-language content (subject, excerpt, raised-by details) consistent with the existing seed style",
+        "All new tickets reference existing properties, units, tenants, and vendors from seed data"
+      ],
+      "touches": [
+        "seed service",
+        "ticket templates"
+      ],
+      "risk_notes": "Must not break the existing 3 demo tickets (t-7831, t-7832, t-7833) \u2014 extend, don't replace."
+    },
+    {
+      "id": "s1-f2",
+      "name": "Context Enrichment for Agent Decision-Making",
+      "description": "Enrich the property context files and policy rules so the Hermes agent has enough information to autonomously resolve each demo ticket type. Add vendor email addresses and communication preferences to the vendor layer. Add tenant communication preferences and FAQ answers to the property layer (e.g., recycling rules, parking policy, package handling). Add owner financial reporting preferences (format, frequency, preferred channel) to the owner layer. Add escalation rules that clearly define when the agent must defer to a human.",
+      "acceptance_criteria": [
+        "Vendor context includes email addresses and preferred communication method for each vendor",
+        "Property context includes answers to the common tenant questions seeded in the tickets",
+        "Owner context includes financial reporting preferences (at least email and format)",
+        "Escalation policies are explicit \u2014 at least one rule triggers human escalation for the demo",
+        "Context is seeded as part of the reset flow so it's always available"
+      ],
+      "touches": [
+        "seed service",
+        "context versions",
+        "property policies"
+      ],
+      "risk_notes": "Context changes affect the 4-layer markdown format \u2014 must maintain layer separation (vendor/owner/building/property)."
+    },
+    {
+      "id": "s1-f3",
+      "name": "One-Click Demo Reset Button",
+      "description": "Add a prominent 'Reset Demo' button to the UI that calls the existing /dev/reset endpoint and restores the entire platform to its initial demo state. After reset, all tickets return to their starting statuses, all proposals and vendor jobs are cleared, all context versions revert to seed state, and audit logs are wiped. The button should show a confirmation dialog, then a loading state while reset runs, and finally redirect to the overview page with a success toast.",
+      "acceptance_criteria": [
+        "A clearly visible 'Reset Demo' button exists in the UI (e.g., in the sidebar or top nav)",
+        "Clicking it shows a confirmation dialog warning that all progress will be lost",
+        "After confirmation, the full database is wiped and re-seeded with all demo data",
+        "The UI redirects to the overview page and shows a success notification",
+        "The reset completes in under 5 seconds",
+        "After reset, all new demo tickets appear in 'new' or 'triaged' status, ready for the agent"
+      ],
+      "touches": [
+        "frontend sidebar/nav",
+        "dev routes",
+        "seed service"
+      ],
+      "risk_notes": "The existing /dev/reset endpoint drops all tables \u2014 verify it handles the new seed data and any new models added in later sprints."
+    },
+    {
+      "id": "s1-f4",
+      "name": "Demo Mode Indicator",
+      "description": "Add a visual indicator in the UI that shows the platform is in 'demo mode' \u2014 a subtle banner or badge that communicates this is a showcase environment. This sets audience expectations and makes the two control buttons (toggle agent, reset) feel intentional rather than accidental.",
+      "acceptance_criteria": [
+        "A 'Demo Mode' badge or banner is visible on all pages",
+        "It does not interfere with normal platform usage or obstruct content",
+        "It visually groups with the toggle agent and reset buttons"
+      ],
+      "touches": [
+        "frontend layout/nav"
+      ],
+      "risk_notes": null
+    }
+  ],
+  "success_criteria": [
+    "After running reset, the overview page shows 8+ tickets in early pipeline stages (new/triaged)",
+    "Tickets span all three action categories: vendor coordination, tenant response, owner financials",
+    "The platform context contains enough information for the agent to resolve each ticket type",
+    "The reset button reliably returns the demo to a clean starting state every time"
+  ]
+}
+
+## Full Spec Constraints
+[
+  "The existing Hermes agent uses Google Gemini 2.5 Flash via OpenRouter \u2014 all new agent actions must work through this same LLM gateway",
+  "Write tools follow the proposal-envelope pattern \u2014 they propose actions for human confirmation, never execute directly",
+  "The SSE streaming infrastructure already exists in the chat engine \u2014 reuse it for action streaming rather than building a parallel system",
+  "The seed service must remain idempotent \u2014 safe to run multiple times without duplicating data",
+  "The frontend is a Next.js 15 app in a pnpm monorepo with shadcn/ui components \u2014 all new UI must use this stack",
+  "The backend uses SQLAlchemy with Alembic migrations and PostgreSQL \u2014 new models require proper migrations",
+  "All API responses must follow the existing standardized format with camelCase serialization",
+  "The existing /dev/reset endpoint drops all tables \u2014 it must be extended to handle any new models/tables",
+  "Context files use a 4-layer markdown format (vendor/owner/building/property) \u2014 additions must respect this structure",
+  "The agent has a 50-turn budget per invocation (HERMES_MAX_TURNS) \u2014 batch processing must manage this per-ticket"
+]
+
+## Out of Scope
+[
+  "Actually sending real emails, SMS, or messages to external systems \u2014 all actions are simulated/displayed in the UI",
+  "Multi-user authentication or role-based access \u2014 this is a single-presenter demo environment",
+  "Production deployment or scaling \u2014 this runs locally or on a single demo instance",
+  "Modifying the core Hermes agent LLM or switching providers",
+  "Mobile responsiveness \u2014 the demo targets a laptop/projector presentation setup",
+  "Internationalization beyond the existing German ticket content",
+  "Integration with real Slack, email, or SMS providers",
+  "Persistent demo state across server restarts \u2014 reset is expected after restart"
+]
+
+## Instructions
+1. Read CLAUDE.md and key source files to understand current patterns
+2. Create the branch
+3. Implement each feature in the order listed
+4. Commit after each feature with format: [ai-builder/generator] description\nSprint: 1 | Feature: <id>
+5. After ALL features are implemented, output the sprint contract as a ```json block
+
+Set run_id to "20260426-031913" in the contract.
+Set branch to "ai/sprint-1-demo-ticket-catalog-reset-infrastructure" in the contract.
