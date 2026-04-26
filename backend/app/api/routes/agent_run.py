@@ -159,6 +159,7 @@ def list_ticket_actions(
 def run_agent_on_ticket(
     ticket_id: str,
     body: Optional[AgentRunRequest] = None,
+    db: Session = Depends(get_db),
 ):
     """
     Trigger Hermes to analyse and propose actions for a specific ticket.
@@ -171,6 +172,13 @@ def run_agent_on_ticket(
     Each action is also persisted to the agent_actions table so the ticket
     detail page can show the full history on reload.
     """
+    # Pre-flight: validate ticket exists before committing to a StreamingResponse.
+    # This allows FastAPI to return a proper 404 JSON response instead of an
+    # SSE error frame that the browser has already started consuming.
+    t_check = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not t_check:
+        raise HTTPException(status_code=404, detail=f"Ticket '{ticket_id}' not found")
+
     prompt_hint = (body.prompt_hint if body else None) or ""
 
     def generator():
