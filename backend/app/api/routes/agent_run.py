@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import time
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -239,6 +240,10 @@ def run_agent_on_ticket(
                     )
                     db.add(action)
                     db.flush()
+                    # server_default is only populated after a full commit/refresh;
+                    # set created_at explicitly so the first SSE emit has a timestamp.
+                    if action.created_at is None:
+                        action.created_at = datetime.now(timezone.utc)
                     pending_actions[call_id] = action
                     yield _sse("action_card", _action_to_dict(action))
 
