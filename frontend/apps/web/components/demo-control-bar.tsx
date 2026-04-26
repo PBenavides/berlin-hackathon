@@ -162,6 +162,8 @@ export function DemoControlBar() {
         description: "Alle Tickets und Daten wurden auf den Demo-Ausgangszustand zurückgesetzt.",
         variant: "success",
       });
+      // Reset speed to Normal so the next demo session starts at the default pace (s4-f5)
+      setSpeed("normal");
       window.location.href = "/overview";
     } catch (err: unknown) {
       toast.push({
@@ -172,7 +174,7 @@ export function DemoControlBar() {
     } finally {
       setResetting(false);
     }
-  }, [autoSolve, disable, toast]);
+  }, [autoSolve, disable, setSpeed, toast]);
 
   // ------------------------------------------------------------------
   // Derived display values
