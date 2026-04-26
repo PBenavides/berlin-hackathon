@@ -292,6 +292,22 @@ export const escalations = {
   list: () => request<Ticket[]>("/api/escalations"),
 };
 
+/**
+ * Confirm a proposed agent action by calling the envelope's confirmEndpoint.
+ * Uses the same request() helper as the rest of the API client — meaning it
+ * throws ApiError on non-2xx responses and respects NEXT_PUBLIC_BACKEND_URL.
+ */
+export function confirmAction(envelope: {
+  confirmEndpoint: string;
+  confirmMethod?: string | null;
+  confirmBody?: Record<string, unknown> | null;
+}): Promise<unknown> {
+  return request(envelope.confirmEndpoint, {
+    method: (envelope.confirmMethod || "POST") as RequestInit["method"],
+    body: envelope.confirmBody ?? {},
+  });
+}
+
 export const dev = {
   reset: () =>
     request<{ message: string; seed_result: Record<string, unknown> }>(

@@ -33,7 +33,7 @@ import {
   Brain,
 } from "lucide-react";
 import type { AgentAction, ActionProposalEnvelope } from "@/lib/types";
-import { api } from "@/lib/api";
+import { confirmAction, friendlyApiError } from "@/lib/api";
 import { useToast } from "@/components/toaster";
 
 // ---------------------------------------------------------------------------
@@ -193,25 +193,13 @@ export function ActionCard({ action, onConfirmed, onRejected, className }: Actio
     if (!proposal?.confirmEndpoint) return;
     setConfirming(true);
     try {
-      const url = `${typeof process !== "undefined" && process.env?.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"}${proposal.confirmEndpoint}`;
-      const res = await fetch(url, {
-        method: proposal.confirmMethod || "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(proposal.confirmBody || {}),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || `Request failed (${res.status})`);
-      }
+      await confirmAction(proposal);
       setLocalStatus("confirmed");
       pushToast({ title: "Action confirmed", variant: "success" });
       onConfirmed?.(action.id);
     } catch (err) {
-      pushToast({
-        title: "Confirm failed",
-        description: err instanceof Error ? err.message : String(err),
-        variant: "destructive",
-      });
+      const { title, description } = friendlyApiError(err, "approve");
+      pushToast({ title, description, variant: "destructive" });
     } finally {
       setConfirming(false);
     }
