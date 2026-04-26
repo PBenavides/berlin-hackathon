@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "2b4dad4f83af",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-1-api-foundation-schema-expansion",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/app/services/agent_tools.py",
+    "backend/backendhandoff/AGENT_REQS.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/2b/4dad4f83af/0/metadata.json",
+      "transcript": "/2b/4dad4f83af/0/full.jsonl",
+      "content_hash": "/2b/4dad4f83af/0/content_hash.txt",
+      "prompt": "/2b/4dad4f83af/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 243,
+    "cache_creation_tokens": 676681,
+    "cache_read_tokens": 23311768,
+    "output_tokens": 105291,
+    "api_call_count": 153
+  }
+}
