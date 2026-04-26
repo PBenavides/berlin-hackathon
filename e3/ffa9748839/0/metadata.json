@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "e3ffa9748839",
+  "session_id": "fafe0cbf-f575-49f4-a745-f7844156062c",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T08:05:32.628512Z",
+  "branch": "ai/sprint-3-auto-solve-toggle-background-agent-loop",
+  "checkpoints_count": 0,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "3f4a6e9b036e",
+  "token_usage": {
+    "input_tokens": 99,
+    "cache_creation_tokens": 69133,
+    "cache_read_tokens": 1341803,
+    "output_tokens": 16793,
+    "api_call_count": 23
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 418,
+      "user_lines_removed": 3,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".ai_builder/artifacts/instances/default/events.jsonl": 2,
+        ".ai_builder/artifacts/instances/default/state.json": 16,
+        "hermes/upstream/.env.example": 400
+      },
+      "user_removed_per_file": {
+        ".ai_builder/artifacts/instances/default/state.json": 3
+      }
+    }
+  ]
+}

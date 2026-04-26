@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "e3ffa9748839",
+  "strategy": "manual-commit",
+  "branch": "ai/sprint-3-auto-solve-toggle-background-agent-loop",
+  "checkpoints_count": 0,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/e3/ffa9748839/0/metadata.json",
+      "transcript": "/e3/ffa9748839/0/full.jsonl",
+      "content_hash": "/e3/ffa9748839/0/content_hash.txt",
+      "prompt": "/e3/ffa9748839/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 99,
+    "cache_creation_tokens": 69133,
+    "cache_read_tokens": 1341803,
+    "output_tokens": 16793,
+    "api_call_count": 23
+  }
+}
